@@ -1,0 +1,11 @@
+version: "3.8"
+services:
+  web:
+    # command: composer install -n --prefer-dist
+    container_name: php_flase
+    build: ./
+    ports:
+      - "8070:80"
+    env_file: ./docker/.env
+    volumes:
+      - ./:/var/www/html/
