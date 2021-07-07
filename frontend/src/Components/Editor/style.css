@@ -1,0 +1,23 @@
+.editor-syntax-highlighter-wrapper {
+    position: relative;
+}
+
+.editor-syntax-highlighter-wrapper > input {
+    position: absolute;
+    top: 0;
+    left: 0;
+    color: transparent;
+    background-color: transparent;
+    border: none;
+    font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+    white-space: pre;
+    font-weight: 400;
+    font-size: 14px;
+    width: 100%;
+    padding: 7px;
+    caret-color: #91989c;
+}
+
+.editor-syntax-highlighter-wrapper pre {
+    margin-bottom: 0 !important;
+}

@@ -1,0 +1,114 @@
+.main-view-main {
+    color: aliceblue;
+    background-color: #3b3b3b;
+    height: 100vh;
+    display: flex;
+}
+
+.main-view-main .column-menu {
+    height: 100vh;
+    padding: 0;
+    width: 15%;
+    position: relative;
+
+}
+
+.column-workspace {
+    width: 85%;
+    max-height: 100vh;
+}
+
+.main-view-main .column-menu .movable-with-menu-handler {
+    position: absolute;
+    width: 3px;
+    height: 100%;
+    background-color: #323232;
+    box-shadow: -1px 1px 10px -4px rgba(0,0,0,0.58);
+    top: 0;
+    right: -1px;
+    cursor: col-resize;
+}
+
+.main-view-main .tabs-list {
+    display: block;
+    width: 100%;
+    height: 30px;
+    border-bottom: solid 1px #323232;
+}
+.main-view-main .tabs-list .tabs-render {
+
+}
+.main-view-main .tabs-list .tabs-render {
+    padding: 2px;
+}
+
+.main-view-main .tabs-list .tabs-render .tabs-render-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: row;
+}
+
+.main-view-main .tabs-list .tabs-render .tabs-render-list .tabs-render-list-item {
+    height: 28px;
+    margin-right: 1px;
+    background-color: #4e5052;
+    padding-left: 4px;
+    padding-right: 4px;
+    cursor: pointer;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+}
+
+.main-view-main .tabs-list .tabs-render .tabs-render-list .tabs-render-list-item.active {
+    background-color: #91989c;
+}
+
+.main-view-main .tabs-list .tabs-render .tabs-render-list .tabs-render-list-item .close-tab {
+    padding-left: 6px;
+    font-size: 10px;
+}
+.main-view-main .tabs-list .tabs-render .tabs-render-list .tabs-render-list-item .close-tab .close-tab-icon {
+    display: inline-block;
+    width: 15px;
+    height: 15px;
+    border-radius: 15px;
+    text-align: center;
+    line-height: 15px;
+}
+
+.main-view-main .tabs-list .tabs-render .tabs-render-list .tabs-render-list-item .close-tab .close-tab-icon:hover {
+    background-color: #bb5b5b;
+}
+
+
+.databases-list .data-base-names-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    overflow: auto;
+    max-height: calc(100vh - 131px);
+}
+
+.main-view-main .workspace{
+    max-width: 100%;
+    height: calc(100% - 30px);
+    overflow: auto;
+}
+.main-view-main .workspace > div {
+    height: 100%;
+    overflow: auto;
+}
+
+
+.databases-list .data-base-names-list .data-base-tables-list {
+    margin: 0 0 0 10px;
+    padding: 0;
+    list-style: none;
+    font-size: 14px;
+}
+
+.main-view-main .workspace .workspace-container {
+    height: 100%;
+}

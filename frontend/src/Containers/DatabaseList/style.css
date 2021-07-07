@@ -1,0 +1,35 @@
+.databases-list {
+    overflow: auto;
+}
+
+.databases-list .data-base-names-list .loading-item {
+    text-align: center;
+}
+
+.databases-list .data-base-names-list .data-base-name
+{
+
+    border-bottom: solid 1px #323232;
+    padding: 5px 0 5px 10px;
+    background-color: #4e5052;
+    cursor: pointer;
+}
+
+.databases-list .data-base-names-list .data-base-name:hover {
+    background-color: rgba(78, 80, 82, 0.82);
+}
+
+
+.databases-list .data-base-names-list .data-base-name .data-base-tables-list li {
+    border-bottom: solid 1px #323232;
+    border-left: solid 1px #323232;
+    padding: 3px 0 3px 7px;
+    background-color: #4e5052;
+    cursor: pointer;
+}
+
+.databases-list .data-base-names-list .data-base-name .data-base-tables-list li:hover {
+    background-color: rgba(78, 80, 82, 0.62);
+}
+
+

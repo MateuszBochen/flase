@@ -1,7 +1,7 @@
 FROM php:8.0-apache-buster
 
 
-RUN apt-get update && apt-get install -y libfreetype6-dev libjpeg62-turbo-dev libpng-dev libzip-dev libmagickwand-dev --no-install-recommends
+RUN apt-get update && apt-get install -y iputils-ping libfreetype6-dev libjpeg62-turbo-dev libpng-dev libzip-dev libmagickwand-dev --no-install-recommends
 
 RUN pecl install redis && pecl install xdebug && pecl install imagick && docker-php-ext-enable redis xdebug imagick
 

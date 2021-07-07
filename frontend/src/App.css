@@ -1,38 +1,46 @@
-.App {
-  text-align: center;
+
+.form-control {
+    color: #bcbcbc;
+    background-color: #4e5052;
+    border: 1px solid #54585a;
+}
+.form-control:focus {
+    color: #bcbcbc;
+    background-color: #4e5052;
+    border-color: #54585a;
+    outline: 0;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+@keyframes shake {
+    10%, 90% {
+        transform: translate3d(-1px, 0, 0);
+    }
+
+    20%, 80% {
+        transform: translate3d(2px, 0, 0);
+    }
+
+    30%, 50%, 70% {
+        transform: translate3d(-4px, 0, 0);
+    }
+
+    40%, 60% {
+        transform: translate3d(4px, 0, 0);
+    }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+.nice-scrollbar::-webkit-scrollbar{
+    width: 6px;
+    height: 7px;
 }
-
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+.nice-scrollbar::-webkit-scrollbar-thumb{
+    background: #595959;
+    border-radius: 10px;
 }
-
-.App-link {
-  color: #61dafb;
+.nice-scrollbar::-webkit-scrollbar-thumb:hover{
+    background: #828282;
 }
-
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.nice-scrollbar::-webkit-scrollbar-track{
+    background: #000000;
+    border-radius: 0;
 }

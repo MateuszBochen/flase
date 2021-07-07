@@ -1,0 +1,40 @@
+.cmp-table-data {
+    background-color: #4e5052;
+    height: 100%;
+    max-height: 100%;
+}
+.cmp-table-data .cmp-table-data-header{
+    height: 100px;
+}
+
+.cmp-table-data .cmp-table-data-content {
+    max-height: calc(100% - 100px);
+    height: calc(100% - 100px);
+    overflow: auto;
+}
+
+
+.cmp-table-data-navbar {
+    display: flex;
+    flex-wrap: wrap;
+}
+.cmp-table-data-navbar .cmp-table-data-navbar-buttons {
+    display: flex;
+    background-color: #2b2b2b;
+}
+.cmp-table-data-navbar .editor-syntax-highlighter-wrapper{
+    width: 100%;
+    flex: 1;
+}
+.cmp-table-data-navbar .cmp-table-data-navbar-buttons .icon{
+    height: 35px;
+    width: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.cmp-table-data-navbar .cmp-table-data-navbar-buttons .icon.database-name {
+    padding-left: 5px;
+    padding-bottom: 4px;
+    width: auto;
+}

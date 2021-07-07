@@ -1,0 +1,11 @@
+.loading-button {
+
+}
+
+.loading-button span {
+    margin-left: 5px;
+}
+
+.loading-button .text-secondary {
+    color: #bed1e2!important;
+}
