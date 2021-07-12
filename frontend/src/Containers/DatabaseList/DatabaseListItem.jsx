@@ -18,6 +18,7 @@ class DatabaseListItem extends Component {
 
         this.state = {
             isOpen,
+            filter: '',
         };
 
         if (isOpen) {
@@ -36,10 +37,6 @@ class DatabaseListItem extends Component {
         }
     }
 
-    onMouseDownHandler = (e) => {
-
-    }
-
     loadTables = (dataBaseName) => {
         this.dataBaseRequest
             .getTablesForDatabase(dataBaseName)
@@ -53,6 +50,7 @@ class DatabaseListItem extends Component {
 
     showTables = (tables) => {
         const { databaseItem } = this.props;
+        const { filter } = this.state;
 
         if (!tables.isLoaded) {
             return (
@@ -71,7 +69,15 @@ class DatabaseListItem extends Component {
         }
         return (
             <ul className="data-base-tables-list">
-                {tables.tables.map(item => (
+                <li className="data-base-tables-list-search-item">
+                    <input
+                        type="text"
+                        className="form-control"
+                        value={filter}
+                        onChange={(e) => this.setState({filter: e.target.value.toLowerCase()})}
+                    />
+                </li>
+                {tables.tables.filter((item) => item.toLowerCase().includes(filter)).map(item => (
                     <li
                         key={`${databaseItem.name}_${item}`}
                         onClick={() => this.workPlaceAction.openTableDataTab(databaseItem.name, item)}
