@@ -25,7 +25,7 @@ class Editor extends Component {
                     {this.props.children}
                 </SyntaxHighlighter>
                 <input
-                    spellcheck="false"
+                    spellCheck={false}
                     type="text"
                     value={this.props.children}
                     onChange={this.props.onChange}

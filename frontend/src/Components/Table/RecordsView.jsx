@@ -4,6 +4,7 @@ import { faArrowAltCircleLeft, faArrowAltCircleRight } from '@fortawesome/fontaw
 import HeaderColumns from './RecordsViewParts/HeaderColumns';
 import DataGrid from './RecordsViewParts/DataGrid';
 import './style.css';
+import {Col, Row} from "react-bootstrap";
 
 class RecordsView extends Component {
     constructor(props) {
@@ -119,6 +120,7 @@ class RecordsView extends Component {
 
     render() {
         const {
+            onReferenceClick,
             columns,
             records,
             page,
@@ -152,36 +154,44 @@ class RecordsView extends Component {
                             />
                         </thead>
                         <DataGrid
+                            onReferenceClick={onReferenceClick}
                             columns={columns}
                             records={records}
                         />
                     </table>
                 </div>
                 <div className="cmp-records-view-pager">
-                    <div className="cmp-records-view-pager-item pager">
-                        <FontAwesomeIcon
-                            role="button"
-                            icon={faArrowAltCircleLeft}
-                            onClick={() => this.onChangePageHandler(page - 1)}
-                        />
-                        <input
-                            className="form-control"
-                            type="number"
-                            value={page}
-                        />
-                        <FontAwesomeIcon
-                            onClick={() => this.onChangePageHandler(page + 1)}
-                            role="button"
-                            icon={faArrowAltCircleRight}
-                        />
-                    </div>
-                    <div className="cmp-records-view-pager-item">
-                        Page: {page}&nbsp;/&nbsp;{Math.ceil(total / perPage)}
-                    </div>
-                    <div className="cmp-records-view-pager-item">
-                        records: { page * perPage } - {records.length * (page+1)}
-                        &nbsp;/&nbsp;{total}
-                    </div>
+                    <Row>
+                        <Col sm={2}>
+                            <div className="cmp-records-view-pager-item pager">
+                                <FontAwesomeIcon
+                                    role="button"
+                                    icon={faArrowAltCircleLeft}
+                                    onClick={() => this.onChangePageHandler(page - 1)}
+                                />
+                                <input
+                                    className="form-control"
+                                    type="number"
+                                    value={page}
+                                    onChange={(e) => this.onChangePageHandler(e.target.value)}
+                                />
+                                <FontAwesomeIcon
+                                    onClick={() => this.onChangePageHandler(page + 1)}
+                                    role="button"
+                                    icon={faArrowAltCircleRight}
+                                />
+                            </div>
+                        </Col>
+                        <Col sm={2}>
+                            Page: {page}&nbsp;/&nbsp;{Math.ceil(total / perPage)}
+                        </Col>
+                        <Col sm={2}>
+                            Page: {page}&nbsp;/&nbsp;{Math.ceil(total / perPage)}
+                        </Col>
+                        <Col sm={6}>
+
+                        </Col>
+                    </Row>
                 </div>
             </div>
         );

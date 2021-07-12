@@ -28,7 +28,11 @@ class QueryService
         if ($tableName) {
             $columns = $this->tableService->getTableColumns($connection, $databaseName, $tableName);
         }
+        $microTimeStart = microtime(true);
         $data = $this->executeQuery($connection, $query);
+        $microTimeEnd = microtime(true);
+
+        $queryTime = $microTimeEnd - $microTimeStart;
 
         if (!count($data)) {
             if (count($columns)) {
@@ -36,12 +40,14 @@ class QueryService
                     'columns' => $columns,
                     'records' => [],
                     'total' => 0,
+                    'queryTime' => $queryTime,
                 ];
             } else {
                 return [
                     'columns' => [],
                     'records' => [],
                     'total' => 0,
+                    'queryTime' => $queryTime,
                 ];
             }
         }
@@ -51,6 +57,7 @@ class QueryService
             'columns' => $this->matchColumns($data, $columns),
             'records' => $data,
             'total' => $this->countQuery($connection, $query),
+            'queryTime' => $queryTime,
         ];
     }
 

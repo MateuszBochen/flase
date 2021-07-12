@@ -7,6 +7,8 @@ import LoaderSquare from '../../Components/Loader/LoaderSquare';
 import RecordsView from '../../Components/Table/RecordsView';
 import Editor from '../../Components/Editor/Editor';
 import SqlRegex from '../../Library/SqlRegex';
+import WorkPlaceAction from '../../Actions/WorkPlaceAction';
+import IconButton from '../../Components/Buttons/IconButton';
 import './style.css';
 
 
@@ -15,34 +17,75 @@ class TableData extends Component {
         super(props);
         const { tableName, query } = this.props;
 
+        const currentQuery = query || `SELECT * FROM \`${tableName}\` WHERE 1 LIMIT 50`;
+
         this.state = {
             isLoading: true,
-            query: query || `SELECT * FROM \`${tableName}\` WHERE 1 LIMIT 50`,
+            query: currentQuery,
             data: [],
             page: 0,
             perPage: 50,
+            queries: [currentQuery],
+            queryIndex: 0,
         }
 
         this.sqlRequest = new SqlRequest();
         this.sqlRegex = new SqlRegex();
-
-
-
-        console.log('AAA nowy nie');
-    }
-
-    pageChangeHandler = (newPageNumber) => {
-        const sql = this.sqlRegex.setLimitToSql(this.state.query, newPageNumber * this.state.perPage, this.state.perPage);
-
-        this.sendQuery(sql, newPageNumber);
+        this.workPlaceAction = new WorkPlaceAction();
     }
 
     componentDidMount() {
         this.sendQuery();
     }
 
+    pageChangeHandler = (newPageNumber) => {
+        const sql = this.sqlRegex.setLimitToSql(this.state.query, newPageNumber * this.state.perPage, this.state.perPage);
+        this.addQueryToHistory(sql);
+        this.sendQuery(sql, newPageNumber);
+    }
+
+    relationClickHandler = (button, column, value) => {
+        const { database } = this.props;
+        const query = `SELECT * FROM \`${column.referenceTable}\` WHERE \`${column.referenceColumn}\` = '${value}' LIMIT 50`;
+        if (button === 1) {
+            this.workPlaceAction.addNewTableDataTab(database, column.name, {query});
+        }
+
+        if (button === 0) {
+            this.addQueryToHistory(query);
+            this.sendQuery(query);
+        }
+    }
+
+    goToQueryHandler = (queryIndex) => {
+        const { queries } = this.state;
+        const query = queries[queryIndex];
+        if (query) {
+            this.sendQuery(query);
+            this.setState({
+                queryIndex: queryIndex,
+            });
+        }
+    }
+
+    addQueryToHistory = (newQuery) => {
+        let { queries, queryIndex } = this.state;
+        if (queries.length - 1 > queryIndex) {
+            queries = queries.slice(0, queryIndex + 1);
+        }
+
+        this.setState({
+            query: newQuery,
+            queries: [...queries, newQuery],
+            queryIndex: queryIndex + 1,
+        });
+    }
+
     sendQuery = (query, page) => {
         const { database } = this.props;
+        this.setState({
+            isLoading: true,
+        });
         this.sqlRequest
             .query(database, query || this.state.query)
             .then((response) => {
@@ -66,6 +109,7 @@ class TableData extends Component {
                 </div>
             );
         }
+
         return (
             <div className="cmp-table-data">
                 <RecordsView
@@ -75,6 +119,7 @@ class TableData extends Component {
                     page={page}
                     perPage={50}
                     onPageChange={this.pageChangeHandler}
+                    onReferenceClick={this.relationClickHandler}
                 />
             </div>
         );
@@ -82,19 +127,26 @@ class TableData extends Component {
     }
 
     render() {
-        const { query } = this.state;
-        const { database, tableName } = this.props;
-
+        const { query, queries, queryIndex } = this.state;
+        const { database } = this.props;
         return (
             <div className="cmp-table-data">
                 <div className="cmp-table-data-header">
                     <div className="cmp-table-data-navbar">
                         <div className="cmp-table-data-navbar-buttons">
                             <div className="icon">
-                                <FontAwesomeIcon icon={faArrowLeft} />
+                                <IconButton
+                                    disabled={queryIndex <= 0 }
+                                    icon={faArrowLeft}
+                                    onClick={() => this.goToQueryHandler(queryIndex - 1)}
+                                />
                             </div>
                             <div className="icon">
-                                <FontAwesomeIcon icon={faArrowRight} />
+                                <IconButton
+                                    disabled={queryIndex + 2 > queries.length}
+                                    icon={faArrowRight}
+                                    onClick={() => this.goToQueryHandler(queryIndex + 1)}
+                                />
                             </div>
                             <div className="icon database-name">
                                 {database}://

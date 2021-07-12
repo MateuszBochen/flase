@@ -6,26 +6,30 @@ class WorkPlaceAction extends BaseAction {
         this.makeDispatch('WorkPlaceAction_switchTab', tabNumber);
     }
 
-    addNewTableDataTab = (databaseName, table) => {
+    addNewTableDataTab = (databaseName, table, props) => {
+        const defProps = { ...props} || {};
         const data = {
             id: (new Date()).getTime(),
             tabName: `${databaseName}:${table}`,
             tabProperties: {
                 database: databaseName,
                 tableName: table,
+                ...defProps
             },
             renderComponent: TableData,
         }
         this.addNewTab(data);
     };
 
-    openTableDataTab = (databaseName, table) => {
+    openTableDataTab = (databaseName, table, props) => {
+        const defProps = { ...props} || {};
         const data = {
             id: (new Date()).getTime(),
             tabName: `${databaseName}:${table}`,
             tabProperties: {
                 database: databaseName,
                 tableName: table,
+                ...defProps
             },
             renderComponent: TableData,
         }

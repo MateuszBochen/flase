@@ -1,5 +1,5 @@
 import React, {Component} from 'react';
-import {Button, Spinner} from "react-bootstrap";
+import { Button, Spinner } from 'react-bootstrap';
 import './style.css';
 
 class LoadingButton extends Component {
