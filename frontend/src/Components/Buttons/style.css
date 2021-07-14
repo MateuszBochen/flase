@@ -9,3 +9,7 @@
 .loading-button .text-secondary {
     color: #bed1e2!important;
 }
+
+.icon-button.icon-button.btn.btn-link {
+    color: #fff;
+}

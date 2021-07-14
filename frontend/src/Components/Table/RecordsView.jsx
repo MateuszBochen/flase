@@ -76,7 +76,7 @@ class RecordsView extends Component {
         const headerRect = this.tableHeaderRef.getBoundingClientRect();
         this.stickyHeaderRef.style.width = `${headerRect.width}px`;
 
-        const { columns} = this.props;
+        const { columns, onSort } = this.props;
 
         return (
             <table>
@@ -84,6 +84,7 @@ class RecordsView extends Component {
                     <HeaderColumns
                         columns={columns}
                         onColumnDidMount={this.onHeaderStickyColumnDidMount}
+                        onSort={onSort}
                     />
                 </thead>
             </table>
@@ -126,6 +127,7 @@ class RecordsView extends Component {
             page,
             total,
             perPage,
+            onSort,
         } = this.props;
         return (
             <div
@@ -151,6 +153,7 @@ class RecordsView extends Component {
                             <HeaderColumns
                                 columns={columns}
                                 onColumnDidMount={this.onHeaderStaticColumnDidMount}
+                                onSort={onSort}
                             />
                         </thead>
                         <DataGrid
@@ -186,7 +189,8 @@ class RecordsView extends Component {
                             Page: {page}&nbsp;/&nbsp;{Math.ceil(total / perPage)}
                         </Col>
                         <Col sm={2}>
-                            Page: {page}&nbsp;/&nbsp;{Math.ceil(total / perPage)}
+                            records: { page * perPage } - {records.length * (page+1)}
+                            &nbsp;/&nbsp;{total}
                         </Col>
                         <Col sm={6}>
 

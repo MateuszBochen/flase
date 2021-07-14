@@ -57,6 +57,30 @@
     border-left: solid 1px #91989c;
     border-bottom: solid 1px #91989c;
     padding: 0 5px;
+    white-space: nowrap;
+}
+
+.cmp-records-view table thead th .column-name-wrapper {
+    display: flex;
+    white-space: nowrap;
+    flex-direction: row;
+    flex-wrap: nowrap;
+}
+.cmp-records-view table thead th .column-name {
+
+}
+
+.cmp-records-view table thead th .sort-box {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    margin-left: auto;
+    padding-left: 4px;
+}
+
+.cmp-records-view table thead th .sort-box button {
+    padding: 0 4px;
+
 }
 
 .cmp-records-view table tbody tr {

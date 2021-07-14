@@ -1,11 +1,8 @@
 import React, {Component} from 'react';
-
+import IconButton from '../../Buttons/IconButton';
+import {faAngleUp, faAngleDown} from "@fortawesome/free-solid-svg-icons";
 
 class HeaderColumns extends Component {
-    clickHandler = (e, column) => {
-
-    }
-
     columnMountHandler = (index, ref) => {
         const { onColumnDidMount } = this.props;
         if (typeof onColumnDidMount === 'function') {
@@ -18,11 +15,45 @@ class HeaderColumns extends Component {
         }
     }
 
+    renderSortIcons = (column) => {
+        const { onSort } = this.props;
+
+        if (typeof onSort !== 'function') {
+            return null;
+        }
+
+        return (
+            <div className="sort-box">
+                <IconButton
+                    icon={faAngleUp}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault()
+                        onSort(column, 'ASC')
+                    }}
+                />
+                <IconButton
+                    icon={faAngleDown}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault()
+                        onSort(column, 'DESC')
+                    }}
+                />
+            </div>
+        )
+    }
+
     renderColumn = (column) => {
         if (typeof column === 'string') {
             return (
-                <th key={column}>
-                    {column}
+                <th
+                    key={column}
+                >
+                    <div className="column-name">
+                        {column}
+                    </div>
+                    {this.renderSortIcons(column)}
                 </th>
             );
         }
@@ -32,12 +63,12 @@ class HeaderColumns extends Component {
                 key={column.name}
                 ref={(node) => this.columnMountHandler(column, node)}
             >
-                {column.name}
-                <span
-                    onClick={(e) => this.clickHandler(e, column)}
-                >
-                    x
-                </span>
+                <div className="column-name-wrapper">
+                    <div className="column-name">
+                        {column.name}
+                    </div>
+                    {this.renderSortIcons(column)}
+                </div>
             </th>
         );
     }

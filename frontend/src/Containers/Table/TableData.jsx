@@ -1,5 +1,4 @@
 import React, {Component} from 'react';
-import { FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import { faArrowLeft, faArrowRight } from '@fortawesome/fontawesome-free-solid';
 import SqlRequest from '../../API/SqlRequest';
 import BaseRequest from "../../API/BaseRequest";
@@ -55,6 +54,13 @@ class TableData extends Component {
             this.addQueryToHistory(query);
             this.sendQuery(query);
         }
+    }
+
+    sortHandler = (column, direction) => {
+
+        const sql = this.sqlRegex.setOrderByToSql(this.state.query, column.name, direction);
+        this.addQueryToHistory(sql);
+        this.sendQuery(sql);
     }
 
     goToQueryHandler = (queryIndex) => {
@@ -120,6 +126,7 @@ class TableData extends Component {
                     perPage={50}
                     onPageChange={this.pageChangeHandler}
                     onReferenceClick={this.relationClickHandler}
+                    onSort={this.sortHandler}
                 />
             </div>
         );
