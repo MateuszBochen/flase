@@ -57,10 +57,10 @@ class TableData extends Component {
     }
 
     sortHandler = (column, direction) => {
-
+        const { page } = this.state;
         const sql = this.sqlRegex.setOrderByToSql(this.state.query, column.name, direction);
         this.addQueryToHistory(sql);
-        this.sendQuery(sql);
+        this.sendQuery(sql, page);
     }
 
     goToQueryHandler = (queryIndex) => {
