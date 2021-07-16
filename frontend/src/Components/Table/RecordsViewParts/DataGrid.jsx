@@ -15,6 +15,15 @@ class DataGrid extends Component {
 
     columnRender = (rowItem, columns) => {
         return columns.map((column) => {
+            if (typeof column === 'string') {
+                return (
+                    <td>
+                        {rowItem[column]}
+                    </td>
+                );
+            }
+
+
             if (column.referenceTable && column.referenceColumn) {
                 return (
                     <td>

@@ -64,11 +64,11 @@ class SelectController
 
         try {
             $conn = DriverManager::getConnection($connectionParams);
-            if ($tableName) {
-                $data = $queryService->select($conn, $databaseName, $query);
-                $array = $serializer->serialize($data, 'json');
-                return new JsonResponse(['message' => 'ok', 'data' => json_decode($array)], Response::HTTP_OK);
-            }
+
+            $data = $queryService->select($conn, $databaseName, $query);
+            $array = $serializer->serialize($data, 'json');
+            return new JsonResponse(['message' => 'ok', 'data' => json_decode($array)], Response::HTTP_OK);
+
 
         } catch (\Exception $exception) {
             return new JsonResponse(
@@ -83,7 +83,5 @@ class SelectController
                 Response::HTTP_INTERNAL_SERVER_ERROR
             );
         }
-
-        return new JsonResponse();
     }
 }

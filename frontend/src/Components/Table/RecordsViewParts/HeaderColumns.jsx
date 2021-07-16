@@ -1,6 +1,9 @@
 import React, {Component} from 'react';
+import PropTypes from 'prop-types';
 import IconButton from '../../Buttons/IconButton';
 import {faAngleUp, faAngleDown} from "@fortawesome/free-solid-svg-icons";
+import Column from "../../../Library/DataTypes/Column";
+
 
 class HeaderColumns extends Component {
     columnMountHandler = (index, ref) => {
@@ -44,16 +47,21 @@ class HeaderColumns extends Component {
         )
     }
 
+    /**
+     *
+     */
     renderColumn = (column) => {
         if (typeof column === 'string') {
             return (
                 <th
                     key={column}
                 >
-                    <div className="column-name">
-                        {column}
+                    <div className="column-name-wrapper">
+                        <div className="column-name">
+                            {column}
+                        </div>
+                        {this.renderSortIcons(column)}
                     </div>
-                    {this.renderSortIcons(column)}
                 </th>
             );
         }
@@ -81,6 +89,12 @@ class HeaderColumns extends Component {
             </tr>
         );
     }
+}
+
+HeaderColumns.propTypes = {
+    columns: PropTypes.arrayOf(PropTypes.instanceOf(Column)),
+    onColumnDidMount: PropTypes.func,
+    onSort: PropTypes.func,
 }
 
 export default HeaderColumns;

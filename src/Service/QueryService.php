@@ -29,7 +29,16 @@ class QueryService
             $columns = $this->tableService->getTableColumns($connection, $databaseName, $tableName);
         }
         $microTimeStart = microtime(true);
+
+        $connection->executeQuery("SET profiling = 1");
         $data = $this->executeQuery($connection, $query);
+        $profile = $this->executeQuery($connection, "SHOW PROFILES");
+        if (count($profile)) {
+            $profile = reset($profile);
+        }
+
+
+
         $microTimeEnd = microtime(true);
 
         $queryTime = $microTimeEnd - $microTimeStart;
@@ -40,46 +49,50 @@ class QueryService
                     'columns' => $columns,
                     'records' => [],
                     'total' => 0,
-                    'queryTime' => $queryTime,
+                    'queryTime' => $profile['Duration'],
                 ];
             } else {
                 return [
                     'columns' => [],
                     'records' => [],
                     'total' => 0,
-                    'queryTime' => $queryTime,
+                    'queryTime' => $profile['Duration'],
                 ];
             }
         }
-
 
         return [
             'columns' => $this->matchColumns($data, $columns),
             'records' => $data,
             'total' => $this->countQuery($connection, $query),
-            'queryTime' => $queryTime,
+            'queryTime' => $profile['Duration'],
+            'profile' => $profile,
         ];
     }
 
     private function countQuery(Connection $connection, string $query):int
     {
-        $explodeQuery = explode(' FROM ', $query);
-        unset($explodeQuery[0]);
+        try {
+            $explodeQuery = explode(' FROM ', $query);
+            unset($explodeQuery[0]);
 
-        $stringQuery = implode(' FROM ', $explodeQuery);
-        $stringQuery = explode(' LIMIT ', $stringQuery);
+            $stringQuery = implode(' FROM ', $explodeQuery);
+            $stringQuery = explode(' LIMIT ', $stringQuery);
 
-        if (count($stringQuery) > 1) {
-            unset($stringQuery[count($stringQuery)-1]);
-            $stringQuery = implode(' LIMIT ', $stringQuery);
-        } else {
-            $stringQuery = $stringQuery[0];
+            if (count($stringQuery) > 1) {
+                unset($stringQuery[count($stringQuery) - 1]);
+                $stringQuery = implode(' LIMIT ', $stringQuery);
+            } else {
+                $stringQuery = $stringQuery[0];
+            }
+
+            $selectQuery = "SELECT COUNT(*) FROM $stringQuery";
+            $stmt = $connection->executeQuery($selectQuery);
+            $data = $stmt->fetchNumeric();
+            return (int)reset($data);
+        } catch (\Exception $e) {
+            return 0;
         }
-
-        $selectQuery = "SELECT COUNT(*) FROM $stringQuery";
-        $stmt = $connection->executeQuery($selectQuery);
-        $data = $stmt->fetchNumeric();
-        return (int)reset($data);
     }
 
     /**

@@ -1,10 +1,12 @@
 import React, {Component} from 'react';
+import PropTypes from 'prop-types';
 import { FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import { faArrowAltCircleLeft, faArrowAltCircleRight } from '@fortawesome/fontawesome-free-solid';
 import HeaderColumns from './RecordsViewParts/HeaderColumns';
 import DataGrid from './RecordsViewParts/DataGrid';
 import './style.css';
 import {Col, Row} from "react-bootstrap";
+import Column from '../../Library/DataTypes/Column';
 
 class RecordsView extends Component {
     constructor(props) {
@@ -200,6 +202,16 @@ class RecordsView extends Component {
             </div>
         );
     }
+}
+
+RecordsView.propTypes = {
+    columns: PropTypes.arrayOf(PropTypes.instanceOf(Column)),
+    records: PropTypes.arrayOf(PropTypes.object),
+    total: PropTypes.number,
+    page: PropTypes.number,
+    perPage: PropTypes.number,
+    onPageChange: PropTypes.func,
+    onSort: PropTypes.func,
 }
 
 export default RecordsView;

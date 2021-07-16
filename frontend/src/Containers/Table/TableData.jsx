@@ -8,6 +8,7 @@ import Editor from '../../Components/Editor/Editor';
 import SqlRegex from '../../Library/SqlRegex';
 import WorkPlaceAction from '../../Actions/WorkPlaceAction';
 import IconButton from '../../Components/Buttons/IconButton';
+import TableDataLibrary from '../../Library/DataHelpers/TableData';
 import './style.css';
 
 
@@ -31,6 +32,7 @@ class TableData extends Component {
         this.sqlRequest = new SqlRequest();
         this.sqlRegex = new SqlRegex();
         this.workPlaceAction = new WorkPlaceAction();
+        this.tableDataLibrary = new TableDataLibrary();
     }
 
     componentDidMount() {
@@ -103,6 +105,11 @@ class TableData extends Component {
                         query: query || this.state.query,
                     });
                 }
+            })
+            .catch(() => {
+                this.setState({
+                    isLoading: false,
+                });
             });
     }
 
@@ -116,16 +123,18 @@ class TableData extends Component {
             );
         }
 
+        ;
+
         return (
             <div className="cmp-table-data">
                 <RecordsView
-                    columns={data.columns}
+                    columns={this.tableDataLibrary.prepareColumnsDataType(data.columns)}
                     records={data.records}
                     total={data.total}
                     page={page}
                     perPage={50}
                     onPageChange={this.pageChangeHandler}
-                    onReferenceClick={this.relationClickHandler}
+                    // onReferenceClick={this.relationClickHandler}
                     onSort={this.sortHandler}
                 />
             </div>

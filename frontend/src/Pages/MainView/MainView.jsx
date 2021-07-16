@@ -3,6 +3,7 @@ import Logo from '../../Components/Workspce/Logo/Logo';
 import DatabaseList from '../../Containers/DatabaseList/DatabaseList';
 import TabsRender from './TabsRender';
 import WorkPlaceRender from './WorkPlaceRender';
+import MainMenu from '../../Components/MainMenu/MainMenu';
 import './style.css';
 
 class MainView extends Component {
@@ -37,6 +38,7 @@ class MainView extends Component {
                     style={{width: menuWidth}}
                 >
                     <Logo />
+                    <MainMenu />
                     <DatabaseList />
                     <div
                         className="movable-with-menu-handler"

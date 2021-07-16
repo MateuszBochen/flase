@@ -1,18 +1,6 @@
 import React from 'react';
 import WhatsNew from '../Containers/WhatsNew/WhatsNew';
 
-function createInstance() {
-    let func = null;
-    return {
-        save: (f) => {
-            func = f;
-        },
-        restore: (context) => {
-            func && func(context);
-        }
-    }
-}
-
 class WorkPlaceReducer {
     constructor() {
         this.initalState = {
