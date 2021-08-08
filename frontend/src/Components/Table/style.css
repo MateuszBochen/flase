@@ -101,7 +101,3 @@
     overflow: hidden;
     text-overflow: ellipsis;
 }
-.cmp-records-view table tbody td .reference {
-    text-decoration: underline;
-    cursor: pointer;
-}

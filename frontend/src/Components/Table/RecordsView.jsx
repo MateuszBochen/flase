@@ -123,7 +123,6 @@ class RecordsView extends Component {
 
     render() {
         const {
-            onReferenceClick,
             columns,
             records,
             page,
@@ -159,7 +158,6 @@ class RecordsView extends Component {
                             />
                         </thead>
                         <DataGrid
-                            onReferenceClick={onReferenceClick}
                             columns={columns}
                             records={records}
                         />

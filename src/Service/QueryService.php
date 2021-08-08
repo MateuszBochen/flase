@@ -28,20 +28,16 @@ class QueryService
         if ($tableName) {
             $columns = $this->tableService->getTableColumns($connection, $databaseName, $tableName);
         }
-        $microTimeStart = microtime(true);
 
         $connection->executeQuery("SET profiling = 1");
         $data = $this->executeQuery($connection, $query);
-        $profile = $this->executeQuery($connection, "SHOW PROFILES");
-        if (count($profile)) {
-            $profile = reset($profile);
+        $profiles = $this->executeQuery($connection, "SHOW PROFILES");
+        $profile = [
+            'Duration' => 0.0,
+        ];
+        if (count($profiles)) {
+            $profile = reset($profiles);
         }
-
-
-
-        $microTimeEnd = microtime(true);
-
-        $queryTime = $microTimeEnd - $microTimeStart;
 
         if (!count($data)) {
             if (count($columns)) {
@@ -50,6 +46,7 @@ class QueryService
                     'records' => [],
                     'total' => 0,
                     'queryTime' => $profile['Duration'],
+                    'profile' => $profiles,
                 ];
             } else {
                 return [
@@ -57,6 +54,7 @@ class QueryService
                     'records' => [],
                     'total' => 0,
                     'queryTime' => $profile['Duration'],
+                    'profile' => $profiles,
                 ];
             }
         }
@@ -66,7 +64,7 @@ class QueryService
             'records' => $data,
             'total' => $this->countQuery($connection, $query),
             'queryTime' => $profile['Duration'],
-            'profile' => $profile,
+            'profile' => $profiles,
         ];
     }
 

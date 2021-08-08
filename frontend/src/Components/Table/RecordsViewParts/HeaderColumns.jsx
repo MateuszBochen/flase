@@ -48,24 +48,9 @@ class HeaderColumns extends Component {
     }
 
     /**
-     *
+     * @param {Column} column - column object
      */
     renderColumn = (column) => {
-        if (typeof column === 'string') {
-            return (
-                <th
-                    key={column}
-                >
-                    <div className="column-name-wrapper">
-                        <div className="column-name">
-                            {column}
-                        </div>
-                        {this.renderSortIcons(column)}
-                    </div>
-                </th>
-            );
-        }
-
         return (
             <th
                 key={column.name}

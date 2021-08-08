@@ -9,10 +9,13 @@ import SqlRegex from '../../Library/SqlRegex';
 import WorkPlaceAction from '../../Actions/WorkPlaceAction';
 import IconButton from '../../Components/Buttons/IconButton';
 import TableDataLibrary from '../../Library/DataHelpers/TableData';
+import CellValue from './CellValue';
+
 import './style.css';
 
 
 class TableData extends Component {
+
     constructor(props) {
         super(props);
         const { tableName, query } = this.props;
@@ -33,6 +36,7 @@ class TableData extends Component {
         this.sqlRegex = new SqlRegex();
         this.workPlaceAction = new WorkPlaceAction();
         this.tableDataLibrary = new TableDataLibrary();
+        this.hasPrimary = null;
     }
 
     componentDidMount() {
@@ -45,14 +49,22 @@ class TableData extends Component {
         this.sendQuery(sql, newPageNumber);
     }
 
-    relationClickHandler = (button, column, value) => {
+    /**
+     * @param {MouseEvent} event
+     * @param {Column} column
+     * @param {any} value
+     */
+    relationClickHandler = (event, column, value) => {
+        event.stopPropagation();
+        event.preventDefault();
+
         const { database } = this.props;
         const query = `SELECT * FROM \`${column.referenceTable}\` WHERE \`${column.referenceColumn}\` = '${value}' LIMIT 50`;
-        if (button === 1) {
+        if (event.button === 1) {
             this.workPlaceAction.addNewTableDataTab(database, column.name, {query});
         }
 
-        if (button === 0) {
+        if (event.button === 0) {
             this.addQueryToHistory(query);
             this.sendQuery(query);
         }
@@ -113,6 +125,87 @@ class TableData extends Component {
             });
     }
 
+    checkForPrimary = (columns) => {
+        if (this.hasPrimary !== null) {
+            return this.hasPrimary;
+        }
+
+        columns.forEach((column) => {
+            if (column.autoIncrement === true) {
+                this.hasPrimary = true;
+            }
+        });
+
+        if (!this.hasPrimary) {
+            this.hasPrimary = false;
+        }
+
+        return this.hasPrimary;
+    }
+
+    /**
+     * @param {Column} column - column object
+     * @param {string} newValue - row with all data
+     * @param {object} rowItem - row with all data
+     */
+    onUpdateCellValue = (column, newValue, rowItem) => {
+        const { data } = this.state;
+
+        let primaryColumnName = null;
+        let primaryColumnValue = null;
+        data.columns.forEach((column) => {
+            if (column.autoIncrement === true) {
+                primaryColumnName = column.name;
+            }
+        });
+
+        if (primaryColumnName === null) {
+            return;
+        }
+
+        primaryColumnValue = rowItem[primaryColumnName];
+
+        const { database, tableName } = this.props;
+
+        this.sqlRequest
+            .simpleUpdate(database, tableName, primaryColumnName, primaryColumnValue, column.name, newValue)
+            .then((response) => {
+                /*this.sqlRequest
+                    .query(database, this.state.query)
+                    .then((response) => {
+                        if (response.status === BaseRequest.STATUS_OK) {
+                            this.setState({
+                                data: response.data.data,
+                            });
+                        }
+                    });*/
+            });
+    }
+
+    /**
+     * @param {Column} column - column object
+     * @param {Array} rowObject - row with all data
+     */
+    cellFunction = (column, rowObject) => {
+        const { data } = this.state;
+        if (rowObject[column.name] === undefined) {
+            return ('<no-value>');
+        }
+
+        const hasPrimary = this.checkForPrimary(this.tableDataLibrary.prepareColumnsDataType(data.columns));
+
+        return (
+            <CellValue
+                key={rowObject[column.name]}
+                column={column}
+                rowItem={rowObject}
+                onRelationClick={this.relationClickHandler}
+                hasPrimary={hasPrimary}
+                onUpdate={this.onUpdateCellValue}
+            />
+        );
+    }
+
     renderData = () => {
         const { isLoading, data, page } = this.state;
         if (isLoading) {
@@ -123,18 +216,15 @@ class TableData extends Component {
             );
         }
 
-        ;
-
         return (
             <div className="cmp-table-data">
                 <RecordsView
-                    columns={this.tableDataLibrary.prepareColumnsDataType(data.columns)}
+                    columns={this.tableDataLibrary.addFunctionsToColumns(this.tableDataLibrary.prepareColumnsDataType(data.columns), this.cellFunction)}
                     records={data.records}
                     total={data.total}
                     page={page}
                     perPage={50}
                     onPageChange={this.pageChangeHandler}
-                    // onReferenceClick={this.relationClickHandler}
                     onSort={this.sortHandler}
                 />
             </div>

@@ -1,45 +1,21 @@
 import React, {Component} from 'react';
+import PropTypes from 'prop-types';
+import Column from '../../../Library/DataTypes/Column';
 class DataGrid extends Component {
-
-
-    relationClickHandler = (e, column, value) => {
-        e.stopPropagation();
-        e.preventDefault();
-
-        const { onReferenceClick } = this.props;
-        if (typeof onReferenceClick === 'function') {
-            onReferenceClick(e.button, column, value);
-        }
-    }
-
-
     columnRender = (rowItem, columns) => {
         return columns.map((column) => {
-            if (typeof column === 'string') {
+            const cellValue = rowItem[column.name];
+            const key = `${column.name}${cellValue}`;
+            if (column.function) {
                 return (
-                    <td>
-                        {rowItem[column]}
+                    <td key={key} style={{height: '100%'}}>
+                        {column.function(column, rowItem)}
                     </td>
                 );
             }
-
-
-            if (column.referenceTable && column.referenceColumn) {
-                return (
-                    <td>
-                        <span
-                            onMouseDown={(e) => this.relationClickHandler(e, column, rowItem[column.name])}
-                            className="reference"
-                        >
-                            {rowItem[column.name]}
-                        </span>
-                    </td>
-                );
-            }
-
 
             return (
-                <td>
+                <td key={key}>
                     {rowItem[column.name]}
                 </td>
             );
@@ -65,6 +41,11 @@ class DataGrid extends Component {
         );
     }
 
+}
+
+DataGrid.propTypes = {
+    columns: PropTypes.arrayOf(PropTypes.instanceOf(Column)),
+    records: PropTypes.array,
 }
 
 export default DataGrid;

@@ -8,6 +8,7 @@ class Column {
     referenceColumn = false;
     referenceTable = false;
     type = false;
+    function = null;
 }
 
 export default Column;

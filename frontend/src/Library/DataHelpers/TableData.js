@@ -14,10 +14,15 @@ class TableData {
         });
     }
 
-    addFunctionsToColumns(columns, functionName) {
+    addFunctionsToColumns(columns, func) {
+        return columns.map((item) => {
+            if (item instanceof Column) {
+                item.function = func;
+            }
 
+            return item;
+        });
     }
-
 }
 
 export default TableData;
