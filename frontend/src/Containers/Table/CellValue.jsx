@@ -1,13 +1,13 @@
 import React, {Component} from 'react';
-import onClickOutside from 'react-onclickoutside';
+
 import PropTypes from 'prop-types';
 import Column from '../../Library/DataTypes/Column';
+import EditInput from "./EditInput";
 
 class CellValue extends Component {
     constructor(props) {
         super(props);
         const { column, rowItem } = this.props;
-
         this.state = {
             isEdit: false,
             savedValue: rowItem[column.name],
@@ -15,8 +15,7 @@ class CellValue extends Component {
         }
     }
 
-
-    handleClickOutside = () => {
+    handleCancelValue = () => {
         const { savedValue } = this.state;
         this.setState({
             isEdit: false,
@@ -24,34 +23,22 @@ class CellValue extends Component {
         });
     };
 
+    approveEditHandler = () => {
+        const { column, onUpdate, rowItem } = this.props;
+        const { currentValue } = this.state;
+
+        this.setState({
+            isEdit: false,
+            savedValue: currentValue,
+        });
+        onUpdate(column, currentValue, rowItem);
+    }
+
     handleDblclick = () => {
         this.setState({
             isEdit: true,
         });
     };
-
-    escHandler = (event) => {
-        const { column, onUpdate, rowItem } = this.props;
-        const { savedValue, currentValue } = this.state;
-        switch (event.keyCode) {
-            case 27: { // esc
-                this.setState({
-                    isEdit: false,
-                    currentValue: savedValue,
-                });
-                break;
-            }
-            case 13: { // enter
-                this.setState({
-                    isEdit: false,
-                });
-                onUpdate(column, currentValue, rowItem);
-                break;
-            }
-            default:
-                return null;
-        }
-    }
 
     changeValueHandler = (e) => {
         this.setState({
@@ -59,22 +46,14 @@ class CellValue extends Component {
         });
     }
 
-    renderChangeInputHandler = (node) => {
-        if (node) {
-            node.focus();
-            node.addEventListener("keydown", this.escHandler, false);
-        }
-    }
-
     renderEditValue = () => {
         const { currentValue } = this.state;
         return (
-            <input
-                type="text"
-                className="form-control"
+            <EditInput
                 value={currentValue}
                 onChange={this.changeValueHandler}
-                ref={this.renderChangeInputHandler}
+                cancelEdit={this.handleCancelValue}
+                approveEdit={this.approveEditHandler}
             />
         );
     }
@@ -103,6 +82,7 @@ class CellValue extends Component {
     }
 
     render() {
+        const { isEdit } = this.state;
         const { hasPrimary } = this.props;
 
         return (
@@ -124,4 +104,4 @@ CellValue.propTypes = {
     hasPrimary: PropTypes.bool,
 }
 
-export default onClickOutside(CellValue);
+export default CellValue;
