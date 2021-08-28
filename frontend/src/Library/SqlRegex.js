@@ -3,18 +3,18 @@ import sqlParser from 'js-sql-parser';
 class SqlRegex {
 
     setLimitToSql = (sqlString, start, limit) => {
-        const regexOffsetAndLimit = /LIMIT (\d+), ?(\d+)/gm;
-        const regexOnlyLimit = /LIMIT (\d+)/gm;
+        const ast = sqlParser.parse(sqlString);
 
-        if (regexOffsetAndLimit.test(sqlString)) {
-            return sqlString.replace(regexOffsetAndLimit, `LIMIT ${start}, ${limit}`);
+        if (!ast) {
+            return sqlString;
         }
 
-        if (regexOnlyLimit.test(sqlString)) {
-            return sqlString.replace(regexOnlyLimit, `LIMIT ${start}, ${limit}`);
-        }
+        ast.value.limit = {
+            type: 'Limit',
+            value: [start, limit],
+        };
 
-        return sqlString;
+        return sqlParser.stringify(ast);
     }
 
     setOrderByToSql = (sqlString, column, direction) => {
@@ -33,6 +33,26 @@ class SqlRegex {
             sortOpt: direction,
         });
         return sqlParser.stringify(ast);
+    }
+
+    getLimitOfQuery = (sqlString) => {
+        const ast = sqlParser.parse(sqlString);
+        console.log(ast.value.limit.value);
+
+        if (ast.value && ast.value.limit && ast.value.limit.value) {
+            if (ast.value.limit.value.length === 1) {
+                return {
+                  offset: 0,
+                  limit: +ast.value.limit.value[0]
+                };
+            }
+
+            return {
+                offset: +ast.value.limit.value[0],
+                limit: +ast.value.limit.value[1]
+            };
+        }
+
     }
 }
 

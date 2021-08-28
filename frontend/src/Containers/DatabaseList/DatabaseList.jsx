@@ -2,7 +2,6 @@ import React, {Component} from 'react';
 import connect from 'react-redux/es/connect/connect';
 import {Spinner} from "react-bootstrap";
 import './style.css';
-import BaseRequest from '../../API/BaseRequest';
 import DataBaseRequest from "../../API/DataBaseRequest";
 import DataBaseAction from '../../Actions/DataBaseAction';
 import DatabaseListItem from "./DatabaseListItem";
@@ -17,16 +16,6 @@ class DatabaseList extends Component {
         };
     }
 
-    componentDidMount() {
-        this.dataBaseRequest
-            .getDataBaseList()
-            .then((response) => {
-                if (response.status === BaseRequest.STATUS_OK) {
-                    this.dataBaseAction
-                        .setDatabasesList(response.data.data);
-                }
-            });
-    }
 
     list = () => {
         const { databaseList } = this.props;

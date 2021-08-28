@@ -48,13 +48,13 @@ class LoginPage extends Component {
         this.loginReqeust
             .login(host, login, password)
             .then((response) => {
-                if (response.status === BaseRequest.STATUS_OK) {
+               if (response.status === BaseRequest.STATUS_OK) {
                     this.setState({
                         responseCode: 'ok',
                         responseMessage: '',
                     });
                     this.loginAction
-                        .setLogin(host, login, password);
+                        .setLogin(response.data.token);
 
                 } else {
                     this.setState({

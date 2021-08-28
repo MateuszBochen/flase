@@ -1,23 +1,19 @@
-import BaseRequest from './BaseRequest';
+import BaseAction from '../Actions/BaseAction';
+import WebSocketClientFactory from '../Library/WebSocketClientFactory';
 
 
-class DataBaseRequest extends BaseRequest{
+
+class DataBaseRequest extends BaseAction {
 
     getDataBaseList = () => {
-        return this.promiseDoRequest(BaseRequest.METHOD_POST, '/api/login', {
-            host: localStorage.getItem('host'),
-            login: localStorage.getItem('login'),
-            password: localStorage.getItem('password'),
-        });
+
     };
 
     getTablesForDatabase = (databaseName) => {
-        return this.promiseDoRequest(BaseRequest.METHOD_POST, '/api/get-tables', {
-            host: localStorage.getItem('host'),
-            login: localStorage.getItem('login'),
-            password: localStorage.getItem('password'),
-            databaseName,
-        });
+        this.makeDispatch('DataBaseRequest_ClearTablesListFromDataBase', databaseName);
+
+         WebSocketClientFactory.getClient()
+            .getTablesForDatabase(databaseName);
     }
 }
 

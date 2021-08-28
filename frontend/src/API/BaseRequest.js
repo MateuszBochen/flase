@@ -1,7 +1,8 @@
 import axios from 'axios';
 
 class BaseRequest {
-    static API_URL = '';
+    static API_URL = 'http://localhost:3001';
+    static WS_URL = 'ws://localhost:3001';
     static METHOD_POST = 'post';
     static METHOD_GET = 'get';
     static METHOD_DELETE = 'delete';

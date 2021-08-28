@@ -1,0 +1,31 @@
+{
+  "name": "false-sever",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.ts",
+    "dev": "concurrently \"tsc -w\" \"nodemon src/index.ts\""
+  },
+  "dependencies": {
+    "@types/express-ws": "^3.0.1",
+    "body-parser": "^1.19.0",
+    "cors": "^2.8.5",
+    "cros": "^1.0.1",
+    "express": "^4.17.1",
+    "express-ws": "^5.0.2",
+    "mysql": "^2.18.1",
+    "node-sql-parser": "^3.6.4",
+    "stream": "^0.0.2",
+    "uuid": "^8.3.2"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.13",
+    "@types/node": "^16.6.2",
+    "concurrently": "^6.2.1",
+    "nodemon": "^2.0.12",
+    "ts-node": "^10.2.1",
+    "typescript": "^4.3.5"
+  }
+}

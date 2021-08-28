@@ -48,6 +48,7 @@ class WorkPlaceReducer {
         }
 
         newTabElement.tabProperties.key = newTabElement.id;
+        newTabElement.tabProperties.tabIndex = newState.tabs.length;
         newTabElement.renderComponent = React.createElement(newTabElement.renderComponent, newTabElement.tabProperties);
 
         newState.tabs = state.tabs;
@@ -63,6 +64,7 @@ class WorkPlaceReducer {
 
         const newState = { ...state };
 
+        tabElement.tabProperties.tabIndex = newState.currentTab;
         tabElement.tabProperties.key = tabElement.id;
         tabElement.renderComponent = React.createElement(tabElement.renderComponent, tabElement.tabProperties);
 

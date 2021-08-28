@@ -5,7 +5,7 @@ services:
     container_name: php_flase
     build: ./
     ports:
-      - "8070:80"
-    env_file: ./docker/.env
+      - "8070:3000"
+      - "3001:3001"
     volumes:
       - ./:/var/www/html/

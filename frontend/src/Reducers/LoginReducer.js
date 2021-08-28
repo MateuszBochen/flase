@@ -1,11 +1,10 @@
+import WebSocketClientFactory from '../Library/WebSocketClientFactory';
 
 
 class LoginReducer {
     constructor() {
         this.initalState = {
-            host: localStorage.getItem('host'),
-            login: localStorage.getItem('login'),
-            password: localStorage.getItem('password'),
+            token: localStorage.getItem('flase.token'),
         }
     }
 
@@ -13,7 +12,9 @@ class LoginReducer {
     handler = (state = this.initalState, action) => {
         switch (action.type) {
             case 'LoginAction_SetLogin':
-                return this.setLogin(state, action.data)
+                return this.setLogin(state, action.data);
+            case 'LOGOUT':
+                return this.logout(state);
             default:
                 return state;
         }
@@ -22,14 +23,17 @@ class LoginReducer {
 
     setLogin = (state, data) => {
         const newState = { ...state };
-        newState.host = data.host;
-        newState.login = data.login;
-        newState.password = data.password;
+        newState.token = data.token;
+        localStorage.setItem('flase.token', data.token);
+        WebSocketClientFactory.createNewClient(data.token);
+        return newState;
+    }
 
-        localStorage.setItem('host', data.host);
-        localStorage.setItem('login', data.login);
-        localStorage.setItem('password', data.password);
-
+    logout = (state) => {
+        const newState = { ...state };
+        newState.token = null;
+        localStorage.setItem('flase.token', '');
+        WebSocketClientFactory.closeConnection();
         return newState;
     }
 }

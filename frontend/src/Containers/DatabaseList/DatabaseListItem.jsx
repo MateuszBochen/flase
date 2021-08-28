@@ -39,13 +39,7 @@ class DatabaseListItem extends Component {
 
     loadTables = (dataBaseName) => {
         this.dataBaseRequest
-            .getTablesForDatabase(dataBaseName)
-            .then((response) => {
-                if (response.status === BaseRequest.STATUS_OK) {
-                    this.dataBaseAction
-                        .setTablesToDataBase(dataBaseName, response.data.data);
-                }
-            });
+            .getTablesForDatabase(dataBaseName);
     }
 
     showTables = (tables) => {
@@ -67,6 +61,7 @@ class DatabaseListItem extends Component {
                 </ul>
             );
         }
+
         return (
             <ul className="data-base-tables-list">
                 <li className="data-base-tables-list-search-item">

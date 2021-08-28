@@ -2,11 +2,14 @@ import React, {Component} from 'react';
 import PropTypes from 'prop-types';
 import { FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import { faArrowAltCircleLeft, faArrowAltCircleRight } from '@fortawesome/fontawesome-free-solid';
+import {Col, Row, ProgressBar} from 'react-bootstrap';
 import HeaderColumns from './RecordsViewParts/HeaderColumns';
 import DataGrid from './RecordsViewParts/DataGrid';
 import './style.css';
-import {Col, Row} from "react-bootstrap";
+
 import Column from '../../Library/DataTypes/Column';
+import DataContent from "./DataContent";
+import TableFooter from "./RecordsViewParts/TableFooter";
 
 class RecordsView extends Component {
     constructor(props) {
@@ -69,29 +72,7 @@ class RecordsView extends Component {
         this.stickyHeaderRef.style.top = `${wrapperRect.y - tableRect.y}px`;
     }
 
-    renderStickyHeader = () => {
-        const { renderStickyHeader } = this.state;
-        if (!renderStickyHeader) {
-            return null;
-        }
 
-        const headerRect = this.tableHeaderRef.getBoundingClientRect();
-        this.stickyHeaderRef.style.width = `${headerRect.width}px`;
-
-        const { columns, onSort } = this.props;
-
-        return (
-            <table>
-                <thead>
-                    <HeaderColumns
-                        columns={columns}
-                        onColumnDidMount={this.onHeaderStickyColumnDidMount}
-                        onSort={onSort}
-                    />
-                </thead>
-            </table>
-        );
-    };
 
     onHeaderStaticColumnDidMount = (column, columnRef) => {
         this.columnsRefStatic[column.name] = columnRef;
@@ -120,6 +101,29 @@ class RecordsView extends Component {
         }
     }
 
+    renderStickyHeader = () => {
+        const { renderStickyHeader } = this.state;
+        if (!renderStickyHeader) {
+            return null;
+        }
+
+        const headerRect = this.tableHeaderRef.getBoundingClientRect();
+        this.stickyHeaderRef.style.width = `${headerRect.width}px`;
+
+        const { columns, onSort } = this.props;
+
+        return (
+            <table>
+                <thead>
+                <HeaderColumns
+                    columns={columns}
+                    onColumnDidMount={this.onHeaderStickyColumnDidMount}
+                    onSort={onSort}
+                />
+                </thead>
+            </table>
+        );
+    };
 
     render() {
         const {
@@ -130,6 +134,9 @@ class RecordsView extends Component {
             perPage,
             onSort,
         } = this.props;
+
+
+
         return (
             <div
 
@@ -157,45 +164,22 @@ class RecordsView extends Component {
                                 onSort={onSort}
                             />
                         </thead>
-                        <DataGrid
+                        <DataContent
                             columns={columns}
                             records={records}
+                            loadedRecords={0}
+                            possibleRecords={0}
                         />
                     </table>
                 </div>
                 <div className="cmp-records-view-pager">
-                    <Row>
-                        <Col sm={2}>
-                            <div className="cmp-records-view-pager-item pager">
-                                <FontAwesomeIcon
-                                    role="button"
-                                    icon={faArrowAltCircleLeft}
-                                    onClick={() => this.onChangePageHandler(page - 1)}
-                                />
-                                <input
-                                    className="form-control"
-                                    type="number"
-                                    value={page}
-                                    onChange={(e) => this.onChangePageHandler(e.target.value)}
-                                />
-                                <FontAwesomeIcon
-                                    onClick={() => this.onChangePageHandler(page + 1)}
-                                    role="button"
-                                    icon={faArrowAltCircleRight}
-                                />
-                            </div>
-                        </Col>
-                        <Col sm={2}>
-                            Page: {page}&nbsp;/&nbsp;{Math.ceil(total / perPage)}
-                        </Col>
-                        <Col sm={2}>
-                            records: { page * perPage } - {records.length * (page+1)}
-                            &nbsp;/&nbsp;{total}
-                        </Col>
-                        <Col sm={6}>
-
-                        </Col>
-                    </Row>
+                   <TableFooter
+                       page={page}
+                       total={total}
+                       length={records.length}
+                       perPage={perPage}
+                       onPageChange={this.onChangePageHandler}
+                   />
                 </div>
             </div>
         );
@@ -205,6 +189,8 @@ class RecordsView extends Component {
 RecordsView.propTypes = {
     columns: PropTypes.arrayOf(PropTypes.instanceOf(Column)),
     records: PropTypes.arrayOf(PropTypes.object),
+    loadedRecords: PropTypes.number,
+    possibleRecords: PropTypes.number,
     total: PropTypes.number,
     page: PropTypes.number,
     perPage: PropTypes.number,

@@ -4,13 +4,20 @@ import LoginPage from './Pages/LoginPage/LoginPage';
 import MainView from "./Pages/MainView/MainView";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
+import WebSocketClientFactory from "./Library/WebSocketClientFactory";
 
 class App extends Component {
 
-  render() {
-    const {host, login} = this.props.login;
+    constructor(props) {
+        super(props);
+        const {token} = this.props.login;
+        WebSocketClientFactory.createNewClient(token);
+    }
 
-    if (host || login) {
+  render() {
+    const {token} = this.props.login;
+
+    if (token) {
       return (
           <div>
             <MainView />
