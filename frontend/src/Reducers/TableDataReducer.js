@@ -21,6 +21,8 @@ class TableDataReducer {
                 return this.appendRowToRecords(state, action.data.tabIndex, action.data.row);
             case 'SOCKET_SET_SELECT_QUERY_TOTAL_ROWS':
                 return this.setTotalRows(state, action.data.tabIndex, action.data.totalRows);
+            case 'SOCKET_SET_SELECT_QUERY_INDEXES':
+                return this.setTableKeys(state, action.data.tabIndex, action.data.tableKeys);
             default:
                 return state;
         }
@@ -30,6 +32,11 @@ class TableDataReducer {
     setTableColumns = (state, tabNumber, columns) => {
         StoreManager.dispatch(tabNumber, 'SOCKET_SET_SELECT_QUERY_COLUMNS', columns);
 
+        return state;
+    }
+
+    setTableKeys = (state, tabNumber, keys) => {
+        StoreManager.dispatch(tabNumber, 'SOCKET_SET_SELECT_QUERY_INDEXES', keys);
         return state;
     }
 

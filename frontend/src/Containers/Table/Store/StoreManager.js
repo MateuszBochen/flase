@@ -48,6 +48,7 @@ class StoreManager {
         const tabIndex = props.tabIndex;
         let temporaryRecords = [];
         const initialState  = {
+            tableKeys: [],
             tabIndex: props.tabIndex,
             tableName: props.tableName,
             database: props.database,
@@ -89,6 +90,11 @@ class StoreManager {
                 case 'SOCKET_SET_SELECT_QUERY_COLUMNS': {
                     const newState = {...state};
                     newState.columns = action.data;
+                    return newState;
+                }
+                case 'SOCKET_SET_SELECT_QUERY_INDEXES': {
+                    const newState = {...state};
+                    newState.tableKeys = action.data;
                     return newState;
                 }
                 case 'SOCKET_SET_SELECT_QUERY_TOTAL_ROWS': {

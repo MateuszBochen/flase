@@ -84,7 +84,7 @@ class CellValue extends Component {
     render() {
         const { isEdit } = this.state;
         const { hasPrimary } = this.props;
-
+        console.log(hasPrimary);
         return (
             <div
                 className="cell-filed"

@@ -1,11 +1,16 @@
-import { ACTIONS } from '../Server/ActionEnum';
-import ColumnType from "../Type/ColumnType";
+import TableIndexType from "../Type/TableIndexType";
 
 const { Parser } = require('node-sql-parser');
-
 const SqlClient = require('../SqlClient');
 const WebSocketClient = require('../SqlClient');
 const WebSocketOutMessage = require('../Server/WebSocketOutMessage');
+
+import SelectFromType from '../Type/SelectFromType';
+import { ACTIONS } from '../Server/ActionEnum';
+import ColumnType from '../Type/ColumnType';
+import TableKeyType from "../Type/TableKeyType";
+import {release} from "os";
+import TableKeysType from "../Type/TableKeysType";
 
 
 class SelectHelper {
@@ -121,10 +126,10 @@ class SelectHelper {
         this.tempColumns = Object.keys(row);
 
         if (ast.from.length) {
-            console.log('columns ok 1');
-            ast.from.forEach((item:any) => {
-                console.log('columns ok 2');
+            ast.from.forEach((item:SelectFromType) => {
+                console.log('getColumnsFromSelectRecord', item);
                 this.getColumnsFromTable(item.table);
+                this.getTableIndex(item);
             });
         }
     }
@@ -195,7 +200,6 @@ class SelectHelper {
     }
 
     getColumnsFromTable = (tableName:string) => {
-        console.log('columns ok 3');
         const sql = `SHOW COLUMNS FROM \`${tableName}\`;`;
         console.log(sql);
         this.sqlClient
@@ -207,7 +211,6 @@ class SelectHelper {
     }
 
     getReferencesColumns = (columns:any, tableName:string) => {
-        console.log('columns ok 4');
         const sql = `SELECT
             \`COLUMN_NAME\`,
             \`REFERENCED_TABLE_NAME\`,
@@ -228,7 +231,6 @@ class SelectHelper {
     }
 
     sendFullColumns = (columns:any, references:any) => {
-        console.log('columns ok 5');
         const newColumns: Array<ColumnType> = [];
 
         columns.forEach((column:any) => {
@@ -244,13 +246,14 @@ class SelectHelper {
             }
             newColumns.push(columnType);
         });
+
         console.log(newColumns);
-        // this.columns = newColumns;
+
         this.matchColumns(newColumns);
     }
 
     matchColumns = (columnObjects:Array<ColumnType>) => {
-        console.log('columns ok 6');
+
         const newColumns: Array<ColumnType> = [];
 
         this.tempColumns.forEach((columnName) => {
@@ -282,11 +285,7 @@ class SelectHelper {
         this.sendColumns();
     }
 
-
-
     findReference = (columnName:string, references:any) => {
-        console.log('columns ok 5 reference');
-        console.log(references);
         const reference = {
             table: '',
             column: '',
@@ -304,6 +303,73 @@ class SelectHelper {
         }
 
         return reference;
+    }
+
+    getTableIndex = (item:SelectFromType) => {
+        const tableName:string = item.table;
+        const sql:string = `SHOW INDEX FROM \`${this.databaseName}\`.\`${tableName}\`;`;
+        console.log(sql);
+
+        this.sqlClient
+            .queryResults(
+                sql,
+                (results:any) => {this.prepareTableIndexes(results, item)},
+                (error:any) => {console.log(error)}
+            );
+    }
+
+    prepareTableIndexes = (results:Array<TableIndexType>, item:SelectFromType) => {
+        if (!results.length) {
+            return;
+        }
+
+        console.log(results);
+
+        const tableKeyCollection:Array<TableKeyType> = [];
+
+        for(let i = 0; i < results.length; i++) {
+            const tableIndex:TableIndexType = results[i];
+            let find = false;
+
+            for (let j = 0; j < tableKeyCollection.length; j++) {
+                if (tableKeyCollection[j].keyName === tableIndex.Key_name) {
+                    find = true;
+                    tableKeyCollection[j].isUnique = tableIndex.Non_unique === 0;
+                    tableKeyCollection[j].columns.push(tableIndex.Column_name);
+                    break;
+                }
+            }
+
+            if (!find) {
+                const newTableIndexType:TableKeyType = {
+                    keyName: tableIndex.Key_name,
+                    isUnique: tableIndex.Non_unique === 0,
+                    columns: [tableIndex.Column_name]
+                };
+
+                tableKeyCollection.push(newTableIndexType);
+            }
+
+        }
+        const tableKeys:TableKeysType = {
+            keys: tableKeyCollection,
+            tableName: item.table,
+            aliasName: item.as,
+        }
+
+        const message = new WebSocketOutMessage(
+            ACTIONS.SOCKET_SET_SELECT_QUERY_INDEXES,
+            200,
+            null,
+            {
+                tabIndex: this.tabIndex,
+                tableKeys: tableKeys,
+            }
+        );
+
+        this.webSocketClient
+            .sendMessage(message);
+
     }
 }
 

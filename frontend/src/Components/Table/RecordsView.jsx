@@ -2,7 +2,7 @@ import React, {Component} from 'react';
 import PropTypes from 'prop-types';
 import { FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import { faArrowAltCircleLeft, faArrowAltCircleRight } from '@fortawesome/fontawesome-free-solid';
-import {Col, Row, ProgressBar} from 'react-bootstrap';
+import {Col, Row, ProgressBar, Alert} from 'react-bootstrap';
 import HeaderColumns from './RecordsViewParts/HeaderColumns';
 import DataGrid from './RecordsViewParts/DataGrid';
 import './style.css';
@@ -134,8 +134,6 @@ class RecordsView extends Component {
             perPage,
             onSort,
         } = this.props;
-
-
 
         return (
             <div

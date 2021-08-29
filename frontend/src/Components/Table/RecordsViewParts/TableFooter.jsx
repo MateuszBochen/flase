@@ -63,7 +63,7 @@ class TableFooter extends Component {
                     Page: {page + 1}&nbsp;/&nbsp;{Math.ceil(total / perPage)}
                 </Col>
                 <Col sm={2}>
-                    records: { page * perPage } - {length * (page+1)}
+                    records: { page * perPage } - {(length-1) + (page * perPage)}
                     &nbsp;/&nbsp;{total}
                 </Col>
                 <Col sm={6}>

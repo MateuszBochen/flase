@@ -11,6 +11,7 @@ import CellValue from './CellValue';
 import StoreManager from './Store/StoreManager';
 import QueryPlace from './QueryPlace';
 import './style.css';
+import {Alert} from "react-bootstrap";
 
 class TableDataRender extends Component {
     constructor(props) {
@@ -99,9 +100,10 @@ class TableDataRender extends Component {
             .query(database, query, this.tabIndex);
     }
 
-    checkForPrimary = (columns) => {
+    /*checkForPrimary = (columns) => {
+        console.log(columns);
         if (this.hasPrimary !== null) {
-            return this.hasPrimary;
+            return hasPrimary;
         }
 
         columns.forEach((column) => {
@@ -115,7 +117,7 @@ class TableDataRender extends Component {
         }
 
         return this.hasPrimary;
-    }
+    }*/
 
     /**
      * @param {Column} column - column object
@@ -158,7 +160,7 @@ class TableDataRender extends Component {
             return ('<no-value>');
         }
 
-        const hasPrimary = this.checkForPrimary(this.tableDataLibrary.prepareColumnsDataType(columns));
+        const hasPrimary = false;
 
         return (
             <CellValue
@@ -174,6 +176,15 @@ class TableDataRender extends Component {
 
     renderData = () => {
         const { columns, records, recordsLoaded, limit, totalRows, offset} = this.props;
+
+        if (totalRows === 0) {
+            return (
+                <Alert variant="light">
+                    No Records find
+                </Alert>
+            );
+        }
+
         if (!columns || !columns.length) {
             return (
                 <div className="cmp-table-data">
