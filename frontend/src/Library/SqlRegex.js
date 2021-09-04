@@ -36,21 +36,32 @@ class SqlRegex {
     }
 
     getLimitOfQuery = (sqlString) => {
-        const ast = sqlParser.parse(sqlString);
-        console.log(ast.value.limit.value);
+        try {
+            const ast = sqlParser.parse(sqlString);
 
-        if (ast.value && ast.value.limit && ast.value.limit.value) {
-            if (ast.value.limit.value.length === 1) {
+            if (ast && ast.value && ast.value.limit && ast.value.limit.value) {
+                if (ast.value.limit.value.length === 1) {
+                    return {
+                        offset: 0,
+                        limit: +ast.value.limit.value[0]
+                    };
+                }
+
                 return {
-                  offset: 0,
-                  limit: +ast.value.limit.value[0]
+                    offset: +ast.value.limit.value[0],
+                    limit: +ast.value.limit.value[1]
                 };
             }
-
+        } catch (e) {
             return {
-                offset: +ast.value.limit.value[0],
-                limit: +ast.value.limit.value[1]
-            };
+                offset: 0,
+                limit: 50,
+            }
+        }
+
+        return {
+            offset: 0,
+            limit: 50,
         }
 
     }

@@ -47,9 +47,6 @@ app.post('/api/login', (req:Request, res:Response) => {
     });
 });
 
-
-
-
 app.ws('/ws/:token', (ws:WebSocket, req: Request) => {
     console.log("New connection has opened!", req.params.token);
 

@@ -54,7 +54,7 @@ class QueryPlace extends Component {
     render() {
         const { database } = this.props;
         const { currentQuery } = this.state;
-        const { currentQueryIndex, queryHistory } = this.props;
+        const { currentQueryIndex, queryHistory, tableName } = this.props;
 
         return (
             <div className="cmp-table-data-header">
@@ -81,6 +81,7 @@ class QueryPlace extends Component {
                     <Editor
                         onChange={(e) => this.setState({currentQuery: e.target.value})}
                         onSearch={this.sqlEditHandler}
+                        hints={[tableName, ...this.props.columns.map(item => item.name)]}
                     >
                         {currentQuery}
                     </Editor>
