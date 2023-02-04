@@ -1,7 +1,6 @@
 import React, {Component} from 'react';
-import BaseRequest from "../../API/BaseRequest";
-import LoaderSquare from "../../Components/Loader/LoaderSquare";
-import RecordsView from "../../Components/Table/RecordsView";
+import LoaderSquare from '../../Components/Loader/LoaderSquare';
+import RecordsView from '../../Components/Table/RecordsView';
 
 
 class ProcessList extends Component {

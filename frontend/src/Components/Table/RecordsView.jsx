@@ -1,5 +1,5 @@
 import React, {Component} from 'react';
-import PropTypes from 'prop-types';
+import PropTypes, {bool} from 'prop-types';
 import { FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import { faArrowAltCircleLeft, faArrowAltCircleRight } from '@fortawesome/fontawesome-free-solid';
 import {Col, Row, ProgressBar, Alert} from 'react-bootstrap';
@@ -133,6 +133,7 @@ class RecordsView extends Component {
             total,
             perPage,
             onSort,
+            queryLoading,
         } = this.props;
 
         return (
@@ -144,31 +145,34 @@ class RecordsView extends Component {
                     ref={this.containerTableWrapperDidMount}
                     className="cmp-records-view-table-wrapper nice-scrollbar"
                 >
-                    <div
-                        ref={this.stickyHeaderDidMount}
-                        className="cmp-records-view-sticky-table"
-                    >
-                        {this.renderStickyHeader()}
-                    </div>
-                    <table
-                        ref={this.tableDidMount}
-                    >
-                        <thead
-                            ref={this.tableHeaderDidMount}
+                    <div className="cmp-records-view-table-wrapper-table-content">
+                        <div
+                            ref={this.stickyHeaderDidMount}
+                            className="cmp-records-view-sticky-table"
                         >
-                            <HeaderColumns
+                            {this.renderStickyHeader()}
+                        </div>
+                        <div className="loading-records" style={{display: queryLoading ? 'block' : 'none'}}/>
+                        <table
+                            ref={this.tableDidMount}
+                        >
+                            <thead
+                                ref={this.tableHeaderDidMount}
+                            >
+                                <HeaderColumns
+                                    columns={columns}
+                                    onColumnDidMount={this.onHeaderStaticColumnDidMount}
+                                    onSort={onSort}
+                                />
+                            </thead>
+                            <DataContent
                                 columns={columns}
-                                onColumnDidMount={this.onHeaderStaticColumnDidMount}
-                                onSort={onSort}
+                                records={records}
+                                loadedRecords={0}
+                                possibleRecords={0}
                             />
-                        </thead>
-                        <DataContent
-                            columns={columns}
-                            records={records}
-                            loadedRecords={0}
-                            possibleRecords={0}
-                        />
-                    </table>
+                        </table>
+                    </div>
                 </div>
                 <div className="cmp-records-view-pager">
                    <TableFooter
@@ -194,6 +198,7 @@ RecordsView.propTypes = {
     perPage: PropTypes.number,
     onPageChange: PropTypes.func,
     onSort: PropTypes.func,
+    queryLoading: PropTypes.bool
 }
 
 export default RecordsView;

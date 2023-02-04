@@ -14,7 +14,7 @@ class SqlRegex {
             value: [start, limit],
         };
 
-        return sqlParser.stringify(ast);
+        return sqlParser.stringify(ast).trim();
     }
 
     setOrderByToSql = (sqlString, column, direction) => {
@@ -32,7 +32,7 @@ class SqlRegex {
             type: 'GroupByOrderByItem',
             sortOpt: direction,
         });
-        return sqlParser.stringify(ast);
+        return sqlParser.stringify(ast).trim();
     }
 
     getLimitOfQuery = (sqlString) => {

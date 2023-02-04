@@ -11,9 +11,27 @@
     padding-bottom: 15px;
 }
 
+.cmp-records-view .cmp-records-view-table-wrapper .cmp-records-view-table-wrapper-table-content {
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    height: auto;
+}
+
+.cmp-records-view .cmp-records-view-table-wrapper .cmp-records-view-table-wrapper-table-content .loading-records {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.54);
+    display: none;
+}
+
 .cmp-records-view .cmp-records-view-sticky-table {
     position: absolute;
     min-width: 100%;
+    z-index: 11;
 }
 
 .cmp-records-view .cmp-records-view-sticky-table table {

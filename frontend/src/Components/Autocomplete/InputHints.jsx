@@ -13,21 +13,15 @@ class InputHints extends Component {
             selectedHint: -1,
             hints: [],
         }
-
-        // this.props.inputRef.onload = () => console.log('pizda z makiem');
     }
 
     componentDidMount() {
-
         const { inputRef } = this.props;
-
-
 
         if (inputRef.current) {
             inputRef.current.onkeyup = this.onKeyUpReferenceHandler;
             inputRef.current.onkeydown = this.onKeyDownReferenceHandler;
             this.inputRect = inputRef.current.getBoundingClientRect();
-            console.log(this.inputRect);
         }
     }
 
@@ -35,7 +29,6 @@ class InputHints extends Component {
         const { selectedHint } = this.state;
 
         if (e.keyCode === 13 && selectedHint !== -1) {
-            console.log('key UP! - zapobiegnij');
             e.stopPropagation();
             e.preventDefault();
             this.insertSelectedToInput(e);
@@ -53,7 +46,6 @@ class InputHints extends Component {
 
             return;
         }
-
 
         if (e.keyCode === 40) {
             e.stopPropagation();

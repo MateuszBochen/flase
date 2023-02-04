@@ -1,16 +1,13 @@
-import TableIndexType from "../Type/TableIndexType";
-
 const { Parser } = require('node-sql-parser');
+import TableIndexType from '../Type/TableIndexType';
 const SqlClient = require('../SqlClient');
-const WebSocketClient = require('../SqlClient');
+const WebSocketClient = require('../WebSocketClient');
 const WebSocketOutMessage = require('../Server/WebSocketOutMessage');
-
 import SelectFromType from '../Type/SelectFromType';
 import { ACTIONS } from '../Server/ActionEnum';
 import ColumnType from '../Type/ColumnType';
-import TableKeyType from "../Type/TableKeyType";
-import {release} from "os";
-import TableKeysType from "../Type/TableKeysType";
+import TableKeyType from '../Type/TableKeyType';
+import TableKeysType from '../Type/TableKeysType';
 
 
 class SelectHelper {
@@ -30,6 +27,7 @@ class SelectHelper {
         this.query = query;
         this.tabIndex = tabIndex;
         this.parser = new Parser();
+
 
         this.changeDatabase(databaseName);
     }
@@ -201,7 +199,7 @@ class SelectHelper {
 
     getColumnsFromTable = (tableName:string) => {
         const sql = `SHOW COLUMNS FROM \`${tableName}\`;`;
-        console.log(sql);
+
         this.sqlClient
             .queryResults(
                 sql,

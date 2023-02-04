@@ -6,6 +6,7 @@ const SqlClient = require("./SqlClient");
 const WebSocketOutMessage = require('./Server/WebSocketOutMessage');
 
 const SelectHelper = require('./Helpers/SelectHelper');
+import ShowHelper from './Helpers/ShowHelper';
 
 class Application {
     sqlClient: typeof SqlClient;
@@ -101,7 +102,15 @@ class Application {
             return;
         }
 
-        new SelectHelper(databaseName, query, this.sqlClient, this.webSocketClient, tabIndex);
+        if (query.toLowerCase().startsWith('select')) {
+            console.log('SelectHelper');
+            new SelectHelper(databaseName, query, this.sqlClient, this.webSocketClient, tabIndex);
+        } else if (query.toLowerCase().startsWith('show')) {
+            console.log('ShowHelper');
+            new ShowHelper(query, this.sqlClient, this.webSocketClient, tabIndex);
+        } else {
+            console.log('ElseHelper');
+        }
     }
 
 }

@@ -14,6 +14,10 @@ import './style.css';
 import {Alert} from "react-bootstrap";
 
 class TableDataRender extends Component {
+
+    lastDirection = '';
+    lastPageNumber = -1;
+
     constructor(props) {
         super(props);
         this.tabIndex = this.props.tabIndex;
@@ -22,6 +26,8 @@ class TableDataRender extends Component {
         this.sqlRequest = new SqlRequest();
         this.workPlaceAction = new WorkPlaceAction();
         this.tableDataLibrary = new TableDataLibrary();
+
+        this.hasPrimary = -1;
     }
 
     componentDidMount() {
@@ -36,6 +42,13 @@ class TableDataRender extends Component {
     }
 
     pageChangeHandler = (newPageNumber) => {
+
+        if (this.lastPageNumber === newPageNumber) {
+            return;
+        }
+
+        this.lastPageNumber = newPageNumber;
+
         const { limit } = this.props;
 
         if (newPageNumber < 0) {
@@ -81,6 +94,13 @@ class TableDataRender extends Component {
     }
 
     sortHandler = (column, direction) => {
+
+        if (this.lastDirection === direction) {
+            return;
+        }
+
+        this.lastDirection = direction;
+
         const sql = this.sqlRegex.setOrderByToSql(this.props.query, column.name, direction);
         StoreManager.dispatch(
             this.tabIndex,
@@ -100,24 +120,24 @@ class TableDataRender extends Component {
             .query(database, query, this.tabIndex);
     }
 
-    /*checkForPrimary = (columns) => {
-        console.log(columns);
-        if (this.hasPrimary !== null) {
-            return hasPrimary;
+    checkForPrimary = () => {
+
+        if (this.hasPrimary !== -1) {
+            return;
         }
 
-        columns.forEach((column) => {
-            if (column.autoIncrement === true) {
-                this.hasPrimary = true;
+        const { tableKeys } = this.props;
+
+        if (!tableKeys || !tableKeys.keys.length) {
+            return;
+        }
+
+        this.hasPrimary = tableKeys.keys.some((tableKey) => {
+            if (tableKey.isUnique) {
+                return true;
             }
         });
-
-        if (!this.hasPrimary) {
-            this.hasPrimary = false;
-        }
-
-        return this.hasPrimary;
-    }*/
+    }
 
     /**
      * @param {Column} column - column object
@@ -151,7 +171,7 @@ class TableDataRender extends Component {
      * @param {Array} rowObject - row with all data
      */
     cellFunction = (column, rowObject) => {
-        const { columns, tabIndex } = this.props;
+        this.checkForPrimary();
 
         const cellValue = rowObject.rowValues[column.name];
         const key = `cv_${rowObject.id}_${column.name}${cellValue}`;
@@ -160,22 +180,20 @@ class TableDataRender extends Component {
             return ('<no-value>');
         }
 
-        const hasPrimary = false;
-
         return (
             <CellValue
                 key={key}
                 column={column}
                 rowItem={rowObject.rowValues}
                 onRelationClick={this.relationClickHandler}
-                hasPrimary={hasPrimary}
+                hasPrimary={this.hasPrimary}
                 onUpdate={this.onUpdateCellValue}
             />
         );
     }
 
     renderData = () => {
-        const { columns, records, recordsLoaded, limit, totalRows, offset} = this.props;
+        const { columns, records, recordsLoaded, limit, totalRows, offset, queryLoading} = this.props;
 
         if (totalRows === 0) {
             return (
@@ -196,6 +214,7 @@ class TableDataRender extends Component {
         return (
             <div className="cmp-table-data">
                 <RecordsView
+                    queryLoading={queryLoading}
                     columns={this.tableDataLibrary.addFunctionsToColumns(this.tableDataLibrary.prepareColumnsDataType(columns), this.cellFunction)}
                     records={records}
                     total={totalRows}

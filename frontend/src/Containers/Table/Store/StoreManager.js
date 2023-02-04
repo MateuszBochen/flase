@@ -1,30 +1,8 @@
 import thunk from 'redux-thunk';
 import {createStore, applyMiddleware, compose} from 'redux';
 import { v4 as uuidv4 } from 'uuid';
-import SqlRegex from "../../../Library/SqlRegex";
+import SqlRegex from '../../../Library/SqlRegex';
 
-
-class TemporaryRecords  {
-
-    records = {};
-
-    constructor(tabIndex) {
-        this.tabIndex = tabIndex;
-    }
-
-    addRecord = (tabIndex, record) => {
-        if (this.records[tabIndex]) {
-            this.records[tabIndex] = [...this.records[tabIndex], record];
-        } else {
-            this.records[tabIndex] = [];
-            this.records[tabIndex] = [...this.records[tabIndex], record];
-        }
-    }
-
-    clearData = (tabIndex) => {
-        this.records[tabIndex] = [];
-    }
-}
 
 class StoreManager {
     static storages = {};
@@ -60,7 +38,8 @@ class StoreManager {
             recordsLoaded: 0,
             totalRows: -1,
             currentQueryIndex: 0,
-            queryHistory: [defaultQuery]
+            queryHistory: [defaultQuery],
+            queryLoading: false,
         };
 
         const reducer = (state = initialState, action) => {
@@ -75,7 +54,8 @@ class StoreManager {
 
                     newState.offset = limits.offset;
                     newState.limit = limits.limit;
-                    newState.records = [];
+                    newState.queryLoading = true;
+                    // newState.records = [];
                     temporaryRecords = [];
 
                     return newState;
@@ -138,6 +118,7 @@ class StoreManager {
                         const minValueOfRecordToShow = Math.min(state.limit, alreadySows);
                         if (minValueOfRecordToShow === temporaryRecords.length) {
                             newState.records = temporaryRecords;
+                            newState.queryLoading = false;
                         }
                     }
 
