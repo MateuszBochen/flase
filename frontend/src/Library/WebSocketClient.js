@@ -48,7 +48,6 @@ class WebSocketClient {
         this.sendMessage(message);
     }
 
-
     receiveMessage = () => {
         this._nativeWebSocketClient.onmessage = (event) => {
             let message;

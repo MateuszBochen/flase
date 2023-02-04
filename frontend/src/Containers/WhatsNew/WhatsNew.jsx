@@ -20,6 +20,9 @@ class WhatsNew extends Component {
                         Pagination
                     </li>
                     <li className="feature done">
+                        Scroll click open new tab
+                    </li>
+                    <li className="feature done">
                         Table sticky header not not jumping
                     </li>
                     <li className="bug done">
@@ -33,6 +36,18 @@ class WhatsNew extends Component {
                     </li>
                     <li className="bug">
                         Bug: show proces list not working - loading forever
+                    </li>
+                    <li className="feature">
+                        Creating new record
+                    </li>
+                    <li className="feature">
+                        Creating new database
+                    </li>
+                    <li className="feature">
+                        Dropping database
+                    </li>
+                    <li className="feature">
+                        CSV export
                     </li>
                 </ol>
             </div>
