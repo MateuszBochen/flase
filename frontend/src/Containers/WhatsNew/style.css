@@ -1,0 +1,10 @@
+.bug {
+    color: crimson;
+}
+.feature {
+    color: #b1dc14;
+}
+
+.done {
+    mix-blend-mode: soft-light;
+}
