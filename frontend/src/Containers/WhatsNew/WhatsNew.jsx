@@ -22,7 +22,7 @@ class WhatsNew extends Component {
                     <li className="feature done">
                         Table sticky header not not jumping
                     </li>
-                    <li className="bug">
+                    <li className="bug done">
                         Bug: with refresh page with load database tables - all database have same tables
                     </li>
                     <li className="feature">

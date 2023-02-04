@@ -70,32 +70,32 @@ class Application {
         console.log('getTablesFromDataBase', dataBaseName)
         this.sqlClient
             .queryResults(
-                `USE ${dataBaseName}`,
-                () => {
-                    this.sqlClient
-                        .streamQueryResults(
-                            'SHOW TABLES',
-                            (row:any) => {
-                                console.log(row);
-                                const tableName = Object.values(row)[0];
-                                if (tableName !== 0) {
-                                    const message = new WebSocketOutMessage(
-                                        ACTIONS.SOCKET_GET_TABLES_FOR_DATABASE,
-                                        200,
-                                        null,
-                                        {
-                                            tableName,
-                                            dataBaseName,
-                                        }
-                                    );
-                                    this.webSocketClient
-                                        .sendMessage(message);
-                                }
-                            }
-                        );
+                `USE ${dataBaseName}; SHOW TABLES;`,
+                (row:any) => {
+                    this.sendTablesNames(row[1], dataBaseName);
                 }
             );
     }
+
+    sendTablesNames = (tableNames: any[], databaseName:string) => {
+        tableNames.forEach((tableName) => {
+            Object.entries(tableName).forEach((item) => {
+                const message = new WebSocketOutMessage(
+                  ACTIONS.SOCKET_GET_TABLES_FOR_DATABASE,
+                  200,
+                  null,
+                  {
+                    tableName: tableName[item[0]],
+                    dataBaseName: databaseName,
+                  }
+                );
+                this.webSocketClient
+                  .sendMessage(message);
+
+            });
+        });
+    }
+
 
     selectQuery = (databaseName:string, query:string, tabIndex:string) => {
         if (!query) {
@@ -109,7 +109,7 @@ class Application {
             console.log('ShowHelper');
             new ShowHelper(query, this.sqlClient, this.webSocketClient, tabIndex);
         } else {
-            console.log('ElseHelper');
+            console.log('ElseHelper not set');
         }
     }
 

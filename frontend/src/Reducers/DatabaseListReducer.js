@@ -3,7 +3,7 @@ class DatabaseListReducer {
     constructor() {
         this.initalState = {
             listIsLoaded: false,
-            list: [],
+            list: {},
         }
     }
 
@@ -17,8 +17,10 @@ class DatabaseListReducer {
             case 'DataBaseAction_setTablesToDataBase':
                 return this.setTablesListToDatabase(state, action.data.databaseName, action.data.tablesList);
             case 'SOCKET_DATABASE_LIST_APPEND_DATA':
+                // adding new database to list.
                 return this.appendItem(state, action.data);
             case 'SOCKET_GET_TABLES_FOR_DATABASE':
+                // Adding Table to database.
                 return this.appendTableToDatabaseList(state, action.data.dataBaseName, action.data.tableName);
             default:
                 return state;
@@ -39,14 +41,17 @@ class DatabaseListReducer {
             };
             newState.list.push(dataBaseItem);
         });
-
         return newState;
     }
 
     appendItem = (state, data) => {
+        // Database already added
+        if (state.list[data.Database]?.tables?.tables) {
+            return state;
+        }
+
         const newState = { ...state };
         newState.listIsLoaded = true;
-
         const dataBaseItem = {};
         dataBaseItem.name = data.Database;
         dataBaseItem.tables = {
@@ -54,7 +59,7 @@ class DatabaseListReducer {
             tables: [],
         };
 
-        newState.list.push(dataBaseItem);
+        newState.list[data.Database] = dataBaseItem;
         return newState;
     }
 
@@ -76,39 +81,36 @@ class DatabaseListReducer {
     }
 
     appendTableToDatabaseList = (state, databaseName, tableName) => {
-        if (!tableName) {
+        if (!tableName || !databaseName) {
             return state;
         }
-        const newState = { ...state };
+        let newState = {};
+        if (!state.list[databaseName]?.tables?.tables) {
+            newState = this.appendItem(state, {Database: databaseName});
+        } else {
+            newState = {...state};
+        }
 
-        newState.list = newState.list.map((item) => {
-            if (item.name === databaseName) {
-                const newItem = { ...item };
-                newItem.tables.isLoaded = true;
-                if (!newItem.tables.tables.includes(tableName)) {
-                    newItem.tables.tables.push(tableName);
-                }
-                return newItem;
-            } else {
-                return item;
-            }
-        });
+        const currentTablesList = newState.list[databaseName].tables.tables;
+        if (!currentTablesList.includes(tableName)) {
+            currentTablesList.push(tableName);
+        }
 
+        newState.list[databaseName].tables.tables = currentTablesList;
+        newState.list[databaseName].tables.isLoaded = true;
         return newState;
     }
 
     clearTablesList = (state, databaseName) => {
+        if (!state.list[databaseName].tables.tables) {
+            return state;
+        }
+
         const newState = { ...state };
-        newState.list = newState.list.map((item) => {
-            if (item.name === databaseName) {
-                const newItem = { ...item };
-                newItem.tables.isLoaded = false;
-                newItem.tables.tables = [];
-                return newItem;
-            } else {
-                return item;
-            }
-        });
+        newState.list[databaseName].tables = {
+            isLoaded: false,
+            tables: [],
+        };
 
         return newState;
     }

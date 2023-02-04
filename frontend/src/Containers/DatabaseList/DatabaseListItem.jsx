@@ -10,6 +10,7 @@ class DatabaseListItem extends Component {
     constructor(props) {
         super(props);
         const { databaseItem } = this.props;
+
         this.dataBaseAction = new DataBaseAction();
         this.dataBaseRequest = new DataBaseRequest();
         this.workPlaceAction = new WorkPlaceAction();
@@ -51,11 +52,11 @@ class DatabaseListItem extends Component {
                 <ul className="data-base-tables-list">
                     <li className="loading-item">
                         <Spinner as="span"
-                                 animation="border"
-                                 size="sm"
-                                 role="status"
-                                 aria-hidden="true"
-                                 variant="secondary"
+                             animation="border"
+                             size="sm"
+                             role="status"
+                             aria-hidden="true"
+                             variant="secondary"
                         />
                     </li>
                 </ul>
@@ -88,7 +89,6 @@ class DatabaseListItem extends Component {
     render() {
         const { isOpen } = this.state;
         const { databaseItem } = this.props;
-
         return (
             <li
                 className="data-base-name"

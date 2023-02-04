@@ -37,7 +37,7 @@ class DatabaseList extends Component {
 
         return (
             <ul className="data-base-names-list nice-scrollbar">
-                {databaseList.list.map((item) => <DatabaseListItem databaseItem={item} key={item.name} />)}
+                {Object.entries(databaseList.list).map(([key, value]) => <DatabaseListItem databaseItem={value} key={key} />)}
             </ul>
         );
     }
