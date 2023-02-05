@@ -6,13 +6,13 @@ import RecordsView from '../../../Components/Table/RecordsView';
 import SqlRegex from '../../../Library/SqlRegex';
 import WorkPlaceAction from '../../../Actions/WorkPlaceAction';
 import TableDataLibrary from '../../../Library/DataHelpers/TableData';
-import QueryPlace from '../QueryPlace';
+import QueryPlace from './QueryPlace';
 import {Alert} from 'react-bootstrap';
 import ApplicationManager from '../Application/ApplicationManager';
 import '../style.css';
 
 class TableDataRender extends Component {
-    /** @var ApplicationManager */
+    /** @type ApplicationManager */
     applicationManager = undefined;
 
     constructor(props) {
@@ -36,17 +36,6 @@ class TableDataRender extends Component {
 
     sortHandler = (column, direction) => {
         this.applicationManager.changeOrderBy(column, direction);
-    }
-
-    sendQuery = () => {
-        const { query } = this.props;
-        this.queryRequest(query);
-    }
-
-    queryRequest = (query) => {
-        const { database } = this.props;
-        this.sqlRequest
-            .query(database, query, this.tabIndex);
     }
 
     renderData = () => {
@@ -89,9 +78,7 @@ class TableDataRender extends Component {
     render() {
         return (
             <div className="cmp-table-data">
-                <QueryPlace
-                    onReload={this.queryRequest}
-                />
+                <QueryPlace tabIndex={this.tabIndex} />
                 <div className="cmp-table-data-content">
                     {this.renderData()}
                 </div>

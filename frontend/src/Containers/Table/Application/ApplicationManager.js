@@ -8,6 +8,7 @@ class ApplicationManager {
     static instances = {};
 
     tabIndex = undefined;
+    /** @type StoreManager */
     storeManager = undefined;
     sqlRequest = undefined;
 
@@ -27,12 +28,19 @@ class ApplicationManager {
         this.driverAdapter = DriverFactory.getDriver();
     }
 
-    sendQuery = () => {
+    sendQuery = (newQuery) => {
         const query = this.storeManager.getCurrentQuery();
         const database = this.storeManager.getCurrentDatabase();
 
+        if (newQuery) {
+            this.storeManager.reactDispatch(
+                Reducer.CHANGE_QUERY,
+                newQuery,
+            );
+        }
+
         this.sqlRequest
-            .query(database, query, this.tabIndex);
+            .query(database, newQuery ?? query, this.tabIndex);
     }
 
     changePage = (newPageNumber) => {
@@ -72,6 +80,19 @@ class ApplicationManager {
 
         this.sqlRequest
             .query(database, newQuery, this.tabIndex);
+    }
+
+    historyQuery = (queryIndex) => {
+        const queryFromHistory = this.storeManager.getHistoryQuery(queryIndex);
+        const database = this.storeManager.getCurrentDatabase();
+
+        this.storeManager.reactDispatch(
+            Reducer.GO_TO_QUERY_HISTORY,
+            queryIndex,
+        );
+
+        this.sqlRequest
+            .query(database, queryFromHistory, this.tabIndex);
     }
 }
 

@@ -1,18 +1,21 @@
 import React, {Component} from "react";
 import connect from 'react-redux/es/connect/connect';
-import IconButton from "../../Components/Buttons/IconButton";
+import IconButton from "../../../Components/Buttons/IconButton";
 import {faArrowLeft, faArrowRight} from "@fortawesome/fontawesome-free-solid";
-import Editor from "../../Components/Editor/Editor";
-import StoreManager from "./Store/StoreManager";
+import Editor from "../../../Components/Editor/Editor";
+import StoreManager from "../Store/StoreManager";
+import ApplicationManager from '../Application/ApplicationManager';
 
 
 class QueryPlace extends Component {
+    /** @type ApplicationManager */
+    applicationManager = undefined;
+
     constructor(props) {
         super(props);
-
+        this.applicationManager = ApplicationManager.getInstance(props.tabIndex);
         this.state = {
             currentQuery: this.props.query,
-            queries: []
         }
     }
 
@@ -25,30 +28,16 @@ class QueryPlace extends Component {
     }
 
     sqlEditHandler = () => {
-        const { tabIndex, query, onReload } = this.props;
+        const { query } = this.props;
         if (this.state.currentQuery !== query) {
-            StoreManager.dispatch(
-                tabIndex,
-                'CHANGE_QUERY',
-                this.state.currentQuery,
-            );
+            this.applicationManager.sendQuery(this.state.currentQuery);
         } else {
-            StoreManager.dispatch(
-                tabIndex,
-                'RELOAD_QUERY',
-                this.state.currentQuery,
-            );
-            onReload(this.state.currentQuery);
+            this.applicationManager.sendQuery();
         }
     }
 
     goToQueryHandler = (queryIndex) => {
-        const { tabIndex } = this.props;
-        StoreManager.dispatch(
-            tabIndex,
-            'GO_TO_QUERY_HISTORY',
-            queryIndex,
-        );
+        this.applicationManager.historyQuery(queryIndex);
     }
 
     render() {

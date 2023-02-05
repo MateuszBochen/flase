@@ -49,6 +49,9 @@ class WhatsNew extends Component {
                     <li className="feature">
                         CSV export
                     </li>
+                    <li className="feature">
+                        Load records one by one
+                    </li>
                 </ol>
             </div>
         );

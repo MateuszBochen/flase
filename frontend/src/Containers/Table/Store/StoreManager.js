@@ -62,6 +62,7 @@ class StoreManager {
             offset: limits.offset,
             limit: limits.limit,
             query: defaultQuery,
+            queryHistory: [defaultQuery]
         };
 
         const reducer = (new Reducer(initialState)).getReducer;
@@ -97,6 +98,10 @@ class StoreManager {
         return this.getReactStore().getState().totalRows;
     }
 
+    getHistoryQuery = (queryIndex) => {
+        const history = [...this.getReactStore().getState().queryHistory];
+        return history[queryIndex];
+    }
 }
 
 export default StoreManager;

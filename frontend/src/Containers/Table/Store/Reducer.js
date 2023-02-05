@@ -5,6 +5,7 @@ import DriverFactory from '../../../Driver/DriverFactory';
 
 class Reducer {
     static CHANGE_QUERY = 'CHANGE_QUERY';
+    static GO_TO_QUERY_HISTORY = 'GO_TO_QUERY_HISTORY';
 
     initialState = initialState;
     driverAdapter;
@@ -55,7 +56,7 @@ class Reducer {
                 newState.totalRows = action.data;
                 return newState;
             }
-            case 'GO_TO_QUERY_HISTORY': {
+            case Reducer.GO_TO_QUERY_HISTORY: {
                 const newState = {
                     ...state,
                     ...this._getHistoryQuery(action.data, state.queryHistory),
