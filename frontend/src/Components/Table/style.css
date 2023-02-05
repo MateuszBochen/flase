@@ -15,6 +15,7 @@
     position: relative;
     height: auto;
     width: max-content;
+    min-width: 100%;
 }
 
 .cmp-records-view .cmp-records-view-table-wrapper .cmp-records-view-table-wrapper-table-content .loading-records {
@@ -47,7 +48,6 @@
     margin: 0;
 }
 
-
 .cmp-records-view .cmp-records-view-pager .cmp-records-view-pager-item.pager {
     display: flex;
     line-height: 1.5;
@@ -62,7 +62,6 @@
     margin-right: 5px;
     height: 25px;
 }
-
 
 .cmp-records-view table {
     min-width: 100%;
@@ -107,7 +106,6 @@
 .cmp-records-view table tbody tr:hover {
     background-color: #7f7e7e;
 }
-
 
 .cmp-records-view table tbody td {
     border-right: solid 1px #84868b;
