@@ -13,9 +13,8 @@
 
 .cmp-records-view .cmp-records-view-table-wrapper .cmp-records-view-table-wrapper-table-content {
     position: relative;
-    overflow: hidden;
-    width: 100%;
     height: auto;
+    width: max-content;
 }
 
 .cmp-records-view .cmp-records-view-table-wrapper .cmp-records-view-table-wrapper-table-content .loading-records {

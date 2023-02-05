@@ -1,24 +1,22 @@
 import {IWebSocketInMessage} from './Server/WebSocketInMessage';
-
 const WebSocketClient = require('./WebSocketClient');
 const {ACTIONS} = require("./Server/ActionEnum");
-const SqlClient = require("./SqlClient");
 const WebSocketOutMessage = require('./Server/WebSocketOutMessage');
-
-const SelectHelper = require('./Helpers/SelectHelper');
-import ShowHelper from './Helpers/ShowHelper';
+import DriverInterface from './Driver/DriverInterface';
+import TotalCountDto from './Driver/Dto/TotalCountDto';
+import Select from './Operation/Select';
 
 class Application {
-    sqlClient: typeof SqlClient;
+    dataDriver: DriverInterface;
     webSocketClient: typeof WebSocketClient;
 
 
-    constructor(sqlConnection:any, webSocketConnection:WebSocket) {
-        this.sqlClient = new SqlClient(sqlConnection);
+    constructor(dataDriver:DriverInterface, webSocketConnection:WebSocket) {
+        // this.sqlClient = new SqlClient(dataDriver);
+        this.dataDriver = dataDriver;
         this.webSocketClient = new WebSocketClient(webSocketConnection);
         this.webSocketClient.onIncomingMessage(this.dispatchAction);
     }
-
 
     dispatchAction = (message:IWebSocketInMessage) => {
         console.log('dispatchAction: ', message.action);
@@ -28,7 +26,6 @@ class Application {
                     this.getDataBasesList();
                     break
                 case ACTIONS.SOCKET_GET_TABLES_FOR_DATABASE:
-                    type ss = [string];
                     this.getTablesFromDataBase(message.params[0]);
                     break;
                 case ACTIONS.SELECT_QUERY:
@@ -43,74 +40,76 @@ class Application {
     }
 
     getDataBasesList = () => {
-        const query = 'SHOW DATABASES';
 
-        this.sqlClient
-            .streamQueryResults(
-                query,
-                (row:any) => {
-                    const message = new WebSocketOutMessage(
-                        ACTIONS.SOCKET_DATABASE_LIST_APPEND_DATA,
-                        200,
-                        null,
-                        row
-                    );
-
-                    this.webSocketClient
-                        .sendMessage(message);
-                },
-                (error:any) => {
-                    console.log(error);
-                }
+        this.dataDriver.getListOfDatabases()
+        .subscribe((database) => {
+            const message = new WebSocketOutMessage(
+                ACTIONS.SOCKET_DATABASE_LIST_APPEND_DATA,
+                200,
+                null,
+                database
             );
 
-    }
-
-    getTablesFromDataBase = (dataBaseName: string) => {
-        console.log('getTablesFromDataBase', dataBaseName)
-        this.sqlClient
-            .queryResults(
-                `USE ${dataBaseName}; SHOW TABLES;`,
-                (row:any) => {
-                    this.sendTablesNames(row[1], dataBaseName);
-                }
-            );
-    }
-
-    sendTablesNames = (tableNames: any[], databaseName:string) => {
-        tableNames.forEach((tableName) => {
-            Object.entries(tableName).forEach((item) => {
-                const message = new WebSocketOutMessage(
-                  ACTIONS.SOCKET_GET_TABLES_FOR_DATABASE,
-                  200,
-                  null,
-                  {
-                    tableName: tableName[item[0]],
-                    dataBaseName: databaseName,
-                  }
-                );
-                this.webSocketClient
-                  .sendMessage(message);
-
-            });
+            this.webSocketClient
+                .sendMessage(message);
         });
     }
 
+    getTablesFromDataBase = (dataBaseName: string) => {
+        console.log('getTablesFromDataBase', dataBaseName);
+        this.dataDriver.getListOfTablesInDatabase(dataBaseName).subscribe((table) => {
+            const message = new WebSocketOutMessage(
+              ACTIONS.SOCKET_GET_TABLES_FOR_DATABASE,
+              200,
+              null,
+              {
+                  tableName: table.name,
+                  dataBaseName: table.databaseName,
+              }
+            );
+            this.webSocketClient
+              .sendMessage(message);
+        });
+    }
 
     selectQuery = (databaseName:string, query:string, tabIndex:string) => {
-        if (!query) {
-            return;
-        }
-
         if (query.toLowerCase().startsWith('select')) {
-            console.log('SelectHelper');
-            new SelectHelper(databaseName, query, this.sqlClient, this.webSocketClient, tabIndex);
+            console.log('Operation Type Select:');
+            new Select(databaseName, query, this.dataDriver, this.webSocketClient, tabIndex);
         } else if (query.toLowerCase().startsWith('show')) {
             console.log('ShowHelper');
-            new ShowHelper(query, this.sqlClient, this.webSocketClient, tabIndex);
+
         } else {
             console.log('ElseHelper not set');
         }
+
+
+        /*this.dataDriver.streamSelect(databaseName, query).subscribe((subscriber) => {
+            console.log('subscriber', subscriber);
+
+            switch (subscriber.constructor) {
+                case TotalCountDto:
+                    this.webSocketClient
+                      .sendMessage(new WebSocketOutMessage(
+                        ACTIONS.SOCKET_SET_SELECT_QUERY_TOTAL_ROWS,
+                        200,
+                        null,
+                        {
+                            tabIndex: tabIndex,
+                            totalRows: subscriber.totalCount,
+                        }
+                      ));
+                    break;
+
+
+            }
+        });*/
+
+        /*if (!query) {
+            return;
+        }
+
+        */
     }
 
 }

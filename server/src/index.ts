@@ -1,4 +1,8 @@
 import {Request, Response} from 'express';
+import MysqlAdapter from './Driver/Drivers/Mysql/MysqlAdapter';
+import ConnectionDataType from './Driver/Type/ConnectionDataType';
+import DriverInterface from './Driver/DriverInterface';
+import DriverFactory from './Driver/DriverFactory';
 const express = require('express');
 const app = express();
 const mysql = require('mysql');
@@ -16,34 +20,36 @@ app.use(cors());
 app.use(bodyParser.json());
 
 interface IConnection {
-    [key:string]: any
+    [key:string]: DriverInterface
 }
 
 const connections: IConnection = {};
+const driverName = 'mysql';
+
+const driverFactory = new DriverFactory();
+
 
 app.post('/api/login', (req:Request, res:Response) => {
     const {  host, login, password } = req.body;
 
-    const sqlConnection = mysql.createConnection({
-        host,
-        user: login,
+    const loginData: ConnectionDataType = {
         password,
-        insecureAuth: true,
-        multipleStatements: true,
-    });
+        user: login,
+        host,
+    }
 
-    sqlConnection.connect((err: any) => {
-        if (err) {
-            console.log(err);
-            console.log(111);
-            res.status(401);
-            res.send('invalid credentials');
-            res.end();
-        } else {
-            const token = uuid.v4();
-            connections[token] = sqlConnection;
-            res.send({'token': token});
-        }
+    const driver = driverFactory.getDriver(driverName, loginData);
+
+    driver.connect().then(() => {
+        const token = uuid.v4();
+        connections[token] = driver;
+        res.send({'token': token});
+    }).catch((error) => {
+        console.log(401);
+        console.log(error);
+        res.status(401);
+        res.send('invalid credentials');
+        res.end();
     });
 });
 

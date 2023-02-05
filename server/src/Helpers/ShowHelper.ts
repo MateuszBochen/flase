@@ -1,4 +1,4 @@
-import ColumnType from '../Type/ColumnType';
+import ColumnType from '../Driver/Type/Data/ColumnType';
 const WebSocketOutMessage = require('../Server/WebSocketOutMessage');
 const SqlClient = require('../SqlClient');
 const WebSocketClient = require('../WebSocketClient');
@@ -42,6 +42,7 @@ class ShowHelper {
 
         columns.forEach((column) => {
             const columnType: ColumnType = {
+                table: {databaseName: '', name: '', alias: ''},
                 autoIncrement: false,
                 defaultValue: false,
                 name: column,

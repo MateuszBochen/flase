@@ -1,6 +1,9 @@
+import TableNameType from './TableNameType';
 
 
 type ColumnType = {
+    table: TableNameType,
+    alias?: string
     autoIncrement: boolean;
     defaultValue: any;
     name: string;

@@ -3,9 +3,9 @@ import TableIndexType from '../Type/TableIndexType';
 const SqlClient = require('../SqlClient');
 const WebSocketClient = require('../WebSocketClient');
 const WebSocketOutMessage = require('../Server/WebSocketOutMessage');
-import SelectFromType from '../Type/SelectFromType';
+import SelectFromType from '../Driver/Type/Data/SelectFromType';
 import { ACTIONS } from '../Server/ActionEnum';
-import ColumnType from '../Type/ColumnType';
+import ColumnType from '../Driver/Type/Data/ColumnType';
 import TableKeyType from '../Type/TableKeyType';
 import TableKeysType from '../Type/TableKeysType';
 
@@ -234,6 +234,7 @@ class SelectHelper {
         columns.forEach((column:any) => {
             const reference = this.findReference(column.Field, references);
             const columnType:ColumnType = {
+                table: {databaseName: '', name: '', alias: ''},
                 autoIncrement: column.Extra === 'auto_increment',
                 defaultValue: column.Default,
                 name: column.Field,
@@ -265,6 +266,7 @@ class SelectHelper {
 
             if (!isFound) {
                 const simpleColumn:ColumnType = {
+                    table: {databaseName: '', name: '', alias: ''},
                     autoIncrement: false,
                     defaultValue: null,
                     name: columnName,
@@ -354,20 +356,6 @@ class SelectHelper {
             tableName: item.table,
             aliasName: item.as,
         }
-
-        const message = new WebSocketOutMessage(
-            ACTIONS.SOCKET_SET_SELECT_QUERY_INDEXES,
-            200,
-            null,
-            {
-                tabIndex: this.tabIndex,
-                tableKeys: tableKeys,
-            }
-        );
-
-        this.webSocketClient
-            .sendMessage(message);
-
     }
 }
 

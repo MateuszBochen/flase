@@ -15,7 +15,7 @@ class DatabaseListReducer {
             case 'DataBaseRequest_ClearTablesListFromDataBase':
                 return this.clearTablesList(state, action.data);
             case 'DataBaseAction_setTablesToDataBase':
-                return this.setTablesListToDatabase(state, action.data.databaseName, action.data.tablesList);
+                return this.setTablesListToDatabase(state, action.data.dataBaseName, action.data.tablesList);
             case 'SOCKET_DATABASE_LIST_APPEND_DATA':
                 // adding new database to list.
                 return this.appendItem(state, action.data);
@@ -34,7 +34,7 @@ class DatabaseListReducer {
 
         data.forEach((item) => {
             const dataBaseItem = {};
-            dataBaseItem.name = item.Database;
+            dataBaseItem.name = item.name;
             dataBaseItem.tables = {
                 isLoaded: false,
                 tables: [],
@@ -46,26 +46,25 @@ class DatabaseListReducer {
 
     appendItem = (state, data) => {
         // Database already added
-        if (state.list[data.Database]?.tables?.tables) {
+        if (state.list[data.name]?.tables?.tables) {
             return state;
         }
 
         const newState = { ...state };
         newState.listIsLoaded = true;
         const dataBaseItem = {};
-        dataBaseItem.name = data.Database;
+        dataBaseItem.name = data.name;
         dataBaseItem.tables = {
             isLoaded: false,
             tables: [],
         };
 
-        newState.list[data.Database] = dataBaseItem;
+        newState.list[data.name] = dataBaseItem;
         return newState;
     }
 
     setTablesListToDatabase = (state, databaseName, tablesList) => {
         const newState = { ...state };
-
         newState.list = newState.list.map((item) => {
             if (item.name === databaseName) {
                 const newItem = { ...item };

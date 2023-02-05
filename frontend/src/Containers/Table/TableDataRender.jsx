@@ -145,6 +145,10 @@ class TableDataRender extends Component {
      * @param {object} rowItem - row with all data
      */
     onUpdateCellValue = (column, newValue, rowItem) => {
+
+        console.log(column);
+        console.log(rowItem);
+
         /*const { data } = this.state;
 
         let primaryColumnName = null;
