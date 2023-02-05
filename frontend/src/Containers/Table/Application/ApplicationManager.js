@@ -47,6 +47,7 @@ class ApplicationManager {
         if (newPageNumber < 0) {
             return;
         }
+
         const limit = this.storeManager.getCurrentLimit();
         const totalRows = this.storeManager.getCurrentTotalRows();
         const newLimit = newPageNumber * limit;
@@ -65,7 +66,7 @@ class ApplicationManager {
         );
 
         this.sqlRequest
-            .query(database, query, this.tabIndex);
+            .query(database, newQuery, this.tabIndex);
     }
 
     changeOrderBy = (column, direction) => {

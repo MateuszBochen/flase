@@ -2,7 +2,11 @@ import React, {Component} from "react";
 
 
 class Column extends Component {
+    constructor(props) {
+        super(props);
 
+        console.log('TableCell', props.tabIndex)
+    }
     /*shouldComponentUpdate(nextProps, nextState){
         const { id } = this.props;
         return id !== nextProps.id;

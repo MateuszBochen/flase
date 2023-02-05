@@ -60,6 +60,7 @@ class TableDataRender extends Component {
         return (
             <div className="cmp-table-data">
                 <RecordsView
+                    tabIndex={this.tabIndex}
                     queryLoading={queryLoading}
                     columns={this.tableDataLibrary.prepareColumnsDataType(columns)}
                     records={records}

@@ -134,6 +134,7 @@ class RecordsView extends Component {
             perPage,
             onSort,
             queryLoading,
+            tabIndex,
         } = this.props;
 
         return (
@@ -166,6 +167,7 @@ class RecordsView extends Component {
                                 />
                             </thead>
                             <DataContent
+                                tabIndex={tabIndex}
                                 columns={columns}
                                 records={records}
                                 loadedRecords={0}
@@ -192,6 +194,7 @@ RecordsView.propTypes = {
     columns: PropTypes.arrayOf(PropTypes.instanceOf(Column)),
     records: PropTypes.arrayOf(PropTypes.object),
     loadedRecords: PropTypes.number,
+    tabIndex: PropTypes.number,
     possibleRecords: PropTypes.number,
     total: PropTypes.number,
     page: PropTypes.number,

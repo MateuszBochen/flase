@@ -2,6 +2,7 @@ import thunk from 'redux-thunk';
 import {createStore, applyMiddleware, compose} from 'redux';
 import DriverFactory from '../../../Driver/DriverFactory';
 import Reducer from './Reducer';
+import ApplicationManager from '../Application/ApplicationManager';
 
 
 class StoreManager {
@@ -12,10 +13,8 @@ class StoreManager {
 
     static createStore = (props) => {
         const tabIndex = props.tabIndex;
-        if (!StoreManager.instances[tabIndex]) {
-            console.log('create new store instance', tabIndex);
-            StoreManager.instances[tabIndex] = new StoreManager(props);
-        }
+        StoreManager.instances[tabIndex] = new StoreManager(props);
+        ApplicationManager.instances[tabIndex] = undefined;
     }
 
     static getStore = (tabIndex) => {
