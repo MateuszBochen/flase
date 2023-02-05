@@ -1,0 +1,37 @@
+.SnackTrace {
+    position: fixed;
+    top: 0;
+    right: 3px;
+    padding-top: 3px;
+}
+
+.SnackTrace .trace-item {
+    margin-bottom: 3px;
+    padding: 3px;
+    font-size: 0.8em;
+    border-radius: 3px;
+}
+
+.SnackTrace .trace-item.error {
+    background-color: #a94442;
+    color: #e8b8b7;
+}
+
+.SnackTrace .trace-item.success {
+    background-color: #3f8024;
+    color: #b1dc14;
+}
+
+.SnackTrace .trace-item.warning {
+    background-color: #fdc300;
+    color: #886619;
+}
+
+.SnackTrace .trace-item button {
+    float: right;
+    background-color: transparent;
+    border: none;
+    padding: 0;
+    margin-left: 3px;
+    margin-right: 3px;
+}

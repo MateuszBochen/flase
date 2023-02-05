@@ -5,6 +5,7 @@ import TabsRender from './TabsRender';
 import WorkPlaceRender from './WorkPlaceRender';
 import MainMenu from '../../Components/MainMenu/MainMenu';
 import './style.css';
+import SnackTrace from '../../Containers/SnackTrace/SnackTrace';
 
 class MainView extends Component {
     constructor(props) {
@@ -50,6 +51,7 @@ class MainView extends Component {
                     className="column-workspace"
                     style={{width: `calc(100% - ${menuWidth}`}}
                 >
+                    <SnackTrace />
                     <div className="tabs-list">
                         <TabsRender />
                     </div>
