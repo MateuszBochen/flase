@@ -1,7 +1,7 @@
 import React, {Component} from 'react';
 import StoreManager from './Store/StoreManager';
 import { Provider } from 'react-redux';
-import TableDataRender from './TableDataRender';
+import TableDataRender from './UI/TableDataRender';
 
 class TableData extends Component {
     constructor(props) {

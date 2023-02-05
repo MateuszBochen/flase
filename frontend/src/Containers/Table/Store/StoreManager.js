@@ -5,14 +5,46 @@ import Reducer from './Reducer';
 
 
 class StoreManager {
-    static storages = {};
+    static instances = {};
     static DEFAULT_LIMIT = 50;
 
+    store = undefined;
+
     static createStore = (props) => {
+        const tabIndex = props.tabIndex;
+        if (!StoreManager.instances[tabIndex]) {
+            console.log('create new store instance', tabIndex);
+            StoreManager.instances[tabIndex] = new StoreManager(props);
+        }
+    }
+
+    static getStore = (tabIndex) => {
+        const instance = StoreManager.getInstance(tabIndex);
+        return instance.getReactStore();
+    }
+
+    /** @deprecated */
+    static dispatch = (tabIndex, action, data) => {
+        const instance = StoreManager.getInstance(tabIndex);
+        const reactStorage = instance.getReactStore();
+        reactStorage.dispatch({
+            type: action,
+            data: data,
+        });
+    }
+
+    static getInstance = (tabIndex) => {
+        if (!StoreManager.instances[tabIndex]) {
+            console.log(StoreManager.instances);
+            throw new Error(`Given ${tabIndex} tab index not exist`);
+        }
+
+        return StoreManager.instances[tabIndex];
+    };
+
+    constructor(props) {
         const middleware = applyMiddleware(thunk);
-        const enhancer = compose(
-            middleware,
-        );
+        const enhancer = compose(middleware,);
 
         const driverAdapter = DriverFactory.getDriver();
         let defaultQuery = driverAdapter.simpleSelectQuery(props.tableName, StoreManager.DEFAULT_LIMIT);
@@ -23,8 +55,6 @@ class StoreManager {
 
         const limits = driverAdapter.getLimitOfQuery(defaultQuery);
 
-        const tabIndex = props.tabIndex;
-
         const initialState  = {
             tabIndex: props.tabIndex,
             tableName: props.tableName,
@@ -32,23 +62,41 @@ class StoreManager {
             offset: limits.offset,
             limit: limits.limit,
             query: defaultQuery,
-
         };
 
         const reducer = (new Reducer(initialState)).getReducer;
 
-        StoreManager.storages[tabIndex] = createStore(reducer, enhancer);
+        this.store = createStore(reducer, enhancer);
     }
 
-    static getStore = tabIndex => StoreManager.storages[tabIndex];
+    getReactStore = () => {
+        return this.store;
+    }
 
-    static dispatch = (tabIndex, action, data) => {
-        const store = StoreManager.getStore(tabIndex);
-        store.dispatch({
+    reactDispatch = (action, data) => {
+        const reactStore = this.getReactStore();
+        reactStore.dispatch({
             type: action,
             data: data,
         });
     }
+
+    getCurrentQuery = () => {
+        return this.getReactStore().getState().query;
+    }
+
+    getCurrentDatabase = () => {
+        return this.getReactStore().getState().database;
+    }
+
+    getCurrentLimit = () => {
+        return this.getReactStore().getState().limit;
+    }
+
+    getCurrentTotalRows = () => {
+        return this.getReactStore().getState().totalRows;
+    }
+
 }
 
 export default StoreManager;

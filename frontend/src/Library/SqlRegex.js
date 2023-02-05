@@ -2,6 +2,9 @@ import sqlParser from 'js-sql-parser';
 
 class SqlRegex {
 
+    /**
+     * @deprecated
+     */
     setLimitToSql = (sqlString, start, limit) => {
         const ast = sqlParser.parse(sqlString);
 
@@ -17,6 +20,9 @@ class SqlRegex {
         return sqlParser.stringify(ast).trim();
     }
 
+    /**
+     * @deprecated
+     */
     setOrderByToSql = (sqlString, column, direction) => {
 
         const ast = sqlParser.parse(sqlString);
