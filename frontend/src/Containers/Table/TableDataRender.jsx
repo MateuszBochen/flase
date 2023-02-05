@@ -1,17 +1,15 @@
 import React, {Component} from 'react';
 import connect from 'react-redux/es/connect/connect';
-
 import SqlRequest from '../../API/SqlRequest';
 import LoaderSquare from '../../Components/Loader/LoaderSquare';
 import RecordsView from '../../Components/Table/RecordsView';
 import SqlRegex from '../../Library/SqlRegex';
 import WorkPlaceAction from '../../Actions/WorkPlaceAction';
 import TableDataLibrary from '../../Library/DataHelpers/TableData';
-import CellValue from './CellValue';
 import StoreManager from './Store/StoreManager';
 import QueryPlace from './QueryPlace';
-import './style.css';
 import {Alert} from "react-bootstrap";
+import './style.css';
 
 class TableDataRender extends Component {
 
@@ -120,7 +118,7 @@ class TableDataRender extends Component {
             .query(database, query, this.tabIndex);
     }
 
-    checkForPrimary = () => {
+    /*checkForPrimary = () => {
 
         if (this.hasPrimary !== -1) {
             return;
@@ -137,43 +135,77 @@ class TableDataRender extends Component {
                 return true;
             }
         });
-    }
+    }*/
 
-    /**
-     * @param {Column} column - column object
+    /*/!**
+     * @param {Column} columnToUpdate - column object
      * @param {string} newValue - row with all data
      * @param {object} rowItem - row with all data
-     */
-    onUpdateCellValue = (column, newValue, rowItem) => {
+     *!/
+    onUpdateCellValue = (columnToUpdate, newValue, rowItem) => {
+        const { columns } = this.props;
 
-        console.log(column);
+        console.log(this.props);
+
+        console.log(columnToUpdate);
         console.log(rowItem);
 
-        /*const { data } = this.state;
+        const primaryColumnNames = {};
 
-        let primaryColumnName = null;
-        let primaryColumnValue = null;
-        data.columns.forEach((column) => {
-            if (column.autoIncrement === true) {
-                primaryColumnName = column.name;
+        columns.forEach((column) => {
+            if (column.primaryKey === true) {
+                primaryColumnNames[column.name] = undefined;
             }
         });
 
-        if (primaryColumnName === null) {
+
+
+        Object.entries(primaryColumnNames).forEach(([key]) => {
+            if (rowItem.hasOwnProperty(key)) {
+                primaryColumnNames[key] = rowItem[key];
+            }
+        });
+        let isOk = true;
+        Object.entries(primaryColumnNames).forEach(([key]) => {
+            if (primaryColumnNames[key] === undefined) {
+                isOk = false;
+            }
+        });
+
+        if (!isOk) {
+            const message = StankTraceDto.createError('Unique identifier could not be found');
+            SnackTraceManager.getInstance().addItem(message);
             return;
         }
 
+        console.log(primaryColumnNames);
+
+       /!* primaryColumnNames.forEach((columnName) => {
+            if (rowItem.hasOwnProperty(columnName)) {
+
+            }
+        });
+
+        console.log(primaryColumnNames);*!/
+
+        /!*
+
+
+
+
+
+
         primaryColumnValue = rowItem[primaryColumnName];
 
-        const { database, tableName } = this.props;*/
+        const { database, tableName } = this.props;*!/
 
 
-    }
+    }*/
 
-    /**
+    /*/!**
      * @param {Column} column - column object
      * @param {Array} rowObject - row with all data
-     */
+     *!/
     cellFunction = (column, rowObject) => {
         this.checkForPrimary();
 
@@ -191,10 +223,9 @@ class TableDataRender extends Component {
                 rowItem={rowObject.rowValues}
                 onRelationClick={this.relationClickHandler}
                 hasPrimary={this.hasPrimary}
-                onUpdate={this.onUpdateCellValue}
             />
         );
-    }
+    }*/
 
     renderData = () => {
         const { columns, records, recordsLoaded, limit, totalRows, offset, queryLoading} = this.props;
@@ -219,7 +250,7 @@ class TableDataRender extends Component {
             <div className="cmp-table-data">
                 <RecordsView
                     queryLoading={queryLoading}
-                    columns={this.tableDataLibrary.addFunctionsToColumns(this.tableDataLibrary.prepareColumnsDataType(columns), this.cellFunction)}
+                    columns={this.tableDataLibrary.prepareColumnsDataType(columns)}
                     records={records}
                     total={totalRows}
                     loadedRecords={recordsLoaded}

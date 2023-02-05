@@ -1,0 +1,16 @@
+export default {
+    tableKeys: [],
+    tabIndex: 0,
+    tableName: '',
+    database: '',
+    columns: [],
+    records: [],
+    offset: 0,
+    limit: 50,
+    query: '',
+    recordsLoaded: 0,
+    totalRows: -1,
+    currentQueryIndex: 0,
+    queryHistory: [],
+    queryLoading: false,
+};
