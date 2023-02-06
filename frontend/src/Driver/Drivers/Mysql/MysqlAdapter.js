@@ -51,7 +51,6 @@ class MysqlAdapter {
     }
 
     setOrderByToSql = (sqlString, column, direction) => {
-
         const ast = sqlParser.parse(sqlString);
 
         ast.value.orderBy = {};
@@ -65,6 +64,26 @@ class MysqlAdapter {
             type: 'GroupByOrderByItem',
             sortOpt: direction,
         });
+        return sqlParser.stringify(ast).trim();
+    }
+
+    setWhereToSql = (query, columnName, value) => {
+        const ast = sqlParser.parse(query);
+        console.log('addWhere', ast);
+
+        ast.value.where = {
+            left: {
+                type: 'Identifier',
+                value: `\`${columnName}\``,
+            },
+            operator: '=',
+            right: {
+                type: 'String',
+                value: `'${value}'`,
+            },
+            type: 'ComparisonBooleanPrimary'
+        };
+
         return sqlParser.stringify(ast).trim();
     }
 }

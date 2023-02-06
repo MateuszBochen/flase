@@ -1,14 +1,12 @@
 import React, {Component} from 'react';
 import connect from 'react-redux/es/connect/connect';
-import SqlRequest from '../../../API/SqlRequest';
 import LoaderSquare from '../../../Components/Loader/LoaderSquare';
 import RecordsView from '../../../Components/Table/RecordsView';
-import SqlRegex from '../../../Library/SqlRegex';
-import WorkPlaceAction from '../../../Actions/WorkPlaceAction';
 import TableDataLibrary from '../../../Library/DataHelpers/TableData';
 import QueryPlace from './QueryPlace';
 import {Alert} from 'react-bootstrap';
 import ApplicationManager from '../Application/ApplicationManager';
+import CustomCellRender from './Table/CustomCellRender';
 import '../style.css';
 
 class TableDataRender extends Component {
@@ -19,11 +17,7 @@ class TableDataRender extends Component {
         super(props);
         this.tabIndex = this.props.tabIndex;
         this.applicationManager = ApplicationManager.getInstance(this.tabIndex);
-        this.sqlRegex = new SqlRegex();
-        this.sqlRequest = new SqlRequest();
-        this.workPlaceAction = new WorkPlaceAction();
         this.tableDataLibrary = new TableDataLibrary();
-        this.hasPrimary = -1;
     }
 
     componentDidMount() {
@@ -60,6 +54,7 @@ class TableDataRender extends Component {
         return (
             <div className="cmp-table-data">
                 <RecordsView
+                    cellRender={CustomCellRender}
                     tabIndex={this.tabIndex}
                     queryLoading={queryLoading}
                     columns={this.tableDataLibrary.prepareColumnsDataType(columns)}

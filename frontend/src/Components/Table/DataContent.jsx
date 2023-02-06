@@ -11,11 +11,13 @@ class DataContent extends Component {
             loadedRecords,
             possibleRecords,
             tabIndex,
+            cellRender,
         } = this.props;
 
         if (records.length) {
             return (
                 <DataGrid
+                    cellRender={cellRender}
                     tabIndex={tabIndex}
                     columns={columns}
                     records={records}

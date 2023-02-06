@@ -4,10 +4,11 @@ import Column from '../../../Library/DataTypes/Column';
 import Row from './Row';
 class DataGrid extends Component {
     rowRender = (data, columns) => {
-        const { tabIndex} = this.props;
+        const { tabIndex, cellRender} = this.props;
         return data.map((item) => {
             return (
                 <Row
+                    cellRender={cellRender}
                     tabIndex={tabIndex}
                     key={`row_${item.id}`}
                     rowItem={item}
@@ -33,6 +34,7 @@ DataGrid.propTypes = {
     columns: PropTypes.arrayOf(PropTypes.instanceOf(Column)),
     records: PropTypes.array,
     tabIndex: PropTypes.number,
+    cellRender: PropTypes.any,
 }
 
 export default DataGrid;

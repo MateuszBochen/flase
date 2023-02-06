@@ -72,8 +72,6 @@ class RecordsView extends Component {
         this.stickyHeaderRef.style.top = `${wrapperRect.y - tableRect.y}px`;
     }
 
-
-
     onHeaderStaticColumnDidMount = (column, columnRef) => {
         this.columnsRefStatic[column.name] = columnRef;
         this.changeColumnWidth(column.name);
@@ -135,6 +133,7 @@ class RecordsView extends Component {
             onSort,
             queryLoading,
             tabIndex,
+            cellRender,
         } = this.props;
 
         return (
@@ -167,6 +166,7 @@ class RecordsView extends Component {
                                 />
                             </thead>
                             <DataContent
+                                cellRender={cellRender}
                                 tabIndex={tabIndex}
                                 columns={columns}
                                 records={records}
@@ -201,7 +201,8 @@ RecordsView.propTypes = {
     perPage: PropTypes.number,
     onPageChange: PropTypes.func,
     onSort: PropTypes.func,
-    queryLoading: PropTypes.bool
+    queryLoading: PropTypes.bool,
+    cellRender: PropTypes.any
 }
 
 export default RecordsView;

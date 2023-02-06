@@ -2,19 +2,15 @@ import thunk from 'redux-thunk';
 import {createStore, applyMiddleware, compose} from 'redux';
 import DriverFactory from '../../../Driver/DriverFactory';
 import Reducer from './Reducer';
-import ApplicationManager from '../Application/ApplicationManager';
 
 
 class StoreManager {
     static instances = {};
-    static DEFAULT_LIMIT = 50;
-
     store = undefined;
 
     static createStore = (props) => {
         const tabIndex = props.tabIndex;
         StoreManager.instances[tabIndex] = new StoreManager(props);
-        ApplicationManager.instances[tabIndex] = undefined;
     }
 
     static getStore = (tabIndex) => {
@@ -46,7 +42,8 @@ class StoreManager {
         const enhancer = compose(middleware,);
 
         const driverAdapter = DriverFactory.getDriver();
-        let defaultQuery = driverAdapter.simpleSelectQuery(props.tableName, StoreManager.DEFAULT_LIMIT);
+        console.log('props.limit', props.limit);
+        let defaultQuery = driverAdapter.simpleSelectQuery(props.tableName, props.limit);
 
         if (props.query) {
             defaultQuery = props.query;

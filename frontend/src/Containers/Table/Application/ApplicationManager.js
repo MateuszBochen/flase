@@ -2,15 +2,30 @@ import StoreManager from '../Store/StoreManager';
 import SqlRequest from '../../../API/SqlRequest';
 import DriverFactory from '../../../Driver/DriverFactory';
 import Reducer from '../Store/Reducer';
-
+import WorkPlaceAction from '../../../Actions/WorkPlaceAction';
 
 class ApplicationManager {
+    static DEFAULT_LIMIT = 50;
     static instances = {};
 
     tabIndex = undefined;
+    sqlRequest = undefined;
+
     /** @type StoreManager */
     storeManager = undefined;
-    sqlRequest = undefined;
+
+    /** @type WorkPlaceAction */
+    workPlaceAction = undefined;
+
+    /** @type MysqlAdapter */
+    driverAdapter = undefined;
+
+    static createNewInstance = (props) => {
+
+        StoreManager.createStore({...props,  limit: ApplicationManager.DEFAULT_LIMIT});
+        ApplicationManager.instances[props.tabIndex] = new ApplicationManager(props.tabIndex);
+    }
+
 
     static getInstance = (tabIndex) => {
         if (!ApplicationManager.instances[tabIndex]) {
@@ -26,6 +41,7 @@ class ApplicationManager {
         this.storeManager = StoreManager.getInstance(tabIndex);
         this.sqlRequest = new SqlRequest();
         this.driverAdapter = DriverFactory.getDriver();
+        this.workPlaceAction = new WorkPlaceAction();
     }
 
     sendQuery = (newQuery) => {
@@ -94,6 +110,25 @@ class ApplicationManager {
 
         this.sqlRequest
             .query(database, queryFromHistory, this.tabIndex);
+    }
+
+    /**
+     * @param {Column} column
+     * @param {string} value
+     * */
+    referenceOpenNewTab = (column, value) => {
+        console.log('column', column);
+        const query = this.driverAdapter.simpleSelectQuery(column.table.name, ApplicationManager.DEFAULT_LIMIT);
+        const whereQuery = this.driverAdapter.setWhereToSql(query, column.name, value);
+
+        this.workPlaceAction.addNewTableDataTab(column.table.databaseName, column.referenceTable, {query: whereQuery});
+    }
+
+    referenceOpenSameTab = (column, value) => {
+        console.log('column', column);
+        const query = this.driverAdapter.simpleSelectQuery(column.table.name, ApplicationManager.DEFAULT_LIMIT);
+        const whereQuery = this.driverAdapter.setWhereToSql(query, column.name, value);
+        this.sendQuery(whereQuery);
     }
 }
 

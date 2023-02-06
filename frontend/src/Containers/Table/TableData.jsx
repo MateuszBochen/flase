@@ -2,11 +2,12 @@ import React, {Component} from 'react';
 import StoreManager from './Store/StoreManager';
 import { Provider } from 'react-redux';
 import TableDataRender from './UI/TableDataRender';
+import ApplicationManager from './Application/ApplicationManager';
 
 class TableData extends Component {
     constructor(props) {
         super(props);
-        StoreManager.createStore(this.props);
+        ApplicationManager.createNewInstance(this.props);
     }
 
     render() {
