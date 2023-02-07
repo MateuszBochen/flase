@@ -5,18 +5,18 @@ import stream, {TransformCallback} from 'stream';
 import {Observable} from 'rxjs';
 import {MysqlError} from 'mysql';
 import RecordType from '../../Type/Data/RecordType';
-import TableNameType from '../../Type/Data/TableNameType';
+import TableType from '../../Type/Data/TableType';
 import TotalCountDto from '../../Dto/TotalCountDto';
 import RowDto from '../../Dto/RowDto';
 import ColumnType from '../../Type/Data/ColumnType';
 import SelectFromType from '../../Type/Data/SelectFromType';
 import MysqlColumnReference from './Type/MysqlColumnReference';
+import ReferenceTableType from '../../Type/Data/ReferenceTableType';
 const mysql = require('mysql');
 const { Parser } = require('node-sql-parser');
 
 class MysqlAdapter implements DriverInterface {
   private consoleLog = true;
-  // private nativeConnections: {[key:string]: any};
   private nativeConnection: any;
   private connectionData: ConnectionDataType;
   private parser: typeof Parser;
@@ -73,7 +73,7 @@ class MysqlAdapter implements DriverInterface {
     });
   }
 
-  getListOfTablesInDatabase(databaseName:string): Observable<TableNameType> {
+  getListOfTablesInDatabase(databaseName:string): Observable<TableType> {
     const useDatabaseQuery = `USE ${databaseName}; SHOW TABLES`;
 
     let skip = true;
@@ -122,8 +122,7 @@ class MysqlAdapter implements DriverInterface {
               name: column.Field,
               nullable: column.Null === 'YES',
               primaryKey: column.Key === 'PRI',
-              referenceColumn: reference.REFERENCED_COLUMN_NAME,
-              referenceTable: reference.REFERENCED_TABLE_NAME,
+              reference,
             }
             newColumns.push(columnType);
           });
@@ -209,7 +208,7 @@ class MysqlAdapter implements DriverInterface {
   }
 
 
-  private getReferencesColumns(databaseName:string, tableName:string):Promise<MysqlColumnReference[]> {
+  private getReferencesColumns(databaseName:string, tableName:string):Promise<ReferenceTableType[]> {
     const sql = `SELECT
           \`COLUMN_NAME\`,
           \`REFERENCED_TABLE_NAME\`,
@@ -222,30 +221,38 @@ class MysqlAdapter implements DriverInterface {
       `;
 
     return new Promise((resolve, reject) => {
-      this.nativeConnection.query(sql, (err: any, results: any) => {
+      this.nativeConnection.query(sql, (err: any, results: MysqlColumnReference[]) => {
         if (err) {
           reject(err);
           return;
         }
-        resolve(results);
+
+        const converted = results.map((result) => {
+          return {
+            columnName: result.REFERENCED_COLUMN_NAME,
+            originColumnName: result.COLUMN_NAME,
+            table: {
+              databaseName,
+              name: result.REFERENCED_TABLE_NAME
+            }
+          }
+        });
+
+        resolve(converted);
       });
     });
   }
 
-  private findReference(columnName:string, references:MysqlColumnReference[]):MysqlColumnReference {
+  private findReference(columnName:string, references:ReferenceTableType[]):undefined|ReferenceTableType {
     if (references.length) {
       for (let i = 0; i < references.length; i++) {
-        if (columnName === references[i].COLUMN_NAME) {
+        if (columnName === references[i].originColumnName) {
           return references[i];
         }
       }
     }
 
-    return {
-      COLUMN_NAME: '',
-      REFERENCED_TABLE_NAME: '',
-      REFERENCED_COLUMN_NAME: '',
-    }
+    return undefined;
   }
 
   private log(input:any): void {

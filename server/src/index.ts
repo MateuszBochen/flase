@@ -13,7 +13,6 @@ const WebSocketOutMessage = require("./Server/WebSocketOutMessage");
 const WebSocketInMessage = require("./Server/WebSocketInMessage");
 const {ACTIONS} = require("./Server/ActionEnum");
 const Application = require('./Application');
-
 require('express-ws')(app);
 
 app.use(cors());
@@ -27,7 +26,6 @@ const connections: IConnection = {};
 const driverName = 'mysql';
 
 const driverFactory = new DriverFactory();
-
 
 app.post('/api/login', (req:Request, res:Response) => {
     const {  host, login, password } = req.body;
@@ -71,7 +69,6 @@ app.ws('/ws/:token', (ws:WebSocket, req: Request) => {
         console.log(e);
     }
 });
-
 
 app.listen(3001, () => {
     console.log('Example app listening on port 3001!');

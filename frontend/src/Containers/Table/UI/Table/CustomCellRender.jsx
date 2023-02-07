@@ -88,7 +88,7 @@ class CustomCellRender extends Component {
       return this.renderEditValue();
     }
 
-    if (column.referenceColumn && column.referenceTable) {
+    if (column.reference) {
       return (
         <span
           className="reference"
@@ -109,9 +109,6 @@ class CustomCellRender extends Component {
   }*/
 
   render () {
-    const {cellValue} = this.state;
-    //console.log(this.props);
-
     return (
       <td>
         {this.renderValue()}

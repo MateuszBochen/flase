@@ -1,6 +1,6 @@
 import Database from './Type/Data/Database';
 import {Observable} from 'rxjs';
-import TableNameType from './Type/Data/TableNameType';
+import TableType from './Type/Data/TableType';
 import TotalCountDto from './Dto/TotalCountDto';
 import RowDto from './Dto/RowDto';
 import ColumnType from './Type/Data/ColumnType';
@@ -36,7 +36,7 @@ interface DriverInterface {
   /**
    * Return Database object on ech new result getting from database
    */
-  getListOfTablesInDatabase(databaseName: string): Observable<TableNameType>;
+  getListOfTablesInDatabase(databaseName: string): Observable<TableType>;
 
   /**
    * get list of from type to match table columns

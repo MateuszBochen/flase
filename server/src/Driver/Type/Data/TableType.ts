@@ -1,8 +1,8 @@
 
-type TableNameType = {
+type TableType = {
   databaseName: string,
   name: string,
   alias?: string,
 }
 
-export default TableNameType;
+export default TableType;

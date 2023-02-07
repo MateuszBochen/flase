@@ -5,8 +5,7 @@ class Column {
     name = '';
     nullable = false;
     primaryKey = false;
-    referenceColumn = false;
-    referenceTable = false;
+    reference = false;
     type = false;
     function = null;
 }

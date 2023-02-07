@@ -117,17 +117,19 @@ class ApplicationManager {
      * @param {string} value
      * */
     referenceOpenNewTab = (column, value) => {
-        console.log('column', column);
-        const query = this.driverAdapter.simpleSelectQuery(column.table.name, ApplicationManager.DEFAULT_LIMIT);
-        const whereQuery = this.driverAdapter.setWhereToSql(query, column.name, value);
+        const { reference } = column;
+        console.log('reference', reference);
+        const query = this.driverAdapter.simpleSelectQuery(reference.table.name, ApplicationManager.DEFAULT_LIMIT);
+        const whereQuery = this.driverAdapter.setWhereToSql(query, reference.columnName, value);
 
-        this.workPlaceAction.addNewTableDataTab(column.table.databaseName, column.referenceTable, {query: whereQuery});
+        this.workPlaceAction.addNewTableDataTab(reference.table.databaseName, reference.table.name, {query: whereQuery});
     }
 
     referenceOpenSameTab = (column, value) => {
-        console.log('column', column);
-        const query = this.driverAdapter.simpleSelectQuery(column.table.name, ApplicationManager.DEFAULT_LIMIT);
-        const whereQuery = this.driverAdapter.setWhereToSql(query, column.name, value);
+        const { reference } = column;
+        console.log('reference', reference);
+        const query = this.driverAdapter.simpleSelectQuery(reference.table.name, ApplicationManager.DEFAULT_LIMIT);
+        const whereQuery = this.driverAdapter.setWhereToSql(query, reference.columnName, value);
         this.sendQuery(whereQuery);
     }
 }
