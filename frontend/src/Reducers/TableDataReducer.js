@@ -1,5 +1,5 @@
-import TableDataItem from "../Library/DataTypes/TableDataItem";
-import StoreManager from "../Containers/Table/Store/StoreManager";
+import TableDataItem from '../Library/DataTypes/TableDataItem';
+import StoreManager from '../Containers/Table/Store/StoreManager';
 
 
 class TableDataReducer {

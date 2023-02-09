@@ -7,6 +7,7 @@ class Trace extends Component {
         const storeManager = StoreManager.getInstance();
 
         const {index, trace} = this.props;
+        console.log(99999999999, trace);
         return (
             <div className={`trace-item ${trace.type}`}>
                 {trace.message}

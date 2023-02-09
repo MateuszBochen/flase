@@ -6,6 +6,7 @@ import DriverInterface from '../Driver/DriverInterface';
 import TotalCountDto from '../Driver/Dto/TotalCountDto';
 import {ACTIONS} from '../Server/ActionEnum';
 import RowDto from '../Driver/Dto/RowDto';
+import SelectFromType from '../Driver/Type/Data/SelectFromType';
 
 class Select {
   webSocketClient: typeof WebSocketClient;
@@ -18,11 +19,26 @@ class Select {
 
     driver.selectDatabase(databaseName)
       .then(() => {
-        driver.countRecords(query).then((totalCountDto) => {
-          this.sendTotalCount(totalCountDto);
-        });
+        try {
+          driver.countRecords(query)
+            .then((totalCountDto) => {
+              this.sendTotalCount(totalCountDto);
+          }).catch((e) => {
+            this.sendError(e.message);
+          });
 
-        const selectFromTypes = driver.getSelectFromTypeFromQuery(query);
+        } catch (e) {
+          this.sendError(e.message);
+          return;
+        }
+
+        let selectFromTypes:SelectFromType[] = [];
+        try {
+          selectFromTypes = driver.getSelectFromTypeFromQuery(query);
+        } catch (e) {
+          this.sendError(e.message);
+          return;
+        }
 
         selectFromTypes.forEach((selectFromType) => {
           driver.getColumnsOfTable(databaseName, selectFromType).then((listOfColumnTypes) => {
@@ -33,6 +49,10 @@ class Select {
         driver.streamSelect(query).subscribe((subscriber) => {
           this.sendDataRow(subscriber);
         });
+      })
+      .catch((e) => {
+        console.log(222222222222222222);
+        this.sendError(e.message);
       });
   }
 
@@ -73,6 +93,21 @@ class Select {
       {
         tabIndex: this.tabIndex,
         row: row.row,
+      }
+    );
+
+    this.webSocketClient
+      .sendMessage(message);
+  }
+
+  sendError = (e:any) => {
+    const message = new WebSocketOutMessage(
+      ACTIONS.SOCKET_SET_SELECT_QUERY_APPEND_DATA_ROW,
+      406,
+      null,
+      {
+        tabIndex: this.tabIndex,
+        error: e,
       }
     );
 

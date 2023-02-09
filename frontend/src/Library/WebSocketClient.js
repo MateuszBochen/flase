@@ -1,7 +1,8 @@
 import store from '../store';
 import WebSocketInMessage from "./DataTypes/WebSocketInMessage";
 import WebSocketOutMessage from "./DataTypes/WebSocketOutMessage";
-
+import SnackTraceStoreManager from '../Containers/SnackTrace/Store/StoreManager';
+import StankTraceDto from '../Containers/SnackTrace/Dto/StankTraceDto';
 
 class WebSocketClient {
     _nativeWebSocketClient = null;
@@ -59,11 +60,16 @@ class WebSocketClient {
                 return;
             }
 
-            if (message && message.action) {
-                store.dispatch({
-                    type: message.action,
-                    data: message.data,
-                });
+            if (message.code >= 200 && message.code <= 300) {
+                if (message && message.action) {
+                    store.dispatch({
+                        type: message.action,
+                        data: message.data,
+                    });
+                }
+            } else if (message.code >= 400 && message.code <= 500) {
+                const snackTraceStoreManager = SnackTraceStoreManager.getInstance();
+                snackTraceStoreManager.addItem(StankTraceDto.createWarning(message.data.error));
             }
 
         }

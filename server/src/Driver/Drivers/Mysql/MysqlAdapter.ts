@@ -94,8 +94,12 @@ class MysqlAdapter implements DriverInterface {
 
   getSelectFromTypeFromQuery(query:string): SelectFromType[]
   {
-    const ast = this.parser.astify(query);
-    return ast.from;
+    try {
+      const ast = this.parser.astify(query);
+      return ast.from;
+    } catch (e) {
+      throw new Error(e);
+    }
   }
 
   getColumnsOfTable(databaseName: string, selectFromType:SelectFromType): Promise<ColumnType[]> {
@@ -135,8 +139,20 @@ class MysqlAdapter implements DriverInterface {
 
   countRecords(query: string): Promise<TotalCountDto>
   {
-    const countQuery = this.getAllCountRowsQuery(query);
     return new Promise((resolve, reject) => {
+      let countQuery;
+      try {
+         countQuery = this.getAllCountRowsQuery(query);
+      } catch (e) {
+        console.log(4444444444444444);
+        reject(e);
+        return;
+      }
+
+      if (countQuery === '') {
+        reject('Fail');
+      }
+
       this.nativeConnection.query(countQuery, (err: any, results: any) => {
         if (err) {
           reject(err);
@@ -185,7 +201,9 @@ class MysqlAdapter implements DriverInterface {
    * Function helping change select query into count query
    */
   private getAllCountRowsQuery(query: string): string {
+
     const ast = this.parser.astify(query);
+
     ast.limit = null;
     ast.columns = [
       {
