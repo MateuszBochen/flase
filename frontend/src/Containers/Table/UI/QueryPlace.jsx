@@ -1,9 +1,8 @@
 import React, {Component} from "react";
 import connect from 'react-redux/es/connect/connect';
 import IconButton from "../../../Components/Buttons/IconButton";
-import {faArrowLeft, faArrowRight} from "@fortawesome/fontawesome-free-solid";
+import {faArrowLeft, faArrowRight, faList, faQuestion} from "@fortawesome/fontawesome-free-solid";
 import Editor from "../../../Components/Editor/Editor";
-import StoreManager from "../Store/StoreManager";
 import ApplicationManager from '../Application/ApplicationManager';
 
 
@@ -74,6 +73,15 @@ class QueryPlace extends Component {
                     >
                         {currentQuery}
                     </Editor>
+                </div>
+                <div className="speed-dial-buttons">
+                    <IconButton
+                        icon={faList}
+                        onClick={this.applicationManager.reSendMainQuery}
+                    />
+                    <IconButton
+                        icon={faQuestion}
+                    />
                 </div>
             </div>
         );

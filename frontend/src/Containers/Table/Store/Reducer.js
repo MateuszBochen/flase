@@ -1,7 +1,7 @@
 import initialState from './initialState';
 import {v4 as uuidv4} from 'uuid';
 import DriverFactory from '../../../Driver/DriverFactory';
-
+import store from '../../../store';
 
 class Reducer {
     static CHANGE_QUERY = 'CHANGE_QUERY';
@@ -20,12 +20,21 @@ class Reducer {
     getReducer = (state = this.initialState, action) => {
         switch (action.type) {
             case Reducer.CHANGE_QUERY: {
+
+                this._changeTableName(action.data, state);
+
                 const newState = {
                     ...state,
                     ...this._addQueryToHistory(action.data, state.queryHistory, state.currentQueryIndex)
                 };
 
                 const limits = this.driverAdapter.getLimitOfQuery(newState.query);
+                const tableName = this.driverAdapter.getTableNameFromQuery(newState.query);
+
+                if (tableName) {
+                    console.log('newTableName', tableName);
+                    newState.tableName = tableName;
+                }
 
                 newState.offset = limits.offset;
                 newState.limit = limits.limit;
@@ -59,7 +68,7 @@ class Reducer {
             case Reducer.GO_TO_QUERY_HISTORY: {
                 const newState = {
                     ...state,
-                    ...this._getHistoryQuery(action.data, state.queryHistory),
+                    ...this._getHistoryQuery(action.data, state),
                 };
 
                 const limits = this.driverAdapter.getLimitOfQuery(newState.query);
@@ -117,14 +126,33 @@ class Reducer {
         };
     }
 
-    _getHistoryQuery = (queryIndex, queryHistory) => {
-        const queries = [...queryHistory];
+    _getHistoryQuery = (queryIndex, state) => {
+        const queries = [...state.queryHistory];
         const query = queries[queryIndex];
         if (query) {
+            this._changeTableName(query, state);
             return {
                 query,
-                currentQueryIndex: queryIndex
+                currentQueryIndex: queryIndex,
+                tableName: state.tableName,
             }
+        }
+    }
+
+    _changeTableName = (newQuery, state) => {
+        if (newQuery === state.query) {
+            return;
+        }
+        const tableName = this.driverAdapter.getTableNameFromQuery(newQuery);
+        if (tableName && tableName !== state.tableName) {
+            state.tableName = tableName;
+            store.dispatch({
+                type: 'WorkPlaceAction_changeTabName',
+                data: {
+                    newName: `${state.database}:${tableName}`,
+                    tabIndex: state.tabIndex,
+                },
+            })
         }
     }
 }

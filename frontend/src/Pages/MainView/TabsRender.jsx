@@ -37,14 +37,14 @@ class TabsRender extends Component{
                 onMouseDown={(e) => this.onMouseDownHandler(e, tabNumber)}
             >
                 {item.tabName}
-                <span
+                <button
                     className="close-tab"
                     onMouseDown={(e) => this.closeTabHandler(e, tabNumber)}
                 >
                     <span className="close-tab-icon">
                         X
                     </span>
-                </span>
+                </button>
             </li>
         );
     };

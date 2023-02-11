@@ -86,6 +86,10 @@ class StoreManager {
         return this.getReactStore().getState().database;
     }
 
+    getCurrentTableName = () => {
+        return this.getReactStore().getState().tableName;
+    }
+
     getCurrentLimit = () => {
         return this.getReactStore().getState().limit;
     }

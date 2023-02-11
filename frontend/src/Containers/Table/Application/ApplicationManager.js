@@ -132,6 +132,16 @@ class ApplicationManager {
         const whereQuery = this.driverAdapter.setWhereToSql(query, reference.columnName, value);
         this.sendQuery(whereQuery);
     }
+
+    reSendMainQuery = () => {
+        const tableName = this.storeManager.getCurrentTableName();
+        const currentQuery = this.storeManager.getCurrentQuery();
+        const query = this.driverAdapter.simpleSelectQuery(tableName, ApplicationManager.DEFAULT_LIMIT);
+
+        if (currentQuery !== query) {
+            this.sendQuery(query);
+        }
+    }
 }
 
 export default ApplicationManager;

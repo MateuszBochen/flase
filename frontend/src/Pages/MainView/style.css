@@ -66,8 +66,12 @@
 }
 
 .main-view-main .tabs-list .tabs-render .tabs-render-list .tabs-render-list-item .close-tab {
-    padding-left: 6px;
+    padding: 0;
+    border-radius: 15px;
+    border: none;
     font-size: 10px;
+    margin-left: 3px;
+    background-color: transparent;
 }
 .main-view-main .tabs-list .tabs-render .tabs-render-list .tabs-render-list-item .close-tab .close-tab-icon {
     display: inline-block;

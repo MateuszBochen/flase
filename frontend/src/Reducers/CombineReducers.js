@@ -1,6 +1,5 @@
 import { combineReducers } from 'redux';
-
-import LoginReducer from "./LoginReducer";
+import LoginReducer from './LoginReducer';
 import DatabaseListReducer from './DatabaseListReducer';
 import WorkPlaceReducer from './WorkPlaceReducer';
 import TableDataReducer from './TableDataReducer';

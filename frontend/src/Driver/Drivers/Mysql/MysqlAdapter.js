@@ -35,6 +35,18 @@ class MysqlAdapter {
         }
     }
 
+    getTableNameFromQuery = (sqlString) => {
+        try {
+            const ast = sqlParser.parse(sqlString);
+            const tableName = ast.value.from.value[0].value.value.value;
+            console.log('getTableNameFromQuery', tableName);
+            return tableName.replaceAll('`', '');
+        } catch (e) {
+            console.log('getTableNameFromQuery', e);
+            return '';
+        }
+    }
+
     setLimitToSql = (sqlString, start, limit) => {
         const ast = sqlParser.parse(sqlString);
 

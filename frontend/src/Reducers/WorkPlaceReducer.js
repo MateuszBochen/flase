@@ -20,6 +20,8 @@ class WorkPlaceReducer {
                return this.openInCurrentTab(state, action.data);
            case 'WorkPlaceAction_closeTab':
                return this.closeTab(state, action.data);
+           case 'WorkPlaceAction_changeTabName':
+               return this.changeTabName(state, action.data);
             default:
                 return state;
         }
@@ -30,15 +32,6 @@ class WorkPlaceReducer {
         newState.tabs = state.tabs;
         newState.currentTab = tabNumber;
         return newState;
-    }
-
-    cloneTabs = (tabs) => {
-
-        return tabs.map((item) => {
-            const newItem = { ...item };
-            newItem.renderComponent = item.renderComponent;
-            return newItem;
-        });
     }
 
     addNewTab = (state, newTabElement) => {
@@ -95,6 +88,18 @@ class WorkPlaceReducer {
             tabProperties: {},
             renderComponent: React.createElement(WhatsNew),
         }
+    }
+
+    changeTabName = (state, actionData) => {
+        const newState = { ...state };
+        const {tabs} = newState;
+        tabs.forEach((item, index) => {
+            if (index === actionData.tabIndex) {
+                item.tabName = actionData.newName;
+            }
+        });
+        newState.tabs = [...tabs];
+        return newState;
     }
 }
 
