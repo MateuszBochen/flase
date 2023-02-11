@@ -5,7 +5,6 @@ import stream, {TransformCallback} from 'stream';
 import {Observable} from 'rxjs';
 import {MysqlError} from 'mysql';
 import RecordType from '../../Type/Data/RecordType';
-import TableType from '../../Type/Data/TableType';
 import TotalCountDto from '../../Dto/TotalCountDto';
 import RowDto from '../../Dto/RowDto';
 import ColumnType from '../../Type/Data/ColumnType';
@@ -13,6 +12,7 @@ import SelectFromType from '../../Type/Data/SelectFromType';
 import MysqlColumnReference from './Type/MysqlColumnReference';
 import ReferenceTableType from '../../Type/Data/ReferenceTableType';
 import TableInformationType from '../../Type/Data/TableInformationType';
+import UpdateResultType from '../../Type/UpdateResultType';
 const mysql = require('mysql');
 const { Parser } = require('node-sql-parser');
 
@@ -212,6 +212,22 @@ class MysqlAdapter implements DriverInterface {
           }
         }))
       ;
+    });
+  }
+
+  updateQuery(query:string): Promise<UpdateResultType> {
+    return new Promise((resolve, reject) => {
+      this.nativeConnection.query(query, (err:any, result:RecordType) => {
+        if (err) {
+          reject(`${err.sqlMessage}: ${query}`);
+          return;
+        }
+
+        resolve({
+          affectedRows: +result.affectedRows,
+          message: `${result.message}): ${query}`,
+        });
+      });
     });
   }
 

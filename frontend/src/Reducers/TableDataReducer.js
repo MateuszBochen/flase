@@ -1,5 +1,7 @@
 import TableDataItem from '../Library/DataTypes/TableDataItem';
 import StoreManager from '../Containers/Table/Store/StoreManager';
+import SnackTraceStoreManager from '../Containers/SnackTrace/Store/StoreManager';
+import StankTraceDto from '../Containers/SnackTrace/Dto/StankTraceDto';
 
 
 class TableDataReducer {
@@ -23,6 +25,8 @@ class TableDataReducer {
                 return this.setTotalRows(state, action.data.tabIndex, action.data.totalRows);
             case 'SOCKET_SET_SELECT_QUERY_INDEXES':
                 return this.setTableKeys(state, action.data.tabIndex, action.data.tableKeys);
+            case 'SOCKET_UPDATE_QUERY':
+                return this.onUpdateQuery(state, action.data);
             default:
                 return state;
         }
@@ -63,6 +67,11 @@ class TableDataReducer {
             delete newState.tabs[tabNumber];
             return newState;
         }
+        return state;
+    }
+
+    onUpdateQuery = (state, data) => {
+        SnackTraceStoreManager.getInstance().addItem(StankTraceDto.createSuccess(data.message));
         return state;
     }
 }

@@ -14,13 +14,13 @@
 }
 
 .SnackTrace .trace-item.error {
-    background-color: #a94442;
-    color: #e8b8b7;
+    background-color: #e8b8b7;
+    color: #a94442;
 }
 
 .SnackTrace .trace-item.success {
-    background-color: #3f8024;
-    color: #b1dc14;
+    background-color: #b1dc14;
+    color: #3f8024;
 }
 
 .SnackTrace .trace-item.warning {

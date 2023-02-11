@@ -96,6 +96,17 @@ class MysqlAdapter {
 
         return sqlParser.stringify(ast).trim();
     }
+
+    getUpdateCellQuery = (column, newValue, whereColumns, rowItem) => {
+        const whereStringList = [];
+        whereColumns.forEach((whereColumn) => {
+            whereStringList.push(`\`${whereColumn.name}\` = '${rowItem.rowValues[whereColumn.name]}'`);
+        });
+
+        const whereString = whereStringList.join(' AND ');
+
+        return `UPDATE \`${column.table.name}\` SET \`${column.name}\` = '${newValue}' WHERE ${whereString}`;
+    }
 }
 
 export default MysqlAdapter;

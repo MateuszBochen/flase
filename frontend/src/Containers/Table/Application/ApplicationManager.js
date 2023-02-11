@@ -115,13 +115,11 @@ class ApplicationManager {
     /**
      * @param {Column} column
      * @param {string} value
-     * */
+     */
     referenceOpenNewTab = (column, value) => {
         const { reference } = column;
-        console.log('reference', reference);
         const query = this.driverAdapter.simpleSelectQuery(reference.table.name, ApplicationManager.DEFAULT_LIMIT);
         const whereQuery = this.driverAdapter.setWhereToSql(query, reference.columnName, value);
-
         this.workPlaceAction.addNewTableDataTab(reference.table.databaseName, reference.table.name, {query: whereQuery});
     }
 
@@ -135,12 +133,8 @@ class ApplicationManager {
 
     reSendMainQuery = () => {
         const tableName = this.storeManager.getCurrentTableName();
-        const currentQuery = this.storeManager.getCurrentQuery();
         const query = this.driverAdapter.simpleSelectQuery(tableName, ApplicationManager.DEFAULT_LIMIT);
-
-        if (currentQuery !== query) {
-            this.sendQuery(query);
-        }
+        this.sendQuery(query);
     }
 }
 

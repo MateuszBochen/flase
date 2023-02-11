@@ -1,6 +1,11 @@
 import React, {Component} from 'react';
 import EditInput from '../../EditInput';
 import ApplicationManager from '../../Application/ApplicationManager';
+import TableInformation from '../../../../Library/TableInformation';
+import MysqlAdapter from '../../../../Driver/Drivers/Mysql/MysqlAdapter';
+import StoreManager from '../../../SnackTrace/Store/StoreManager';
+import StankTraceDto from '../../../SnackTrace/Dto/StankTraceDto';
+import SqlRequest from '../../../../API/SqlRequest';
 
 class CustomCellRender extends Component {
 
@@ -24,17 +29,24 @@ class CustomCellRender extends Component {
   }
 
   approveEditHandler = () => {
-    const { column, onUpdate, rowItem } = this.props;
-    const { currentValue } = this.state;
+    const { column, rowItem } = this.props;
+    const { cellValue } = this.state;
+    const columns = TableInformation.getInstance().getPrimaryKeysFromTable(column.table);
 
-    /*this.setState({
+    if (columns.length > 0) {
+      const sqlAdapter = new MysqlAdapter();
+      const query = sqlAdapter.getUpdateCellQuery(column, cellValue, columns, rowItem);
+      StoreManager.getInstance().addItem(StankTraceDto.createSuccess('Send To processioning: '+query));
+
+      SqlRequest.getInstance().update(column.table.databaseName, query, this.tabIndex);
+
+    } else {
+      StoreManager.getInstance().addItem(StankTraceDto.createError('Cannot update this filed. Unique keys not found'));
+    }
+
+    this.setState({
       isEdit: false,
-      savedValue: currentValue,
-    });*/
-    // onUpdate(column, currentValue, rowItem);
-
-    console.log(column);
-
+    });
   }
 
   handleDblclick = () => {
@@ -45,7 +57,7 @@ class CustomCellRender extends Component {
 
   changeValueHandler = (e) => {
     this.setState({
-      currentValue: e.target.value,
+      cellValue: e.target.value,
     });
   }
 

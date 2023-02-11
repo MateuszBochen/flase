@@ -28,7 +28,7 @@ class WhatsNew extends Component {
                     <li className="bug done">
                         Bug: with refresh page with load database tables - all database have same tables
                     </li>
-                    <li className="feature">
+                    <li className="feature done">
                         Update data in double click
                     </li>
                     <li className="feature">

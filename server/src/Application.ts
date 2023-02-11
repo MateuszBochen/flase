@@ -5,6 +5,7 @@ const WebSocketOutMessage = require('./Server/WebSocketOutMessage');
 import DriverInterface from './Driver/DriverInterface';
 import TotalCountDto from './Driver/Dto/TotalCountDto';
 import Select from './Operation/Select';
+import Update from './Operation/Update';
 
 class Application {
     dataDriver: DriverInterface;
@@ -30,6 +31,9 @@ class Application {
                     break;
                 case ACTIONS.SELECT_QUERY:
                      this.selectQuery(message.params[0], message.params[1], message.params[2]);
+                    break;
+                case ACTIONS.UPDATE_QUERY:
+                     this.updateQuery(message.params[0], message.params[1], message.params[2]);
                     break;
                 default:
                     console.log('Not implement action: ', message.action);
@@ -79,36 +83,11 @@ class Application {
         } else {
             console.log('ElseHelper not set');
         }
-
-
-        /*this.dataDriver.streamSelect(databaseName, query).subscribe((subscriber) => {
-            console.log('subscriber', subscriber);
-
-            switch (subscriber.constructor) {
-                case TotalCountDto:
-                    this.webSocketClient
-                      .sendMessage(new WebSocketOutMessage(
-                        ACTIONS.SOCKET_SET_SELECT_QUERY_TOTAL_ROWS,
-                        200,
-                        null,
-                        {
-                            tabIndex: tabIndex,
-                            totalRows: subscriber.totalCount,
-                        }
-                      ));
-                    break;
-
-
-            }
-        });*/
-
-        /*if (!query) {
-            return;
-        }
-
-        */
     }
 
+    updateQuery = (databaseName:string, query:string, tabIndex:string) => {
+        new Update(databaseName, query, this.dataDriver, this.webSocketClient, tabIndex);
+    }
 }
 
 module.exports = Application;

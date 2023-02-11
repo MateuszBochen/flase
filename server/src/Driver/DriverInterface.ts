@@ -6,6 +6,7 @@ import RowDto from './Dto/RowDto';
 import ColumnType from './Type/Data/ColumnType';
 import SelectFromType from './Type/Data/SelectFromType';
 import TableInformationType from './Type/Data/TableInformationType';
+import UpdateResultType from './Type/UpdateResultType';
 
 interface DriverInterface {
 
@@ -59,6 +60,11 @@ interface DriverInterface {
    *
    */
   streamSelect(query:string): Observable<RowDto>;
+
+  /**
+   * Function execute update query.
+   */
+  updateQuery(query:string): Promise<UpdateResultType>;
 }
 
 export default DriverInterface;

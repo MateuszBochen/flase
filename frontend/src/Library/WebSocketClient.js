@@ -60,6 +60,8 @@ class WebSocketClient {
                 return;
             }
 
+            const snackTraceStoreManager = SnackTraceStoreManager.getInstance();
+
             if (message.code >= 200 && message.code <= 300) {
                 if (message && message.action) {
                     store.dispatch({
@@ -68,10 +70,11 @@ class WebSocketClient {
                     });
                 }
             } else if (message.code >= 400 && message.code <= 500) {
-                const snackTraceStoreManager = SnackTraceStoreManager.getInstance();
                 snackTraceStoreManager.addItem(StankTraceDto.createWarning(message.data.error));
             }
-
+            else if (message.code >= 500) {
+                snackTraceStoreManager.addItem(StankTraceDto.createError(message.data.error));
+            }
         }
     }
 
