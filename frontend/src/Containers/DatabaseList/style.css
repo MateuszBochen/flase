@@ -28,6 +28,11 @@
     cursor: pointer;
 }
 
+.databases-list .data-base-names-list .data-base-name .data-base-tables-list li.preload {
+    mix-blend-mode: soft-light;
+    cursor: wait;
+}
+
 .databases-list .data-base-names-list .data-base-name .data-base-tables-list li:hover {
     background-color: rgba(78, 80, 82, 0.62);
 }

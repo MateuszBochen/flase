@@ -24,7 +24,6 @@ class EditInput extends Component {
     }
 
     renderChangeInputHandler = (node) => {
-
         if (node) {
             node.focus();
             node.addEventListener("keydown", this.keyDownHandler, false);

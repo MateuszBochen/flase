@@ -5,6 +5,7 @@ import ApplicationManager from '../../Application/ApplicationManager';
 class CustomCellRender extends Component {
 
   tabIndex = undefined;
+  tableCellWidth = -1;
 
   /** @type ApplicationManager */
   applicationManager = undefined;
@@ -13,15 +14,12 @@ class CustomCellRender extends Component {
   constructor(props) {
     super(props);
     const { column, rowItem, tabIndex} = this.props;
-
     this.tabIndex = tabIndex;
     this.applicationManager = ApplicationManager.getInstance(tabIndex);
-
-    console.log(this.props);
-
     this.state = {
       cellValue: rowItem.rowValues[column.name],
       isEdit: false,
+      tableCellWidth: this.tableCellWidth,
     }
   }
 
@@ -29,11 +27,14 @@ class CustomCellRender extends Component {
     const { column, onUpdate, rowItem } = this.props;
     const { currentValue } = this.state;
 
-    this.setState({
+    /*this.setState({
       isEdit: false,
       savedValue: currentValue,
-    });
-    onUpdate(column, currentValue, rowItem);
+    });*/
+    // onUpdate(column, currentValue, rowItem);
+
+    console.log(column);
+
   }
 
   handleDblclick = () => {
@@ -48,11 +49,19 @@ class CustomCellRender extends Component {
     });
   }
 
+  handleCancelValue = () => {
+    const { savedValue } = this.state;
+    this.setState({
+      isEdit: false,
+      currentValue: savedValue,
+    });
+  };
+
   renderEditValue = () => {
-    const { currentValue } = this.state;
+    const { cellValue } = this.state;
     return (
         <EditInput
-            value={currentValue}
+            value={`${cellValue}`}
             onChange={this.changeValueHandler}
             cancelEdit={this.handleCancelValue}
             approveEdit={this.approveEditHandler}
@@ -102,6 +111,12 @@ class CustomCellRender extends Component {
     return cellValue;
   }
 
+  tableCellRefHandler = (node) => {
+    if (this.tableCellWidth === -1 && node) {
+      this.tableCellWidth = node.getBoundingClientRect().width;
+      this.setState({tableCellWidth: this.tableCellWidth});
+    }
+  }
 
   /*shouldComponentUpdate(nextProps, nextState){
       const { id } = this.props;
@@ -110,8 +125,16 @@ class CustomCellRender extends Component {
 
   render () {
     return (
-      <td>
-        {this.renderValue()}
+      <td
+          ref={this.tableCellRefHandler}
+      >
+        <div
+          className="cell-filed"
+          onDoubleClick={this.handleDblclick}
+          style={{width: `${this.state.tableCellWidth}px`}}
+        >
+          {this.renderValue()}
+        </div>
       </td>
     );
   }

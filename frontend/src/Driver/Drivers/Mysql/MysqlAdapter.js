@@ -39,10 +39,8 @@ class MysqlAdapter {
         try {
             const ast = sqlParser.parse(sqlString);
             const tableName = ast.value.from.value[0].value.value.value;
-            console.log('getTableNameFromQuery', tableName);
             return tableName.replaceAll('`', '');
         } catch (e) {
-            console.log('getTableNameFromQuery', e);
             return '';
         }
     }

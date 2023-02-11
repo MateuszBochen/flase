@@ -1,3 +1,4 @@
+import TableInformation from '../Library/TableInformation';
 
 class DatabaseListReducer {
     constructor() {
@@ -21,7 +22,8 @@ class DatabaseListReducer {
                 return this.appendItem(state, action.data);
             case 'SOCKET_GET_TABLES_FOR_DATABASE':
                 // Adding Table to database.
-                return this.appendTableToDatabaseList(state, action.data.dataBaseName, action.data.tableName);
+                TableInformation.getInstance().addTableInformationFromSocket(action.data);
+                return this.appendTableToDatabaseList(state, action.data.dataBaseName, action.data.tableName, action.data.preload);
             default:
                 return state;
         }
@@ -30,14 +32,14 @@ class DatabaseListReducer {
     setDatabasesList = (state, data) => {
         const newState = { ...state };
         newState.listIsLoaded = true;
-        newState.list = [];
+        newState.list = {};
 
         data.forEach((item) => {
             const dataBaseItem = {};
             dataBaseItem.name = item.name;
             dataBaseItem.tables = {
                 isLoaded: false,
-                tables: [],
+                tables: {},
             };
             newState.list.push(dataBaseItem);
         });
@@ -56,7 +58,7 @@ class DatabaseListReducer {
         dataBaseItem.name = data.name;
         dataBaseItem.tables = {
             isLoaded: false,
-            tables: [],
+            tables: {},
         };
 
         newState.list[data.name] = dataBaseItem;
@@ -79,7 +81,7 @@ class DatabaseListReducer {
         return newState;
     }
 
-    appendTableToDatabaseList = (state, databaseName, tableName) => {
+    appendTableToDatabaseList = (state, databaseName, tableName, preload) => {
         if (!tableName || !databaseName) {
             return state;
         }
@@ -90,12 +92,15 @@ class DatabaseListReducer {
             newState = {...state};
         }
 
-        const currentTablesList = newState.list[databaseName].tables.tables;
-        if (!currentTablesList.includes(tableName)) {
-            currentTablesList.push(tableName);
+        if (!newState.list[databaseName]?.tables?.tables[tableName]) {
+            newState.list[databaseName].tables.tables[tableName] = {
+                tableName,
+                preload,
+            }
+        } else {
+            newState.list[databaseName].tables.tables[tableName].preload = preload;
         }
 
-        newState.list[databaseName].tables.tables = currentTablesList;
         newState.list[databaseName].tables.isLoaded = true;
         return newState;
     }
@@ -108,7 +113,7 @@ class DatabaseListReducer {
         const newState = { ...state };
         newState.list[databaseName].tables = {
             isLoaded: false,
-            tables: [],
+            tables: {},
         };
 
         return newState;

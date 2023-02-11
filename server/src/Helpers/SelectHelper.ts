@@ -126,7 +126,6 @@ class SelectHelper {
         if (ast.from.length) {
             ast.from.forEach((item:SelectFromType) => {
                 console.log('getColumnsFromSelectRecord', item);
-                this.getColumnsFromTable(item.table);
                 this.getTableIndex(item);
             });
         }
@@ -197,59 +196,11 @@ class SelectHelper {
         }
     }
 
-    getColumnsFromTable = (tableName:string) => {
-        const sql = `SHOW COLUMNS FROM \`${tableName}\`;`;
 
-        this.sqlClient
-            .queryResults(
-                sql,
-                (results:any) => {this.getReferencesColumns(results, tableName)},
-                (error:any) => {console.log(error)}
-            );
-    }
 
-    getReferencesColumns = (columns:any, tableName:string) => {
-        const sql = `SELECT
-            \`COLUMN_NAME\`,
-            \`REFERENCED_TABLE_NAME\`,
-            \`REFERENCED_COLUMN_NAME\`
-        FROM \`INFORMATION_SCHEMA\`.\`KEY_COLUMN_USAGE\`
-        WHERE
-            \`TABLE_SCHEMA\` = '${this.databaseName}'
-        AND \`TABLE_NAME\` = '${tableName}'
-        AND \`REFERENCED_TABLE_NAME\` IS NOT NULL
-        `;
 
-        this.sqlClient
-            .queryResults(
-                sql,
-                (results:any) => {this.sendFullColumns(columns, results)},
-                (error:any) => {console.log(error)}
-            );
-    }
 
-    sendFullColumns = (columns:any, references:any) => {
-        const newColumns: Array<ColumnType> = [];
 
-        columns.forEach((column:any) => {
-            const reference = this.findReference(column.Field, references);
-            const columnType:ColumnType = {
-                table: {databaseName: '', name: '', alias: ''},
-                autoIncrement: column.Extra === 'auto_increment',
-                defaultValue: column.Default,
-                name: column.Field,
-                nullable: column.Null === 'YES',
-                primaryKey: column.Key === 'PRI',
-                referenceColumn: reference.column,
-                referenceTable: reference.table,
-            }
-            newColumns.push(columnType);
-        });
-
-        console.log(newColumns);
-
-        this.matchColumns(newColumns);
-    }
 
     matchColumns = (columnObjects:Array<ColumnType>) => {
 
@@ -272,8 +223,6 @@ class SelectHelper {
                     name: columnName,
                     nullable: false,
                     primaryKey: false,
-                    referenceColumn: '',
-                    referenceTable: '',
                 }
                 newColumns.push(simpleColumn);
             }

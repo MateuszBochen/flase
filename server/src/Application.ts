@@ -62,10 +62,7 @@ class Application {
               ACTIONS.SOCKET_GET_TABLES_FOR_DATABASE,
               200,
               null,
-              {
-                  tableName: table.name,
-                  dataBaseName: table.databaseName,
-              }
+              table,
             );
             this.webSocketClient
               .sendMessage(message);

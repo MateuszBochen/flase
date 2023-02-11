@@ -51,7 +51,6 @@ class Select {
         });
       })
       .catch((e) => {
-        console.log(222222222222222222);
         this.sendError(e.message);
       });
   }

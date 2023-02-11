@@ -4,12 +4,12 @@
     max-height: 100%;
 }
 .cmp-table-data .cmp-table-data-header{
-    height: 100px;
+    height: 75px;
 }
 
 .cmp-table-data .cmp-table-data-content {
-    max-height: calc(100% - 100px);
-    height: calc(100% - 100px);
+    max-height: calc(100% - 75px);
+    height: calc(100% - 75px);
     overflow: auto;
 }
 
@@ -55,8 +55,19 @@
     text-overflow: ellipsis;
 }
 
+.cmp-table-data td > .cell-filed input{
+    display: flex;
+    max-width: 100%;
+    min-width: 100%;
+    width: 100%;
+}
+
 .cmp-table-data td > .cell-filed .form-control {
     padding: 2px 4px;
     height: 24px;
     border: 1px solid #2140a3;
+}
+
+.speed-dial-buttons {
+    border-bottom: solid 1px #84868b;
 }

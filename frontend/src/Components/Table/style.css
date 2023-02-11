@@ -28,6 +28,10 @@
     display: none;
 }
 
+.cmp-records-view .cmp-records-view-table-wrapper .cmp-records-view-table-wrapper-table-content table {
+    table-layout:fixed;
+}
+
 .cmp-records-view .cmp-records-view-sticky-table {
     position: absolute;
     min-width: 100%;

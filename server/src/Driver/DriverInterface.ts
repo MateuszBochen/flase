@@ -5,6 +5,7 @@ import TotalCountDto from './Dto/TotalCountDto';
 import RowDto from './Dto/RowDto';
 import ColumnType from './Type/Data/ColumnType';
 import SelectFromType from './Type/Data/SelectFromType';
+import TableInformationType from './Type/Data/TableInformationType';
 
 interface DriverInterface {
 
@@ -36,7 +37,7 @@ interface DriverInterface {
   /**
    * Return Database object on ech new result getting from database
    */
-  getListOfTablesInDatabase(databaseName: string): Observable<TableType>;
+  getListOfTablesInDatabase(databaseName: string): Observable<TableInformationType>;
 
   /**
    * get list of from type to match table columns

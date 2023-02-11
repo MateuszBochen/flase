@@ -12,6 +12,7 @@ import ColumnType from '../../Type/Data/ColumnType';
 import SelectFromType from '../../Type/Data/SelectFromType';
 import MysqlColumnReference from './Type/MysqlColumnReference';
 import ReferenceTableType from '../../Type/Data/ReferenceTableType';
+import TableInformationType from '../../Type/Data/TableInformationType';
 const mysql = require('mysql');
 const { Parser } = require('node-sql-parser');
 
@@ -73,21 +74,42 @@ class MysqlAdapter implements DriverInterface {
     });
   }
 
-  getListOfTablesInDatabase(databaseName:string): Observable<TableType> {
-    const useDatabaseQuery = `USE ${databaseName}; SHOW TABLES`;
-
-    let skip = true;
+  getListOfTablesInDatabase(databaseName:string): Observable<TableInformationType> {
+    const useDatabaseQuery = `SHOW TABLES FROM \`${databaseName}\``;
     this.log('Show tables');
     return new Observable(observer => {
       this.streamQueryResults(useDatabaseQuery).subscribe((record) => {
-        if (!skip) {
-          this.log('record');
-          this.log(record);
-          Object.entries(record).forEach((item) => {
-            observer.next({name: `${record[item[0]]}`, databaseName});
+        Object.entries(record).forEach((item) => {
+          const tableName = record[item[0]]+'';
+          const showKeysFromTableQuery = `SHOW KEYS FROM \`${databaseName}\`.\`${tableName}\` WHERE 1`;
+
+          // send empty object to short loading
+          observer.next({
+            tableName: tableName,
+            columns: [],
+            preload: true,
+            dataBaseName: databaseName,
+            primaryColumns: [],
+            uniqueColumns: [],
           });
-        }
-        skip = false;
+
+          this.nativeConnection.query(showKeysFromTableQuery, (err: any, keysRecords: RecordType[]) => {
+            if (err) {
+              observer.error(err);
+              return;
+            }
+            this.getColumnsOfTable(databaseName, {table: tableName}).then((columnsOfTable) => {
+              observer.next({
+                tableName: tableName,
+                columns: columnsOfTable,
+                preload: false,
+                dataBaseName: databaseName,
+                primaryColumns: this.preparePrimaryColumns(columnsOfTable, keysRecords, databaseName),
+                uniqueColumns: [],
+              });
+            });
+          });
+        });
       });
     });
   }
@@ -103,7 +125,7 @@ class MysqlAdapter implements DriverInterface {
   }
 
   getColumnsOfTable(databaseName: string, selectFromType:SelectFromType): Promise<ColumnType[]> {
-    const showColumnsQuery = `SHOW COLUMNS FROM \`${selectFromType.table}\``;
+    const showColumnsQuery = `SHOW COLUMNS FROM \`${databaseName}\`.\`${selectFromType.table}\``;
 
     return new Promise((resolve, reject) => {
       this.nativeConnection.query(showColumnsQuery, (err: any, columns: any) => {
@@ -113,8 +135,6 @@ class MysqlAdapter implements DriverInterface {
         }
 
         this.getReferencesColumns(databaseName, selectFromType.table).then((referencesResult) => {
-          console.log('referencesResult', referencesResult);
-
           const newColumns: ColumnType[] = [];
 
           columns.forEach((column:any) => {
@@ -144,7 +164,7 @@ class MysqlAdapter implements DriverInterface {
       try {
          countQuery = this.getAllCountRowsQuery(query);
       } catch (e) {
-        console.log(4444444444444444);
+        console.log(444444444444444);
         reject(e);
         return;
       }
@@ -182,8 +202,6 @@ class MysqlAdapter implements DriverInterface {
         .pipe(new stream.Transform({
           objectMode: true,
           transform: (row: RecordType, encoding: BufferEncoding, callback: TransformCallback) => {
-            this.log(`Query Stream result: ${query}`);
-            this.log(row);
             observer.next(row);
             try {
               callback();
@@ -271,6 +289,19 @@ class MysqlAdapter implements DriverInterface {
     }
 
     return undefined;
+  }
+
+
+  private preparePrimaryColumns = (columnsOfTable:  ColumnType[], records: RecordType[], databaseName: string): ColumnType[] => {
+    const columns:ColumnType[] = [];
+    for (const tableColumn of columnsOfTable ) {
+      for (const record of records) {
+        if (record.Column_name === tableColumn.name && record.Key_name === 'PRIMARY') {
+          columns.push(tableColumn);
+        }
+      }
+    }
+    return columns;
   }
 
   private log(input:any): void {
