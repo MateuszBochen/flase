@@ -4,22 +4,22 @@ import StoreManager from '../Store/StoreManager';
 
 class Trace extends Component {
 
-    componentDidMount() {
-        const {index} = this.props;
-        setInterval(() => {
-            StoreManager.getInstance().removeItem(index);
-        }, 5000 * (index+1));
+    constructor(props) {
+        super(props);
+        this.storeManager = StoreManager.getInstance();
     }
 
     render() {
-        const storeManager = StoreManager.getInstance();
-
         const {index, trace} = this.props;
-        console.log('44433332', [trace.type, trace.message]);
+
         return (
-            <div className={`trace-item ${trace.type}`}>
+            <div
+                className={`trace-item ${trace.type}`}
+                onMouseEnter={() => this.storeManager.setPreventRemove(true)}
+                onMouseLeave={() => this.storeManager.setPreventRemove(false)}
+            >
                 {trace.message}
-                <button onClick={() => storeManager.removeItem(index)}>x</button>
+                <button onClick={() => this.storeManager.removeItem(index)}>x</button>
             </div>
         );
     }

@@ -2,6 +2,7 @@ import initialState from './initialState';
 
 class Reducer {
     static REMOVE_ITEM = 'remove_item';
+    static SET_PREVENT_REMOVE = 'SET_PREVENT_REMOVE';
     static ADD_ITEM = 'add_item';
 
     getReducer = (state = initialState, action) =>{
@@ -10,9 +11,17 @@ class Reducer {
                 return this.removeItem(state, action.data);
             case Reducer.ADD_ITEM:
                 return this.addItem(state, action.data);
+            case Reducer.SET_PREVENT_REMOVE:
+                return this.setPreventRemove(state, action.data);
             default:
                 return state;
         }
+    }
+
+    setPreventRemove = (state, preventRemove) => {
+        const newState = {...state};
+        newState.preventRemove = preventRemove;
+        return newState;
     }
 
     addItem = (state, message) => {

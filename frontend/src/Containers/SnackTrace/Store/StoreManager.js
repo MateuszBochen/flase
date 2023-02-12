@@ -7,6 +7,7 @@ class StoreManager {
     static instance = null;
 
     store = null
+    removingTimeIntervalId = null;
 
     constructor(store) {
         this.store = store;
@@ -50,11 +51,30 @@ class StoreManager {
         });
     }
 
+    setPreventRemove(prevent) {
+        this.store.dispatch({
+            type: Reducer.SET_PREVENT_REMOVE,
+            data: prevent,
+        });
+    }
+
     addItem(message) {
         this.store.dispatch({
             type: Reducer.ADD_ITEM,
             data: message,
         });
+
+        if (this.removingTimeIntervalId) {
+            clearInterval(this.removingTimeIntervalId);
+        }
+
+        this.removingTimeIntervalId =  setInterval(() => {
+            const {traces, preventRemove} = this.store.getState();
+            if (traces.length && preventRemove === false) {
+                StoreManager.getInstance().removeItem(0);
+            }
+
+        }, 5000);
     }
 }
 
