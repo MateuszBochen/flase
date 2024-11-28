@@ -20,20 +20,17 @@
     "react-bootstrap": "^1.6.1",
     "react-dom": "^17.0.2",
     "react-onclickoutside": "^6.11.2",
-    "react-redux": "^7.2.4",
     "react-scripts": "4.0.3",
     "react-syntax-highlighter": "^15.4.3",
-    "redux": "^4.1.0",
-    "redux-thunk": "^2.3.0",
     "sql-parser": "^0.5.0",
     "uuid": "^8.3.2",
     "web-vitals": "^1.1.2"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "start": "../node_modules/.bin/react-scripts start",
+    "build": "../node_modules/.bin/react-scripts build",
+    "test": "../node_modules/.bin/react-scripts test",
+    "eject": "../node_modules/.bin/react-scripts eject"
   },
   "eslintConfig": {
     "extends": [

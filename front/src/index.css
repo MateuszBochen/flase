@@ -1,0 +1,50 @@
+/** Fonts */
+
+@import url('https://fonts.googleapis.com/css2?family=Sofia+Sans:wght@400;700&display=swap');
+
+/** Variables */
+
+:root {
+  --white-color: #e1e1e1;
+  --danger-color: rgba(224, 105, 119, 0.7);
+  --danger-color-hover: rgba(224, 105, 119, 0.9);
+
+  --success-color: rgba(89, 187, 91, 0.7);
+  --success-color-hover:  rgba(89, 187, 91, 0.9);
+
+  --light-border-color: rgba(75, 123, 229, 1);
+  --theme-border-color-fradient: linear-gradient(90deg, rgba(140,207,255,1) 0%, rgba(17,109,248,1) 23%, rgba(25,115,248,1) 74%, rgba(140,207,255,1) 100%);
+  --light-border-color-hightlight: rgba(86, 178, 255, 1);
+  --light-border-color-fill: #2f91ff;
+  --light-border-color-fill-hightlight: #115ae4;
+  --light-scrollbar-track-color: rgba(17, 144, 248, 0.1);
+
+  --light-color-on-fill: #fff;
+
+  --light-border-color-error: #ff1a36;
+  --light-border-color-fill-error: #ef5260;
+
+  --button-background: rgba(255, 255, 255, 0.2);
+  --button-background-hover: rgba(255, 255, 255, 0.3);
+}
+
+::-webkit-scrollbar-track
+{
+  border: 6px solid rgba(255, 255, 255, 0.1);
+  /*// border color does not support transparent on scrollbar*/
+  /*// border-color: transparent;*/
+  background-color: var(--light-scrollbar-track-color);
+}
+
+::-webkit-scrollbar
+{
+  width: 4px;
+  height: 4px;
+  background-color: rgba(223, 230, 233, 0.1);
+}
+
+::-webkit-scrollbar-thumb
+{
+  background-color: rgba(75, 123, 229, 0.5);
+  border-radius: 4px;
+}
