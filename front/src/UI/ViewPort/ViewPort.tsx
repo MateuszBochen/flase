@@ -1,4 +1,5 @@
 import ViewPortPropsInterface from './ViewPortPropsInterface';
+import './style.css';
 
 /**
  * View port object - is kind of mian coiner.
@@ -6,7 +7,7 @@ import ViewPortPropsInterface from './ViewPortPropsInterface';
  */
 export default (props: ViewPortPropsInterface) => {
   return (
-    <div>
+    <div className="view-port-root">
       {props.children}
     </div>
   );

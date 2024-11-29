@@ -1,3 +1,5 @@
 # IDE
 .idea
 server/node_modules/
+front/node_modules/
+frontend/backup/node_modules/

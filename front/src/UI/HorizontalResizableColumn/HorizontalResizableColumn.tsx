@@ -9,7 +9,8 @@ import HorizontalResizableColumnSettings from './App/HorizontalResizableColumnSe
  * @author Mateusz Bochen
  */
 const HorizontalResizableColumn = (props: HorizontalResizableColumnPropsInterface) => {
-  const [subMenuWidth, setSubMenuWidth] = useState<string>(HorizontalResizableColumnSettings.getDefaultWithForName(props.name));
+  const horizontalResizableColumnSettings:HorizontalResizableColumnSettings = new HorizontalResizableColumnSettings();
+  const [subMenuWidth, setSubMenuWidth] = useState<string>(horizontalResizableColumnSettings.getDefaultWithForName(props.name));
 
   /** enable resizing */
   const enableResizing = useCallback(() => {
@@ -37,7 +38,8 @@ const HorizontalResizableColumn = (props: HorizontalResizableColumnPropsInterfac
     }
 
     const width = `${(event.pageX)}px`;
-    setSubMenuWidth(width)
+    setSubMenuWidth(width);
+    horizontalResizableColumnSettings.setValue(props.name, width);
 
   }, []);
 
@@ -47,7 +49,7 @@ const HorizontalResizableColumn = (props: HorizontalResizableColumnPropsInterfac
 
   return (
     <div
-      className="horizontal-resizable-column-root" style={{width: subMenuWidth}}
+      className="horizontal-resizable-column-root" style={{width: subMenuWidth, ...props.style}}
     >
       <div className="horizontal-resizable-column-resize-panel">
         <div className="horizontal-resizable-column-panel-handler" onMouseDown={enableResizing}/>

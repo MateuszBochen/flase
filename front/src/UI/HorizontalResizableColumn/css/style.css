@@ -1,6 +1,8 @@
 .horizontal-resizable-column-root {
   width: 15%;
   position: relative;
+  height: 100%;
+  background: #2f91ff;
 }
 
 .horizontal-resizable-column-root .horizontal-resizable-column-resize-panel {

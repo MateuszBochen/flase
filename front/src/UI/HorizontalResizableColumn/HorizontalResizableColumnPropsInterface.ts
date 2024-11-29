@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {CSSProperties} from 'react';
 
 /**
  * Interface of left menu component
@@ -7,6 +7,7 @@ import React from 'react';
 interface HorizontalResizableColumnPropsInterface {
   children: React.ReactNode;
   name: string;
+  style?: CSSProperties | undefined;
 }
 
 export default HorizontalResizableColumnPropsInterface;
