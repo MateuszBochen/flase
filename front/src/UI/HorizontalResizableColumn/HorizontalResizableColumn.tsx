@@ -1,4 +1,4 @@
-import React, {useCallback, useState} from 'react';
+import React, {useCallback, useRef, useState} from 'react';
 
 import './css/style.css';
 import HorizontalResizableColumnPropsInterface from './HorizontalResizableColumnPropsInterface';
@@ -11,6 +11,7 @@ import HorizontalResizableColumnSettings from './App/HorizontalResizableColumnSe
 const HorizontalResizableColumn = (props: HorizontalResizableColumnPropsInterface) => {
   const horizontalResizableColumnSettings:HorizontalResizableColumnSettings = new HorizontalResizableColumnSettings();
   const [subMenuWidth, setSubMenuWidth] = useState<string>(horizontalResizableColumnSettings.getDefaultWithForName(props.name));
+  const columnRef = useRef<HTMLDivElement | null>(null);
 
   /** enable resizing */
   const enableResizing = useCallback(() => {
@@ -38,10 +39,13 @@ const HorizontalResizableColumn = (props: HorizontalResizableColumnPropsInterfac
     }
 
     const width = `${(event.pageX)}px`;
-    setSubMenuWidth(width);
+    // setSubMenuWidth(width);
     horizontalResizableColumnSettings.setValue(props.name, width);
+    if (columnRef.current) {
+      columnRef.current.style.width = width;
+    }
 
-  }, []);
+  }, [columnRef.current]);
 
   const disableSelecting = useCallback((event: any) => {
     event.preventDefault();
@@ -50,6 +54,7 @@ const HorizontalResizableColumn = (props: HorizontalResizableColumnPropsInterfac
   return (
     <div
       className="horizontal-resizable-column-root" style={{width: subMenuWidth, ...props.style}}
+      ref={columnRef}
     >
       <div className="horizontal-resizable-column-resize-panel">
         <div className="horizontal-resizable-column-panel-handler" onMouseDown={enableResizing}/>

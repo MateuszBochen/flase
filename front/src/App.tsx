@@ -16,6 +16,7 @@ const defaultTab:TabInterface<undefined> = {
   component: WhatsNew,
   props: undefined,
   isActive: true,
+  tabName: 'Whats New?'
 }
 
 function App() {

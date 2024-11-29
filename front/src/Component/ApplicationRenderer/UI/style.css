@@ -1,0 +1,4 @@
+.application-render-root {
+  page-break-after: always; /* CSS 2.1 syntax */
+  flex-flow: wrap;
+}
