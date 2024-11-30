@@ -7,17 +7,14 @@ import AdjustableColumn from './UI/AdjustableColumn/AdjustableColumn';
 import ApplicationRenderer from './Component/ApplicationRenderer/ApplicationRenderer';
 import WhatsNew from './Component/Application/WhatsNew/WhatsNew';
 import TabInterface from './Component/ApplicationRenderer/Interface/TabInterface';
+import MainMenu from './Component/MainMenu/MainMenu';
+import {whatsNew} from './Component/Application/applications';
 
 const styleOfMainLeftMenu = {
   background: '#3c3f41',
 }
 
-const defaultTab:TabInterface<undefined> = {
-  component: WhatsNew,
-  props: undefined,
-  isActive: true,
-  tabName: 'Whats New?'
-}
+
 
 function App() {
   return (
@@ -27,10 +24,11 @@ function App() {
         style={styleOfMainLeftMenu}
       >
         <Logo />
+        <MainMenu />
       </HorizontalResizableColumn>
       <AdjustableColumn>
         <ApplicationRenderer
-          defaultTab={defaultTab}
+          defaultTab={whatsNew}
         />
       </AdjustableColumn>
     </ViewPort>

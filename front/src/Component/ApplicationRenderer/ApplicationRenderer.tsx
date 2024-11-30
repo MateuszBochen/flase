@@ -18,10 +18,14 @@ export default (props: ApplicationRendererPropsInterface) => {
   });
 
   /**
-   * Handing function for change font
+   * get render tab
    */
   const getApplicationForIndex = useCallback((number: number) => {
     if (!context.renderedTabs[number]) {
+      if (!context.tabs[number]) {
+        return null;
+      }
+
       context.renderedTabs[number] = React.createElement(context.tabs[number].component, context.tabs[number].props);
     }
 
@@ -29,6 +33,7 @@ export default (props: ApplicationRendererPropsInterface) => {
 
   }, [context.tabs]);
 
+  /** memo destructor */
   const value = useMemo(() => {
     return {
       ...context,
