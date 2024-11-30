@@ -1,37 +1,41 @@
 import DriverInterface from '../../DriverInterface';
-import ConnectionDataType from '../../Type/ConnectionDataType';
-import Database from '../../Type/Data/Database';
+import Database from '../../../../Driver/Type/Data/Database';
 import stream, {TransformCallback} from 'stream';
 import {Observable} from 'rxjs';
 import {MysqlError} from 'mysql';
-import RecordType from '../../Type/Data/RecordType';
-import TotalCountDto from '../../Dto/TotalCountDto';
-import RowDto from '../../Dto/RowDto';
-import ColumnType from '../../Type/Data/ColumnType';
-import SelectFromType from '../../Type/Data/SelectFromType';
+import RecordType from '../../../../Driver/Type/Data/RecordType';
+import TotalCountDto from '../../../../Driver/Dto/TotalCountDto';
+import RowDto from '../../../../Driver/Dto/RowDto';
+import ColumnType from '../../../../Driver/Type/Data/ColumnType';
+import SelectFromType from '../../../../Driver/Type/Data/SelectFromType';
 import MysqlColumnReference from './Type/MysqlColumnReference';
-import ReferenceTableType from '../../Type/Data/ReferenceTableType';
-import TableInformationType from '../../Type/Data/TableInformationType';
-import UpdateResultType from '../../Type/UpdateResultType';
+import ReferenceTableType from '../../../../Driver/Type/Data/ReferenceTableType';
+import TableInformationType from '../../../../Driver/Type/Data/TableInformationType';
+import UpdateResultType from '../../../../Driver/Type/UpdateResultType';
+import ConnectionRequestInterface from '../../../Connection/Interface/ConnectionRequestInterface';
+import {parseDsnOrThrow} from '@soluble/dsn-parser';
 const mysql = require('mysql');
 const { Parser } = require('node-sql-parser');
 
 class MysqlAdapter implements DriverInterface {
   private consoleLog = true;
   private nativeConnection: any;
-  private connectionData: ConnectionDataType;
+  private connectionData: ConnectionRequestInterface;
   private parser: typeof Parser;
 
-  constructor(connectionData: ConnectionDataType) {
+  constructor(connectionData: ConnectionRequestInterface) {
     this.connectionData = connectionData;
     this.parser = new Parser();
   }
 
   connect(): Promise<DriverInterface> {
+
+    const parsedDsn = parseDsnOrThrow(this.connectionData.connectionData.dsn);
+
     this.nativeConnection = mysql.createConnection({
-      host: this.connectionData.host,
-      user: this.connectionData.user,
-      password: this.connectionData.password,
+      host: parsedDsn.host,
+      user: this.connectionData.userData.username,
+      password: this.connectionData.userData.password,
       insecureAuth: true,
       multipleStatements: true,
     });

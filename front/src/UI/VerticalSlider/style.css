@@ -1,0 +1,39 @@
+.vertical-slider-root {
+  background: #00000036;
+  margin: 3px;
+  border-radius: 10px;
+  padding: 3px;
+}
+
+.vertical-slider-root ul {
+  list-style: none;
+  margin: 0;
+  padding: 3px;
+}
+
+
+
+
+.vertical-slider-root ul .vertical-slider-item {
+  padding: 3px;
+  border-bottom: solid 1px #3c3f41;
+  cursor: pointer;
+}
+.vertical-slider-root ul .vertical-slider-item:last-child {
+  border: none;
+}
+
+.vertical-slider-root ul .vertical-slider-item .vertical-slider-item-component {
+
+  display: none;
+}
+.vertical-slider-root ul .vertical-slider-item.active .vertical-slider-item-component {
+  display: block;
+  background: #00000036;
+  margin-left: 4px;
+  padding: 4px;
+  border-radius: 4px;
+  cursor: default;
+  max-height: 3000px;
+  height: auto;
+}

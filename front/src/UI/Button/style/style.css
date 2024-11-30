@@ -135,3 +135,25 @@
   font-size: 0.6rem;
   text-transform: uppercase;
 }
+
+.invisible-button-root {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.horizontal-button-list-root {
+  display: flex;
+  color: #bcc7cd;
+  padding-left: 5px;
+}
+.horizontal-button-list-root button {
+  color: #bcc7cd;
+  margin-right: 5px;
+}
+.horizontal-button-list-root .end {
+  margin-left: auto;
+}

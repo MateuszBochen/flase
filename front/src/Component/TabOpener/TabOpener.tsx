@@ -26,6 +26,7 @@ export default <T,>(props: TabOpenerPropsInterface<T>) => {
     <InvisibleButton
       onClickLeft={onSameTabHandler}
       onClickWheel={onNewTabHandler}
+      tooltip={props.tooltip}
     >
       {props.children}
     </InvisibleButton>

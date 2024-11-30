@@ -9,6 +9,7 @@
     "dev": "concurrently \"tsc -w\" \"nodemon src/index.ts\""
   },
   "dependencies": {
+    "@soluble/dsn-parser": "^1.9.2",
     "@types/express-ws": "^3.0.1",
     "@types/mysql": "^2.15.21",
     "body-parser": "^1.19.0",

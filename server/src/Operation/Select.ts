@@ -2,7 +2,7 @@ import ColumnType from '../Driver/Type/Data/ColumnType';
 
 const WebSocketOutMessage = require('../Server/WebSocketOutMessage');
 const WebSocketClient = require('../WebSocketClient');
-import DriverInterface from '../Driver/DriverInterface';
+import DriverInterface from '../App/Driver/DriverInterface';
 import TotalCountDto from '../Driver/Dto/TotalCountDto';
 import {ACTIONS} from '../Server/ActionEnum';
 import RowDto from '../Driver/Dto/RowDto';

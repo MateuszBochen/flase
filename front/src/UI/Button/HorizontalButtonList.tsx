@@ -1,5 +1,5 @@
 import HorizontalButtonListPropsInterface from './HorizontalButtonListPropsInterface';
-import './style.css';
+import './style/style.css';
 
 /** HorizontalButtonList */
 export default (props: HorizontalButtonListPropsInterface) => {

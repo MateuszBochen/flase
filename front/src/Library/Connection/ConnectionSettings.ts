@@ -19,7 +19,6 @@ class ConnectionSettings {
     return ConnectionSettings.instance;
   }
 
-
   constructor() {
     const storedSettings = SettingsAPI.getSettings<ConnectionDataInterface[]>(this.SETTINGS_KEY_NAME)
     if (storedSettings) {
@@ -31,11 +30,22 @@ class ConnectionSettings {
 
 
   addNewConnection = (data: ConnectionDataInterface) => {
+    const areExistInList = this.connections.some((storedConnection) => storedConnection.displayName === data.displayName);
+    if (areExistInList) {
+      toast.error('Connection with same name already exist');
+      return;
+    }
+
     this.connections.push(data);
     SettingsAPI.setSettings<ConnectionDataInterface[]>(this.SETTINGS_KEY_NAME, this.connections);
     toast.success('New connection was added');
     EventBus.emit(new NewConnectionWasAdded(data));
   }
+
+  getConnections = ():ConnectionDataInterface[] => {
+    return this.connections;
+  }
+
 }
 
 export default ConnectionSettings;

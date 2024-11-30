@@ -1,6 +1,6 @@
 import InvisibleButtonPropsInterface from './InvisibleButtonPropsInterface';
 import {MouseEvent, useCallback} from 'react';
-import './style.css';
+import './style/style.css';
 
 /** InvisibleButton */
 export default (props: InvisibleButtonPropsInterface) => {
@@ -20,8 +20,9 @@ export default (props: InvisibleButtonPropsInterface) => {
 
   return (
     <button
-      className="invisible-button-root"
+      className={`invisible-button-root ${props.position}`}
       onMouseDown={onMousedownHandler}
+      title={props.tooltip}
     >
       {props.children}
     </button>

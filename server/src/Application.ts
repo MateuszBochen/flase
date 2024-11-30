@@ -2,7 +2,7 @@ import {IWebSocketInMessage} from './Server/WebSocketInMessage';
 const WebSocketClient = require('./WebSocketClient');
 const {ACTIONS} = require("./Server/ActionEnum");
 const WebSocketOutMessage = require('./Server/WebSocketOutMessage');
-import DriverInterface from './Driver/DriverInterface';
+import DriverInterface from './App/Driver/DriverInterface';
 import TotalCountDto from './Driver/Dto/TotalCountDto';
 import Select from './Operation/Select';
 import Update from './Operation/Update';

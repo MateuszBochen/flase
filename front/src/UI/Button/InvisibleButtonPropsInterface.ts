@@ -5,6 +5,8 @@ interface InvisibleButtonPropsInterface {
   children: React.ReactNode;
   onClickLeft: (event: MouseEvent<HTMLButtonElement>) => void;
   onClickWheel: (event: MouseEvent<HTMLButtonElement>) => void;
+  tooltip: string;
+  position?: 'start'|'end'
 }
 
 export default InvisibleButtonPropsInterface;

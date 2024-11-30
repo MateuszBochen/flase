@@ -1,7 +1,7 @@
 import {ACTIONS} from '../Server/ActionEnum';
 const WebSocketOutMessage = require('../Server/WebSocketOutMessage');
 const WebSocketClient = require('../WebSocketClient');
-import DriverInterface from '../Driver/DriverInterface';
+import DriverInterface from '../App/Driver/DriverInterface';
 import UpdateResultType from '../Driver/Type/UpdateResultType';
 
 

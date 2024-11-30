@@ -1,4 +1,4 @@
-import React, {FC} from "react";
+import React, {FC} from 'react';
 import './style.css';
 
 /**
@@ -9,7 +9,7 @@ const WhatsNew: FC<undefined> = () => {
   return(
     <div>
       <h1>
-        It's works! new data base manager
+        JavaScript Application MySQL Utilities
       </h1>
 
       <h2>
@@ -54,6 +54,15 @@ const WhatsNew: FC<undefined> = () => {
         </li>
         <li className="feature">
           Load records one by one
+        </li>
+        <li className="feature">
+          Support for many connections - db servers
+        </li>
+        <li className="feature">
+          Support PostgreSQL
+        </li>
+        <li className="feature">
+          Users accounts management
         </li>
       </ol>
     </div>

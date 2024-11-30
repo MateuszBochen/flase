@@ -16,16 +16,19 @@ export default () => {
         <HorizontalButtonList>
           <TabOpener<undefined>
             tab={whatsNew}
+            tooltip={"Home page"}
           >
             <FontAwesomeIcon icon={faHome} />
           </TabOpener>
           <TabOpener<undefined>
             tab={newDatabaseConnection}
+            tooltip={"Creating new connection"}
           >
             <FontAwesomeIcon icon={faNetworkWired} />
           </TabOpener>
           <TabOpener<undefined>
             tab={testApp}
+            tooltip={"Test application"}
           >
             <FontAwesomeIcon icon={faListOl} />
           </TabOpener>

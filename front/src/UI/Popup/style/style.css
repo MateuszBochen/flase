@@ -1,0 +1,44 @@
+
+
+.popup-root {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  z-index: 9952;
+  display: none;
+}
+
+.popup-root.open {
+  display: grid;
+}
+
+.popup-root .popup-content {
+  position: relative;
+  display: block;
+  padding: 10px;
+  min-width: 40%;
+
+  background: #3c3f4197;
+  border-radius: 10px;
+}
+
+.popup-root .popup-content .popup-render-component {
+  margin-bottom: 40px;
+}
+
+.popup-root .popup-content .popup-buttons {
+  position: absolute;
+  bottom: 4px;
+  left: 6px;
+}
+/**
+ *
+ */
+.popup-root.light {
+  backdrop-filter: blur(3px);
+  background-color: rgba(225, 222, 222, 0.3);
+}
+

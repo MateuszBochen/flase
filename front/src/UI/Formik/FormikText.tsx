@@ -13,14 +13,11 @@ const FormikText = (props: TypeInputPros) => {
         const isInvalid = form.touched[field.name] && !isValid;
 
         const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-          console.log('sdfsdf')
           field.onChange(e);
           if (props?.onChange) {
             props?.onChange(e);
           }
         }
-
-        console.log(form.errors);
 
         return (
           <Input

@@ -1,12 +1,12 @@
-import Database from './Type/Data/Database';
+import Database from '../../Driver/Type/Data/Database';
 import {Observable} from 'rxjs';
-import TableType from './Type/Data/TableType';
-import TotalCountDto from './Dto/TotalCountDto';
-import RowDto from './Dto/RowDto';
-import ColumnType from './Type/Data/ColumnType';
-import SelectFromType from './Type/Data/SelectFromType';
-import TableInformationType from './Type/Data/TableInformationType';
-import UpdateResultType from './Type/UpdateResultType';
+import TableType from '../../Driver/Type/Data/TableType';
+import TotalCountDto from '../../Driver/Dto/TotalCountDto';
+import RowDto from '../../Driver/Dto/RowDto';
+import ColumnType from '../../Driver/Type/Data/ColumnType';
+import SelectFromType from '../../Driver/Type/Data/SelectFromType';
+import TableInformationType from '../../Driver/Type/Data/TableInformationType';
+import UpdateResultType from '../../Driver/Type/UpdateResultType';
 
 interface DriverInterface {
 

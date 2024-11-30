@@ -1,6 +1,6 @@
+import ConnectionRequestInterface from '../Connection/Interface/ConnectionRequestInterface';
 import MysqlAdapter from './Drivers/Mysql/MysqlAdapter';
 import DriverInterface from './DriverInterface';
-import ConnectionDataType from './Type/ConnectionDataType';
 
 /**
  * Driver class factory.
@@ -10,7 +10,7 @@ class DriverFactory {
   /**
    * Metod taking name and connection data to create new data driver.
    */
-  getDriver(driverName: string, connectionData: ConnectionDataType): DriverInterface
+  getDriver(driverName: string, connectionData: ConnectionRequestInterface): DriverInterface
   {
     switch(driverName) {
       case 'mysql':

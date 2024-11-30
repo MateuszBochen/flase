@@ -7,6 +7,8 @@ import AdjustableColumn from './UI/AdjustableColumn/AdjustableColumn';
 import ApplicationRenderer from './Component/ApplicationRenderer/ApplicationRenderer';
 import MainMenu from './Component/MainMenu/MainMenu';
 import {whatsNew} from './Component/Application/applications';
+import ConnectionList from './Component/ConnectionList/ConnectionList';
+import ConnectionManager from './Library/Connection/ConnectionManager';
 // import {Parser} from 'node-sql-parser';
 
 const styleOfMainLeftMenu = {
@@ -14,6 +16,8 @@ const styleOfMainLeftMenu = {
 }
 // const parser = new Parser();
 
+// run connection manager
+ConnectionManager.getInstance().menage();
 
 function App() {
   return (
@@ -24,6 +28,7 @@ function App() {
       >
         <Logo />
         <MainMenu />
+        <ConnectionList />
       </HorizontalResizableColumn>
       <AdjustableColumn>
         <ApplicationRenderer
