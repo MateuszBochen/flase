@@ -1,3 +1,4 @@
+/*
 import {Request, Response} from 'express';
 import MysqlAdapter from './Driver/Drivers/Mysql/MysqlAdapter';
 import ConnectionDataType from './Driver/Type/ConnectionDataType';
@@ -75,3 +76,4 @@ app.listen(3001, () => {
 });
 
 
+*/

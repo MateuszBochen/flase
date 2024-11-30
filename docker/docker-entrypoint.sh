@@ -13,6 +13,6 @@ echo 'Front Npm install';
 npm install
 
 
-npm start 2>&1 &
+npm start &
 
 tail -f /dev/null
