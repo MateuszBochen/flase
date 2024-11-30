@@ -6,7 +6,7 @@ import React, {Component} from 'react';
 //import ProcessList from '../../Containers/ProcessList/ProcessList';
 import './style.css';
 import TabOpener from '../TabOpener/TabOpener';
-import {whatsNew} from '../Application/applications';
+import {testApp, whatsNew} from '../Application/applications';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faHome, faListOl} from '@fortawesome/free-solid-svg-icons';
 import HorizontalButtonList from '../../UI/Button/HorizontalButtonList';
@@ -47,7 +47,7 @@ export default () => {
             <FontAwesomeIcon icon={faHome} />
           </TabOpener>
           <TabOpener<undefined>
-            tab={whatsNew}
+            tab={testApp}
           >
             <FontAwesomeIcon icon={faListOl} />
           </TabOpener>

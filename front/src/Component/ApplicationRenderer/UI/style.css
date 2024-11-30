@@ -1,4 +1,6 @@
-.application-render-root {
-  page-break-after: always; /* CSS 2.1 syntax */
-  flex-flow: wrap;
+.application-render-root .tab-wrapper {
+  display: none;
+}
+.application-render-root .tab-wrapper.active {
+  display: block;
 }

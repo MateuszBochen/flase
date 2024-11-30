@@ -1,12 +1,14 @@
 import TabInterface from './TabInterface';
-import React from 'react';
+
+interface RenderTabInterface<T> extends TabInterface<T> {
+  id: string;
+}
 
 interface ApplicationRendererContextInterface {
-  tabs: TabInterface<any>[];
-  renderedTabs: React.ReactNode[]
+  tabs: RenderTabInterface<any>[];
+
   currentTab: number;
   lastOpenTab: number;
-  getApplicationForIndex: (index: number) => React.ReactNode;
 }
 
 export default ApplicationRendererContextInterface;

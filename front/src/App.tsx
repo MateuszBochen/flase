@@ -5,8 +5,6 @@ import HorizontalResizableColumn from './UI/HorizontalResizableColumn/Horizontal
 import Logo from './Component/Logo/Logo';
 import AdjustableColumn from './UI/AdjustableColumn/AdjustableColumn';
 import ApplicationRenderer from './Component/ApplicationRenderer/ApplicationRenderer';
-import WhatsNew from './Component/Application/WhatsNew/WhatsNew';
-import TabInterface from './Component/ApplicationRenderer/Interface/TabInterface';
 import MainMenu from './Component/MainMenu/MainMenu';
 import {whatsNew} from './Component/Application/applications';
 

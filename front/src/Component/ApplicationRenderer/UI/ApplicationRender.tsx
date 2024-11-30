@@ -1,5 +1,5 @@
 import './style.css';
-import {useContext} from 'react';
+import React, {useContext} from 'react';
 import {ApplicationRendererContext} from '../API/Context/ApplicationRendererContext';
 /**
  * ApplicationRender
@@ -7,10 +7,15 @@ import {ApplicationRendererContext} from '../API/Context/ApplicationRendererCont
  */
 export default () => {
   const context = useContext(ApplicationRendererContext);
-
   return (
     <div className="application-render-root">
-      {context.getApplicationForIndex(context.currentTab)}
+      {context.tabs.map((tabItem, index) => {
+        return (
+          <div className={`tab-wrapper ${index === context.currentTab ? 'active' : ''}`} key={tabItem.id}>
+            {React.createElement(tabItem.component, { ...tabItem.props, key: tabItem.id})}
+          </div>
+        );
+      })}
     </div>
   );
 }

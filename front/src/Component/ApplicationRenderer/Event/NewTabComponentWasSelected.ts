@@ -5,7 +5,7 @@ import EventInterface from '../../../Library/EventBus/EventInterface';
  * Event when new tab was selected, but need to be open in current tab.
  * @author Mateusz Bochen
  */
-class CurrentTabComponentWasSelected<T> implements EventInterface<TabInterface<T>>{
+class NewTabComponentWasSelected<T> implements EventInterface<TabInterface<T>>{
 
   private readonly tab: TabInterface<T>;
 
@@ -19,4 +19,4 @@ class CurrentTabComponentWasSelected<T> implements EventInterface<TabInterface<T
   
 }
 
-export default CurrentTabComponentWasSelected;
+export default NewTabComponentWasSelected;
