@@ -4,6 +4,8 @@ import DriverInterface from './App/Driver/DriverInterface';
 import EstablishConnection from './App/Connection/EstablishConnection';
 import EstablishConnectionResultInterface from './App/Connection/Interface/EstablishConnectionResultInterface';
 import EstablishedUser from './App/Connection/Interface/EstablishedUser';
+import CommandInterface from './App/Websocket/Interface/CommandInterface';
+import WebsocketRequest from './App/Websocket/WebsocketRequest';
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
@@ -70,12 +72,12 @@ app.ws('/ws/:token', (ws:WebSocket, req: Request) => {
 
   if (connections[req.params.token]) {
     console.info('Connection exist. Ok');
-    ws.send('OK');
+    const command = req.body as CommandInterface;
+    new WebsocketRequest(connections[req.params.token], ws).procedure();
   } else {
     console.error('Connection not exist on server side. Close connection');
     ws.close(1008, 'Connection not exist on server side. Close connection');
   }
-
 });
 
 app.listen(3001, () => {

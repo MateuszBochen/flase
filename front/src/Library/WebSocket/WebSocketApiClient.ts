@@ -2,6 +2,9 @@ import EstablishedConnectionInterface from '../Connection/Interface/EstablishedC
 import BaseRequest from '../API/Request/BaseRequest';
 import EventBus from '../EventBus/EventBus';
 import WebsocketConnectionWasClosed from './Event/WebsocketConnectionWasClosed';
+import CommandInterface from './Interface/CommandInterface';
+import WebsocketReceivedAMessage from './Event/WebsocketReceivedAMessage';
+import MessageInterface from './Interface/MessageInterface';
 
 
 
@@ -26,6 +29,15 @@ class WebSocketApiClient {
     this._nativeWebSocketClient.onclose = (event) => {
       EventBus.emit(new WebsocketConnectionWasClosed(connectionData));
     }
+
+    this._nativeWebSocketClient.onmessage = (event) => {
+      EventBus.emit(new WebsocketReceivedAMessage<any>(JSON.parse(event.data) as MessageInterface<any>));
+    }
+  }
+
+  sendCommand<T> (command: CommandInterface<T>) {
+    const json = JSON.stringify(command);
+    this._nativeWebSocketClient.send(json);
   }
 }
 

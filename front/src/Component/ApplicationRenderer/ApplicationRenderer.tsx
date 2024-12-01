@@ -31,7 +31,7 @@ export default (props: ApplicationRendererPropsInterface) => {
   useEffect(() => {
 
     /** Open component in same tab */
-    EventBus.subscribe<TabInterface<any>>(CurrentTabComponentWasSelected.name, (tab: EventInterface<TabInterface<any>>) => {
+    const currentTabComponentWasSelectedSubscriber = EventBus.subscribe<TabInterface<any>>(CurrentTabComponentWasSelected.name, (tab: EventInterface<TabInterface<any>>) => {
       const currentTabIndex = context.currentTab;
       const newContext = {...context};
       newContext.tabs[currentTabIndex] = { ...tab.getData(), id: uuidv4()};
@@ -39,14 +39,14 @@ export default (props: ApplicationRendererPropsInterface) => {
     });
 
     /** Add new tab to tab list, no render */
-    EventBus.subscribe<TabInterface<any>>(NewTabComponentWasSelected.name, (tab: EventInterface<TabInterface<any>>) => {
+    const newTabComponentWasSelectedSubscriber = EventBus.subscribe<TabInterface<any>>(NewTabComponentWasSelected.name, (tab: EventInterface<TabInterface<any>>) => {
       const newContext = {...context};
       newContext.tabs.push({ ...tab.getData(), id: uuidv4()});
       setContext(newContext);
     });
 
     /** current tab was changed */
-    EventBus.subscribe<number>(CurrentTabWasChanged.name, (newTabIndex: EventInterface<number>) => {
+    const currentTabWasChangedSubscriber = EventBus.subscribe<number>(CurrentTabWasChanged.name, (newTabIndex: EventInterface<number>) => {
       const currentTabIndex = context.currentTab;
       if (currentTabIndex !== newTabIndex.getData()) {
         setContext({
@@ -58,7 +58,7 @@ export default (props: ApplicationRendererPropsInterface) => {
     });
 
     /** handle closing tab */
-    EventBus.subscribe(TabWasClosed.name, (tabToCloseEvent: EventInterface<number>) => {
+    const tabWasClosedSubscriber = EventBus.subscribe(TabWasClosed.name, (tabToCloseEvent: EventInterface<number>) => {
       if (context.tabs.length > 1) {
         const tabToClose = tabToCloseEvent.getData();
         const newTabs = context.tabs.filter((tabItem, index) => index !== tabToClose);
@@ -80,6 +80,13 @@ export default (props: ApplicationRendererPropsInterface) => {
         setContext(newContext);
       }
     });
+
+    return () => {
+      EventBus.unSub(currentTabComponentWasSelectedSubscriber);
+      EventBus.unSub(newTabComponentWasSelectedSubscriber);
+      EventBus.unSub(currentTabWasChangedSubscriber);
+      EventBus.unSub(tabWasClosedSubscriber);
+    }
 
   }, [context]);
 

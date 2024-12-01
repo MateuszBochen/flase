@@ -95,7 +95,6 @@ class ConnectionManager {
     new DisconnectRequest().disconnect(establishedConnection).then(() => {
       toast.success(`Connection was clouded successfully`);
     });
-
   }
 
   /** checking if connection is still active */
@@ -103,12 +102,25 @@ class ConnectionManager {
     return !!this.listOfEstablishedConnections[data.id];
   }
 
+  getEstablishedConnection(data: ConnectionDataInterface): EstablishedConnectionInterface {
+    if (this.listOfEstablishedConnections[data.id]) {
+      return this.listOfEstablishedConnections[data.id];
+    }
+    throw Error('Established Connection Connection not found');
+  }
+
+  getClientForConnection(connectionData: EstablishedConnectionInterface): WebSocketApiClient {
+    if (this.listOfApiConnections[connectionData.connection.id]) {
+      return this.listOfApiConnections[connectionData.connection.id];
+    }
+    this.disconnect(connectionData);
+    throw Error('Client not found established connection');
+  }
+
   private connectWithApi(connectionData: EstablishedConnectionInterface) {
     try {
       this.listOfApiConnections[connectionData.connection.id] = new WebSocketApiClient(connectionData);
-      console.log('api podpiete');
     } catch (e) {
-      console.log('cannot connect to API');
     }
   }
 }

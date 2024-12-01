@@ -35,12 +35,19 @@ export default (props: ConnectionFormPropsInterface) => {
 
 
   useEffect(() => {
-    EventBus.subscribe(ConnectionWasEstablished.name, () => {
+    const connectionWasEstablishedSubscriber = EventBus.subscribe(ConnectionWasEstablished.name, () => {
       setLoading(false);
     });
-    EventBus.subscribe(ConnectionRequestWasRejected.name, () => {
+
+    const connectionRequestWasRejectedSubscriber = EventBus.subscribe(ConnectionRequestWasRejected.name, () => {
       setLoading(false);
     });
+
+    return () => {
+      EventBus.unSub(connectionWasEstablishedSubscriber);
+      EventBus.unSub(connectionRequestWasRejectedSubscriber);
+    }
+
   }, [loading]);
 
   return (

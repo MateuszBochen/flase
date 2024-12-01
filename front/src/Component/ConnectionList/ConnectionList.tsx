@@ -20,7 +20,7 @@ export default () => {
   }));
 
   useEffect(() => {
-    EventBus.subscribe(NewConnectionWasAdded.name, (newItemEvent: EventInterface<ConnectionDataInterface>) => {
+    const newConnectionWasAddedSubscriber = EventBus.subscribe(NewConnectionWasAdded.name, (newItemEvent: EventInterface<ConnectionDataInterface>) => {
       const newState = [...state];
       newState.push({
         label: newItemEvent.getData().displayName,
@@ -28,6 +28,11 @@ export default () => {
       });
       setState(newState);
     });
+
+    return () => {
+      EventBus.unSub(newConnectionWasAddedSubscriber);
+    }
+
   }, [state]);
 
   return (

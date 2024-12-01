@@ -1,5 +1,6 @@
 import EventInterface from './EventInterface';
-
+import {v4 as uuidv4} from 'uuid';
+import LoopThrough from '../Loop/LoopThrough';
 type typeHandler = (event: EventInterface<any>) => void;
 
 type TypeSubscriptionItem = {
@@ -32,12 +33,12 @@ class EventBus {
     handlers.forEach((handler) => handler.handler(event));
   }
 
-  subscribe = <T>(name:string, handler: (event: EventInterface<T>) => void) => {
+  subscribe = <T>(name:string, handler: (event: EventInterface<T>) => void): string => {
     if (!this.events[name]) {
       this.events[name] = [];
     }
 
-    const hash = handler.toString();
+    const hash = uuidv4();
 
     const filtered = this.events[name].filter((handlerItem) => {
       return handlerItem.hash === hash
@@ -54,6 +55,16 @@ class EventBus {
       });
     }
 
+    return hash;
+  }
+
+  unSub(hash: string): void {
+    for (const [key, value] of Object.entries(this.events)) {
+      const handlers = this.events[key];
+      this.events[key] = handlers.filter((handlerItem) => {
+        return handlerItem.hash !== hash
+      });
+    }
   }
 }
 

@@ -10,6 +10,9 @@ import EventBus from '../../Library/EventBus/EventBus';
 import ConnectionWasEstablished from '../../Library/Connection/Event/ConnectionWasEstablished';
 import ConnectionManager from '../../Library/Connection/ConnectionManager';
 import './style.css';
+import DatabaseListMenu from '../DatabaseListMenu/DatabaseListMenu';
+import DatabaseManger from '../../Library/Database/DatabaseManger';
+import toast from 'react-hot-toast';
 
 /** Connection manger */
 const connectionManger = ConnectionManager.getInstance();
@@ -30,9 +33,13 @@ export default (props: ConnectionMenuPropsInterface) => {
 
   useEffect(() => {
     /** Close connection popup if connection was established */
-    EventBus.subscribe(ConnectionWasEstablished.name, () => {
+    const connectionWasEstablished = EventBus.subscribe(ConnectionWasEstablished.name, () => {
       handleCloseConnectionDialog();
     });
+
+    return () => {
+      EventBus.unSub(connectionWasEstablished);
+    }
 
   }, [connectPopup]);
 
@@ -48,7 +55,18 @@ export default (props: ConnectionMenuPropsInterface) => {
 
   }, [props.connectionData, connectionIsActive]);
 
+  const handleLoadDatabaseList = useCallback(() => {
+    try {
+      DatabaseManger.getInstance().aksForDatabaseList(connectionManger.getEstablishedConnection(props.connectionData));
+    } catch (e) {
+      if (connectionIsActive) {
+        toast.error('Unable to load database list');
+      } else {
+        toast.error('First You need to be connected');
+      }
 
+    }
+  }, [props.connectionData, connectionIsActive]);
 
   return (
     <div className={connectionIsActive ? 'is-connect' : ''}>
@@ -76,8 +94,8 @@ export default (props: ConnectionMenuPropsInterface) => {
         </InvisibleButton>
         <InvisibleButton
           tooltip={"Load database list"}
-          onClickWheel={() => {}}
-          onClickLeft={() => {}}
+          onClickWheel={handleLoadDatabaseList}
+          onClickLeft={handleLoadDatabaseList}
         >
           <FontAwesomeIcon icon={faDatabase} />
         </InvisibleButton>
@@ -92,6 +110,7 @@ export default (props: ConnectionMenuPropsInterface) => {
           <FontAwesomeIcon icon={faSatelliteDish} color={connectionIsActive ? connectedColor : undefined} />
         </InvisibleButton>
       </HorizontalButtonList>
+      <DatabaseListMenu connection={props.connectionData} />
       <Popup
         isOpen={connectPopup}
         label={`Connect to ${props.connectionData.displayName}`}
