@@ -24,6 +24,10 @@ class MysqlAdapter implements DriverInterface {
   private parser: typeof Parser;
   private dsnOptions: ParsedDsn;
 
+  /** prevent for query spam */
+  private lastQuery: string = '';
+  private lastQueryTimeStamp: number = 0;
+
   constructor(connectionData: ConnectionRequestInterface, dsnOptions: ParsedDsn) {
     this.connectionData = connectionData;
     this.parser = new Parser();
@@ -199,6 +203,16 @@ class MysqlAdapter implements DriverInterface {
 
   private streamQueryResults = (query:string):Observable<RecordType> => {
     this.log(`Query Stream: ${query}`);
+    const now = Date.now();
+
+    if (this.lastQuery === query && (now - this.lastQueryTimeStamp < 500)) {
+      this.log(`Query Skipped: ${query}`);
+      return new Observable();
+    }
+
+    this.lastQuery = query;
+    this.lastQueryTimeStamp = now;
+
     return new Observable(observer => {
       this.nativeConnection.query(query)
         .on('error', (error: MysqlError) => {
