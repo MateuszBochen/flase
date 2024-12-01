@@ -5,6 +5,7 @@ interface ConnectionDataInterface {
   username: string;
   changeConfirmationRequired: boolean;
   displayName: string;
+  id: string;
 }
 
 export default ConnectionDataInterface;

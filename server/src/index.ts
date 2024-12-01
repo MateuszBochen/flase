@@ -2,6 +2,9 @@ import {Request, Response} from 'express';
 import ConnectionRequestInterface from './App/Connection/Interface/ConnectionRequestInterface';
 import {parseDsnOrThrow} from '@soluble/dsn-parser';
 import DriverFactory from './App/Driver/DriverFactory';
+import DriverInterface from './App/Driver/DriverInterface';
+import EstablishConnection from './App/Connection/EstablishConnection';
+import EstablishConnectionResultInterface from './App/Connection/Interface/EstablishConnectionResultInterface';
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
@@ -14,50 +17,38 @@ app.use(cors());
 app.use(bodyParser.json());
 
 
-const driverFactory = new DriverFactory();
 
+
+/**
+ * list of all connection
+ * Is a key value list where key is a jwt token and value is driver interface - which is a db connection
+ */
+const connections: {[key:string]: DriverInterface} = {};
+
+/**
+ * login and Establish connection with db
+ * @author Mateusz Bochen
+ */
 app.post('/api/login', (req:Request, res:Response) => {
   const data = req.body as ConnectionRequestInterface;
-  console.log(data);
-
-  const parsedDsn = parseDsnOrThrow(data.connectionData.dsn);
-  console.log(parsedDsn);
-
-  const driver = driverFactory.getDriver(parsedDsn.driver, data);
-
-  driver.connect().then(() => {
-    console.log('login ok');
-    res.send('ok');
-  }).catch(() => {
+  const connector = new EstablishConnection();
+  connector.connect(data).then((response: EstablishConnectionResultInterface) => {
+    if (response.driver && response.userData) {
+      connections[response.userData.token] = response.driver;
+      res.send(response.userData);
+      res.end();
+    } else {
+      console.log('login fail');
+      res.status(401);
+      res.send(response.userData);
+      res.end();
+    }
+  }).catch((reason: EstablishConnectionResultInterface) => {
     console.log('login fail');
     res.status(401);
-    res.send('invalid credentials');
+    res.send(reason.userData);
     res.end();
   });
-
-
-
-  /*const {  host, login, password } = req.body;
-
-  const loginData: ConnectionDataType = {
-    password,
-    user: login,
-    host,
-  }
-
-  const driver = driverFactory.getDriver(driverName, loginData);
-
-  driver.connect().then(() => {
-    const token = uuid.v4();
-    connections[token] = driver;
-    res.send({'token': token});
-  }).catch((error) => {
-    console.log(401);
-    console.log(error);
-    res.status(401);
-    res.send('invalid credentials');
-    res.end();
-  });*/
 });
 
 

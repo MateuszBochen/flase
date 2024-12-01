@@ -3,13 +3,16 @@ import SettingsAPI from '../Settings/SettingsAPI';
 import toast from 'react-hot-toast';
 import EventBus from '../EventBus/EventBus';
 import NewConnectionWasAdded from './Event/NewConnectionWasAdded';
+import EstablishedConnectionInterface from './Interface/EstablishedConnectionInterface';
 
 
 class ConnectionSettings {
   private static instance: ConnectionSettings;
   private readonly SETTINGS_KEY_NAME = 'connections';
+  private readonly SETTINGS_KEY_ESTABLISHED_NAME = 'established_connections';
 
-  private readonly connections:ConnectionDataInterface[] = [];
+  private readonly connections: ConnectionDataInterface[] = [];
+  private readonly establishedConnections: {[key:string]: EstablishedConnectionInterface} = {};
 
   public static getInstance(): ConnectionSettings {
     if(!ConnectionSettings.instance) {
@@ -20,11 +23,18 @@ class ConnectionSettings {
   }
 
   constructor() {
-    const storedSettings = SettingsAPI.getSettings<ConnectionDataInterface[]>(this.SETTINGS_KEY_NAME)
+    const storedSettings = SettingsAPI.getSettings<ConnectionDataInterface[]>(this.SETTINGS_KEY_NAME);
+    const storedEstablishedConnections = SettingsAPI.getSettings<{[key:string]: EstablishedConnectionInterface}>(this.SETTINGS_KEY_ESTABLISHED_NAME);
     if (storedSettings) {
       this.connections = storedSettings;
     } else {
       this.connections = [];
+    }
+
+    if (storedEstablishedConnections) {
+      this.establishedConnections = storedEstablishedConnections;
+    } else {
+      this.establishedConnections = {};
     }
   }
 
@@ -46,6 +56,14 @@ class ConnectionSettings {
     return this.connections;
   }
 
+  getEstablishedConnection = ():{[key:string]: EstablishedConnectionInterface} => {
+    return this.establishedConnections;
+  }
+
+  addNewEstablishedConnection(data: EstablishedConnectionInterface) {
+    this.establishedConnections[data.connection.id] = data;
+    SettingsAPI.setSettings<{[key:string]: EstablishedConnectionInterface}>(this.SETTINGS_KEY_ESTABLISHED_NAME, this.establishedConnections);
+  }
 }
 
 export default ConnectionSettings;

@@ -8,11 +8,16 @@ import Popup from '../../UI/Popup/Popup';
 import ConnectionForm from '../ConnectionForm/ConnectionForm';
 import EventBus from '../../Library/EventBus/EventBus';
 import ConnectionWasEstablished from '../../Library/Connection/Event/ConnectionWasEstablished';
+import ConnectionManager from '../../Library/Connection/ConnectionManager';
 
+/** Connection manger */
+const connectionManger = ConnectionManager.getInstance();
+const connectedColor = '#b1dc14';
 
 /** ConnectionMenu */
 export default (props: ConnectionMenuPropsInterface) => {
   const [connectPopup, setConnectPopup] = useState<boolean>(false);
+  const [connectionIsActive, setConnectionIsActive] = useState<boolean>(connectionManger.checkIfConnectionIsActive(props.connectionData));
 
   const handleCloseConnectionDialog = useCallback(() => {
     setConnectPopup(false);
@@ -23,13 +28,24 @@ export default (props: ConnectionMenuPropsInterface) => {
   }, [connectPopup]);
 
   useEffect(() => {
-
     /** Close connection popup if connection was established */
     EventBus.subscribe(ConnectionWasEstablished.name, () => {
       handleCloseConnectionDialog();
     });
 
   }, [connectPopup]);
+
+  useEffect(() => {
+    // connection status checker
+    const interValId = setInterval(() => {
+      setConnectionIsActive(connectionManger.checkIfConnectionIsActive(props.connectionData));
+    }, 1000);
+
+    return () => {
+      clearInterval(interValId);
+    }
+
+  }, [props.connectionData, connectionIsActive]);
 
 
 
@@ -66,12 +82,13 @@ export default (props: ConnectionMenuPropsInterface) => {
         </InvisibleButton>
 
         <InvisibleButton
-          tooltip={"Connect to database"}
+          tooltip={connectionIsActive ? 'Connected, click for disconnect' : 'Click to connect to database'}
           onClickWheel={handleOpenConnectionDialog}
           onClickLeft={handleOpenConnectionDialog}
           position={'end'}
+          disabled={connectionIsActive}
         >
-          <FontAwesomeIcon icon={faSatelliteDish} />
+          <FontAwesomeIcon icon={faSatelliteDish} color={connectionIsActive ? connectedColor : undefined} />
         </InvisibleButton>
       </HorizontalButtonList>
       <Popup

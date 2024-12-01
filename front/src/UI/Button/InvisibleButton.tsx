@@ -20,9 +20,10 @@ export default (props: InvisibleButtonPropsInterface) => {
 
   return (
     <button
-      className={`invisible-button-root ${props.position}`}
+      className={`invisible-button-root ${props.position} ${props.disabled ? 'disabled' : ''}`}
       onMouseDown={onMousedownHandler}
       title={props.tooltip}
+      disabled={props.disabled}
     >
       {props.children}
     </button>

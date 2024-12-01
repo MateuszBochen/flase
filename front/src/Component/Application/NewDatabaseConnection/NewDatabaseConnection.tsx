@@ -4,10 +4,9 @@ import ConnectionDataInterface from '../../../Library/Connection/Interface/Conne
 import FormikText from '../../../UI/Formik/FormikText';
 import ValidationSchema from '../../../UI/Formik/ValidationSchema';
 import Button from '../../../UI/Button/Button';
-import toast from 'react-hot-toast';
 import FormikSwitch from '../../../UI/Formik/FormikSwitch';
 import ConnectionSettings from '../../../Library/Connection/ConnectionSettings';
-
+import {v4 as uuidv4} from 'uuid';
 
 const yup = ValidationSchema.getBuilder();
 
@@ -35,6 +34,7 @@ export default () => {
           username: '',
           changeConfirmationRequired: false,
           displayName: '',
+          id: uuidv4(),
         }}
       >
         {({errors}) => {

@@ -13,7 +13,7 @@ import ReferenceTableType from '../../../../Driver/Type/Data/ReferenceTableType'
 import TableInformationType from '../../../../Driver/Type/Data/TableInformationType';
 import UpdateResultType from '../../../../Driver/Type/UpdateResultType';
 import ConnectionRequestInterface from '../../../Connection/Interface/ConnectionRequestInterface';
-import {parseDsnOrThrow} from '@soluble/dsn-parser';
+import {ParsedDsn, parseDsnOrThrow} from '@soluble/dsn-parser';
 const mysql = require('mysql');
 const { Parser } = require('node-sql-parser');
 
@@ -22,10 +22,12 @@ class MysqlAdapter implements DriverInterface {
   private nativeConnection: any;
   private connectionData: ConnectionRequestInterface;
   private parser: typeof Parser;
+  private dsnOptions: ParsedDsn;
 
-  constructor(connectionData: ConnectionRequestInterface) {
+  constructor(connectionData: ConnectionRequestInterface, dsnOptions: ParsedDsn) {
     this.connectionData = connectionData;
     this.parser = new Parser();
+    this.dsnOptions = dsnOptions;
   }
 
   connect(): Promise<DriverInterface> {
