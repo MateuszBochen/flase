@@ -12,7 +12,7 @@ class ConnectionSettings {
   private readonly SETTINGS_KEY_ESTABLISHED_NAME = 'established_connections';
 
   private readonly connections: ConnectionDataInterface[] = [];
-  private readonly establishedConnections: {[key:string]: EstablishedConnectionInterface} = {};
+  private establishedConnections: {[key:string]: EstablishedConnectionInterface} = {};
 
   public static getInstance(): ConnectionSettings {
     if(!ConnectionSettings.instance) {
@@ -62,6 +62,11 @@ class ConnectionSettings {
 
   addNewEstablishedConnection(data: EstablishedConnectionInterface) {
     this.establishedConnections[data.connection.id] = data;
+    SettingsAPI.setSettings<{[key:string]: EstablishedConnectionInterface}>(this.SETTINGS_KEY_ESTABLISHED_NAME, this.establishedConnections);
+  }
+
+  saveNewListOfEstablishedConnection(newList: {[key:string]: EstablishedConnectionInterface}) {
+    this.establishedConnections = newList;
     SettingsAPI.setSettings<{[key:string]: EstablishedConnectionInterface}>(this.SETTINGS_KEY_ESTABLISHED_NAME, this.establishedConnections);
   }
 }

@@ -9,6 +9,7 @@ import ConnectionForm from '../ConnectionForm/ConnectionForm';
 import EventBus from '../../Library/EventBus/EventBus';
 import ConnectionWasEstablished from '../../Library/Connection/Event/ConnectionWasEstablished';
 import ConnectionManager from '../../Library/Connection/ConnectionManager';
+import './style.css';
 
 /** Connection manger */
 const connectionManger = ConnectionManager.getInstance();
@@ -50,7 +51,7 @@ export default (props: ConnectionMenuPropsInterface) => {
 
 
   return (
-    <div>
+    <div className={connectionIsActive ? 'is-connect' : ''}>
       <HorizontalButtonList>
         <InvisibleButton
           tooltip={"Connection details"}

@@ -12,6 +12,7 @@
     "@soluble/dsn-parser": "^1.9.2",
     "@types/express-ws": "^3.0.1",
     "@types/mysql": "^2.15.21",
+    "@types/socket.io": "^3.0.1",
     "body-parser": "^1.19.0",
     "cors": "^2.8.5",
     "cros": "^1.0.1",

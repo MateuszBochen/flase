@@ -1,17 +1,20 @@
 import {Request, Response} from 'express';
 import ConnectionRequestInterface from './App/Connection/Interface/ConnectionRequestInterface';
-import {parseDsnOrThrow} from '@soluble/dsn-parser';
-import DriverFactory from './App/Driver/DriverFactory';
 import DriverInterface from './App/Driver/DriverInterface';
 import EstablishConnection from './App/Connection/EstablishConnection';
 import EstablishConnectionResultInterface from './App/Connection/Interface/EstablishConnectionResultInterface';
+import EstablishedUser from './App/Connection/Interface/EstablishedUser';
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 
 
+
 /** Server start here */
 const app = express();
+
+/** enable websocket */
+require('express-ws')(app);
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -24,6 +27,8 @@ app.use(bodyParser.json());
  * Is a key value list where key is a jwt token and value is driver interface - which is a db connection
  */
 const connections: {[key:string]: DriverInterface} = {};
+
+
 
 /**
  * login and Establish connection with db
@@ -51,11 +56,37 @@ app.post('/api/login', (req:Request, res:Response) => {
   });
 });
 
+/** handle disconnect request */
+app.post('/api/disconnect', (req:Request, res:Response) => {
+  const data = req.body as EstablishedUser;
+  delete connections[data.token];
+  res.send('ok');
+  res.end();
+});
+
+
+app.ws('/ws/:token', (ws:WebSocket, req: Request) => {
+  console.info("New connection has opened d!", req.params.token);
+
+  if (connections[req.params.token]) {
+    console.info('Connection exist. Ok');
+    ws.send('OK');
+  } else {
+    console.error('Connection not exist on server side. Close connection');
+    ws.close(1008, 'Connection not exist on server side. Close connection');
+  }
+
+});
 
 app.listen(3001, () => {
   console.log('Example app listening on port 3001!');
 });
 
+
+/** just print connection */
+setInterval(() => {
+  console.log(connections);
+}, 1000 * 60);
 
 
 /*
