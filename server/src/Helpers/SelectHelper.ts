@@ -5,7 +5,7 @@ const WebSocketClient = require('../WebSocketClient');
 const WebSocketOutMessage = require('../Server/WebSocketOutMessage');
 import SelectFromType from '../Driver/Type/Data/SelectFromType';
 import { ACTIONS } from '../Server/ActionEnum';
-import ColumnType from '../Driver/Type/Data/ColumnType';
+import ColumnInterface from '../App/Driver/Interface/Data/ColumnInterface';
 import TableKeyType from '../Type/TableKeyType';
 import TableKeysType from '../Type/TableKeysType';
 
@@ -18,7 +18,7 @@ class SelectHelper {
     webSocketClient;
     tabIndex;
     tempColumns:string[] = [];
-    columns:Array<ColumnType> = [];
+    columns:Array<ColumnInterface> = [];
 
     constructor(databaseName:string, query:string, sqlClient: typeof SqlClient, webSocketClient: typeof WebSocketClient, tabIndex:string) {
         this.sqlClient = sqlClient;
@@ -202,9 +202,9 @@ class SelectHelper {
 
 
 
-    matchColumns = (columnObjects:Array<ColumnType>) => {
+    matchColumns = (columnObjects:Array<ColumnInterface>) => {
 
-        const newColumns: Array<ColumnType> = [];
+        const newColumns: Array<ColumnInterface> = [];
 
         this.tempColumns.forEach((columnName) => {
             let isFound = false;
@@ -216,7 +216,7 @@ class SelectHelper {
             });
 
             if (!isFound) {
-                const simpleColumn:ColumnType = {
+                const simpleColumn:ColumnInterface = {
                     table: {databaseName: '', name: '', alias: ''},
                     autoIncrement: false,
                     defaultValue: null,

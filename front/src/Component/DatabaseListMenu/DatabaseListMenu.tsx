@@ -1,32 +1,45 @@
 import DatabaseManger from '../../Library/Database/DatabaseManger';
-import {useEffect, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import Database from '../../Library/Database/Interface/Database';
 import ConnectionManager from '../../Library/Connection/ConnectionManager';
 import DatabaseListMenuPropsInterface from './DatabaseListMenuPropsInterface';
 import EventBus from '../../Library/EventBus/EventBus';
 import DatabaseWasReceived from '../../Library/Database/Event/DatabaseWasReceived';
+import VerticalSliderItem from '../../UI/VerticalSlider/Interface/VerticalSliderItem';
+import VerticalSlider from '../../UI/VerticalSlider/VerticalSlider';
+import TableListMenu from '../TableListMenu/TableListMenu';
 
 const connectionManger = ConnectionManager.getInstance();
 const databaseManger = DatabaseManger.getInstance();
 
 /** DatabaseListMenu */
 export default (props: DatabaseListMenuPropsInterface) => {
-  const [list, setList] = useState<Database[]>([]);
+
+  const [state, setState] = useState<VerticalSliderItem[]>([]);
+
+  const convertToVerticalSliderItem = useCallback(() => {
+    const establishedConnection = connectionManger.getEstablishedConnection(props.connection);
+    const list = databaseManger.getListOfDatabaseForConnection(establishedConnection);
+
+    setState(list.map((databaseItem) => {
+      return {
+        label: databaseItem.name,
+        component: <TableListMenu connection={props.connection} database={databaseItem} key={databaseItem.name} />
+      };
+    }));
+
+  }, [props, state]);
 
   useEffect(() => {
     try {
-      const establishedConnection = connectionManger.getEstablishedConnection(props.connection);
-      const list = databaseManger.getListOfDatabaseForConnection(establishedConnection);
-      setList([...list]);
+      convertToVerticalSliderItem();
     } catch (e) {}
-  }, [props]);
+  }, []);
 
   useEffect(() => {
     const databaseWasReceivedSubscriber = EventBus.subscribe(DatabaseWasReceived.name, () => {
       try {
-        const establishedConnection = connectionManger.getEstablishedConnection(props.connection);
-        const list = databaseManger.getListOfDatabaseForConnection({...establishedConnection});
-        setList([...list]);
+        convertToVerticalSliderItem();
       } catch (e) {}
     });
 
@@ -34,13 +47,17 @@ export default (props: DatabaseListMenuPropsInterface) => {
       EventBus.unSub(databaseWasReceivedSubscriber);
     }
 
-  }, [props, list]);
+  }, [props, state]);
+
+  if (state.length === 0) {
+    return null;
+  }
 
   return (
-   <div>
-     <ul>
-       {list.map((item) => <li key={item.name}>{item.name}</li>)}
-     </ul>
-   </div>
+    <VerticalSlider
+      items={state}
+      allowClose={true}
+      automateOpenFirst={false}
+    />
   );
 }

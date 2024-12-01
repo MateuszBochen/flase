@@ -7,18 +7,27 @@ import './style.css';
 /** VerticalSlider */
 export default (props: VerticalSliderPropsInterface) => {
   const refCurrentIndex = useRef<number>(0);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  /** default state */
   const [state, setState] = useState<SlideItemInterface[]>(props.items.map((newSlideItem, index) => {
     return {
       ...newSlideItem,
-      isActive: index === refCurrentIndex.current
+      isActive: props.automateOpenFirst === false ? false : index === refCurrentIndex.current
     };
   }));
+
+  useEffect(() => {
+    if (containerRef.current) {
+      containerRef.current.style.height = `calc(100% - ${containerRef.current.offsetTop + 3}px`;
+    }
+  }, []);
 
   useEffect(() => {
     setState(props.items.map((newSlideItem, index) => {
       return {
         ...newSlideItem,
-        isActive: index === refCurrentIndex.current
+        isActive: props.automateOpenFirst === false ? false : index === refCurrentIndex.current
       };
     }));
   }, [props.items]);
@@ -30,7 +39,7 @@ export default (props: VerticalSliderPropsInterface) => {
         }
         return {
           ...stateItem,
-          isActive: index === stateIndex
+          isActive: index === stateIndex && (props?.allowClose === true ? !stateItem.isActive : true),
         }
       });
 
@@ -39,8 +48,9 @@ export default (props: VerticalSliderPropsInterface) => {
   }, [state, props]);
 
   return (
-    <div className="vertical-slider-root">
+    <div className="vertical-slider-root" ref={containerRef}>
       <ul>
+        {state.length === 0 ? (props.labelIfEmpty || 'No results') : ''}
         {state.map((slideItem, index) => {
           return (
             <VerticalSlideItem

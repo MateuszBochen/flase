@@ -13,6 +13,7 @@ import ConnectionManager from './Library/Connection/ConnectionManager';
 
 const styleOfMainLeftMenu = {
   background: '#3c3f41',
+  height: '100%',
 }
 // const parser = new Parser();
 

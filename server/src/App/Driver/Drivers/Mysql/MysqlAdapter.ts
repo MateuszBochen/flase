@@ -1,16 +1,16 @@
 import DriverInterface from '../../DriverInterface';
-import Database from '../../../../Driver/Type/Data/Database';
+import DatabaseInterface from '../../Interface/Data/DatabaseInterface';
 import stream, {TransformCallback} from 'stream';
 import {Observable} from 'rxjs';
 import {MysqlError} from 'mysql';
 import RecordType from '../../../../Driver/Type/Data/RecordType';
 import TotalCountDto from '../../../../Driver/Dto/TotalCountDto';
 import RowDto from '../../../../Driver/Dto/RowDto';
-import ColumnType from '../../../../Driver/Type/Data/ColumnType';
+import ColumnInterface from '../../Interface/Data/ColumnInterface';
 import SelectFromType from '../../../../Driver/Type/Data/SelectFromType';
 import MysqlColumnReference from './Type/MysqlColumnReference';
-import ReferenceTableType from '../../../../Driver/Type/Data/ReferenceTableType';
-import TableInformationType from '../../../../Driver/Type/Data/TableInformationType';
+import ReferenceTableInterface from '../../Interface/Data/ReferenceTableInterface';
+import TableInformationInterface from '../../Interface/Data/TableInformationInterface';
 import UpdateResultType from '../../../../Driver/Type/UpdateResultType';
 import ConnectionRequestInterface from '../../../Connection/Interface/ConnectionRequestInterface';
 import {ParsedDsn, parseDsnOrThrow} from '@soluble/dsn-parser';
@@ -71,7 +71,7 @@ class MysqlAdapter implements DriverInterface {
   }
 
 
-  getListOfDatabases():Observable<Database> {
+  getListOfDatabases():Observable<DatabaseInterface> {
     const query = 'SHOW DATABASES';
     return new Observable(observer => {
       this.streamQueryResults(query).subscribe((record) => {
@@ -80,7 +80,7 @@ class MysqlAdapter implements DriverInterface {
     });
   }
 
-  getListOfTablesInDatabase(databaseName:string): Observable<TableInformationType> {
+  getListOfTablesInDatabase(databaseName:string): Observable<TableInformationInterface> {
     const useDatabaseQuery = `SHOW TABLES FROM \`${databaseName}\``;
     this.log('Show tables');
     return new Observable(observer => {
@@ -130,7 +130,7 @@ class MysqlAdapter implements DriverInterface {
     }
   }
 
-  getColumnsOfTable(databaseName: string, selectFromType:SelectFromType): Promise<ColumnType[]> {
+  getColumnsOfTable(databaseName: string, selectFromType:SelectFromType): Promise<ColumnInterface[]> {
     const showColumnsQuery = `SHOW COLUMNS FROM \`${databaseName}\`.\`${selectFromType.table}\``;
 
     return new Promise((resolve, reject) => {
@@ -141,11 +141,11 @@ class MysqlAdapter implements DriverInterface {
         }
 
         this.getReferencesColumns(databaseName, selectFromType.table).then((referencesResult) => {
-          const newColumns: ColumnType[] = [];
+          const newColumns: ColumnInterface[] = [];
 
           columns.forEach((column:any) => {
             const reference = this.findReference(column.Field, referencesResult);
-            const columnType:ColumnType = {
+            const columnType:ColumnInterface = {
               table: {databaseName, name: selectFromType.table, alias: selectFromType.as},
               autoIncrement: column.Extra === 'auto_increment',
               defaultValue: column.Default,
@@ -266,7 +266,7 @@ class MysqlAdapter implements DriverInterface {
   }
 
 
-  private getReferencesColumns(databaseName:string, tableName:string):Promise<ReferenceTableType[]> {
+  private getReferencesColumns(databaseName:string, tableName:string):Promise<ReferenceTableInterface[]> {
     const sql = `SELECT
           \`COLUMN_NAME\`,
           \`REFERENCED_TABLE_NAME\`,
@@ -301,7 +301,7 @@ class MysqlAdapter implements DriverInterface {
     });
   }
 
-  private findReference(columnName:string, references:ReferenceTableType[]):undefined|ReferenceTableType {
+  private findReference(columnName:string, references:ReferenceTableInterface[]):undefined|ReferenceTableInterface {
     if (references.length) {
       for (let i = 0; i < references.length; i++) {
         if (columnName === references[i].originColumnName) {
@@ -314,8 +314,8 @@ class MysqlAdapter implements DriverInterface {
   }
 
 
-  private preparePrimaryColumns = (columnsOfTable:  ColumnType[], records: RecordType[], databaseName: string): ColumnType[] => {
-    const columns:ColumnType[] = [];
+  private preparePrimaryColumns = (columnsOfTable:  ColumnInterface[], records: RecordType[], databaseName: string): ColumnInterface[] => {
+    const columns:ColumnInterface[] = [];
     for (const tableColumn of columnsOfTable ) {
       for (const record of records) {
         if (record.Column_name === tableColumn.name && record.Key_name === 'PRIMARY') {

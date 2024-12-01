@@ -2,3 +2,11 @@
 .vertical-slider-root .vertical-slider-item:has(div.is-connect) {
   color: #7ac8f3;
 }
+
+.vertical-slider-root .vertical-slider-item .vertical-slider-root {
+  color: #bcc7cd;
+}
+
+/*
+#
+*/

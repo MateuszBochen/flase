@@ -1,6 +1,5 @@
 import EventInterface from './EventInterface';
 import {v4 as uuidv4} from 'uuid';
-import LoopThrough from '../Loop/LoopThrough';
 type typeHandler = (event: EventInterface<any>) => void;
 
 type TypeSubscriptionItem = {
@@ -22,6 +21,10 @@ class EventBus {
   }
 
   events : {[key:string]: TypeSubscriptionItem[] } = {};
+
+  /** block constructor */
+  private constructor() {
+  }
 
   emit = <T>(event: EventInterface<T>) => {
     const handlers = this.events[event.constructor.name];

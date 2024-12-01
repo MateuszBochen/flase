@@ -1,4 +1,4 @@
-import ColumnType from '../Driver/Type/Data/ColumnType';
+import ColumnInterface from '../App/Driver/Interface/Data/ColumnInterface';
 const WebSocketOutMessage = require('../Server/WebSocketOutMessage');
 const SqlClient = require('../SqlClient');
 const WebSocketClient = require('../WebSocketClient');
@@ -10,7 +10,7 @@ class ShowHelper {
     sqlClient;
     webSocketClient;
     tabIndex;
-    columns:Array<ColumnType> = [];
+    columns:Array<ColumnInterface> = [];
 
     constructor(query:string, sqlClient: typeof SqlClient, webSocketClient: typeof WebSocketClient, tabIndex:string) {
         this.sqlClient = sqlClient;
@@ -41,7 +41,7 @@ class ShowHelper {
         const columns = Object.keys(row);
 
         columns.forEach((column) => {
-            const columnType: ColumnType = {
+            const columnType: ColumnInterface = {
                 table: {databaseName: '', name: '', alias: ''},
                 autoIncrement: false,
                 defaultValue: false,

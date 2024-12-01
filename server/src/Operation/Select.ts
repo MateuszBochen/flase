@@ -1,4 +1,4 @@
-import ColumnType from '../Driver/Type/Data/ColumnType';
+import ColumnInterface from '../App/Driver/Interface/Data/ColumnInterface';
 
 const WebSocketOutMessage = require('../Server/WebSocketOutMessage');
 const WebSocketClient = require('../WebSocketClient');
@@ -69,7 +69,7 @@ class Select {
     );
   }
 
-  private sendColumns(columns: ColumnType[]): void {
+  private sendColumns(columns: ColumnInterface[]): void {
     const message = new WebSocketOutMessage(
       ACTIONS.SOCKET_SET_SELECT_QUERY_COLUMNS,
       200,

@@ -1,11 +1,11 @@
-import Database from '../../Driver/Type/Data/Database';
+import DatabaseInterface from './Interface/Data/DatabaseInterface';
 import {Observable} from 'rxjs';
-import TableType from '../../Driver/Type/Data/TableType';
+import TableInterface from './Interface/Data/TableInterface';
 import TotalCountDto from '../../Driver/Dto/TotalCountDto';
 import RowDto from '../../Driver/Dto/RowDto';
-import ColumnType from '../../Driver/Type/Data/ColumnType';
+import ColumnInterface from './Interface/Data/ColumnInterface';
 import SelectFromType from '../../Driver/Type/Data/SelectFromType';
-import TableInformationType from '../../Driver/Type/Data/TableInformationType';
+import TableInformationInterface from './Interface/Data/TableInformationInterface';
 import UpdateResultType from '../../Driver/Type/UpdateResultType';
 
 interface DriverInterface {
@@ -33,12 +33,12 @@ interface DriverInterface {
   /**
    * Return Database object on ech new result getting from database
    */
-  getListOfDatabases(): Observable<Database>;
+  getListOfDatabases(): Observable<DatabaseInterface>;
 
   /**
    * Return Database object on ech new result getting from database
    */
-  getListOfTablesInDatabase(databaseName: string): Observable<TableInformationType>;
+  getListOfTablesInDatabase(databaseName: string): Observable<TableInformationInterface>;
 
   /**
    * get list of from type to match table columns
@@ -48,7 +48,7 @@ interface DriverInterface {
   /**
    * Returns list of columns of given table
    */
-  getColumnsOfTable(databaseName: string, selectFromType: SelectFromType):Promise<ColumnType[]>;
+  getColumnsOfTable(databaseName: string, selectFromType: SelectFromType):Promise<ColumnInterface[]>;
 
   /**
    * Function returns total rows of given query

@@ -1,8 +1,8 @@
 
-type TableType = {
+interface TableInterface {
   databaseName: string,
   name: string,
   alias?: string,
 }
 
-export default TableType;
+export default TableInterface;

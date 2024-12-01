@@ -8,6 +8,8 @@ import WebsocketReceivedAMessage from '../WebSocket/Event/WebsocketReceivedAMess
 import MessageInterface from '../WebSocket/Interface/MessageInterface';
 import MessageType from '../WebSocket/Enum/MessageType';
 import DatabaseWasReceived from './Event/DatabaseWasReceived';
+import LoopThrough from '../Loop/LoopThrough';
+import database from './Interface/Database';
 
 
 class DatabaseManger {
@@ -16,7 +18,7 @@ class DatabaseManger {
   private connectionManager: ConnectionManager;
 
   // key is connection id
-  private databaseList: {[key:string]: Database[]} = {};
+  private databaseList: {[key:string]: {[key:string]: Database}} = {};
 
   public static getInstance(): DatabaseManger
   {
@@ -35,11 +37,11 @@ class DatabaseManger {
     EventBus.subscribe<MessageInterface<Database>>(WebsocketReceivedAMessage.name, (messageEvent) => {
       // filter only messages of database
       const message = messageEvent.getData();
-      if (message.message === MessageType.DATA_BASE_ITEM) {
+      if (message.message === MessageType.DATABASE_BASE_ITEM) {
         if (!this.databaseList[message.connection.id]) {
-          this.databaseList[message.connection.id] = [];
+          this.databaseList[message.connection.id] = {};
         }
-        this.databaseList[message.connection.id].push(message.payload);
+        this.databaseList[message.connection.id][message.payload.name] = message.payload;
         EventBus.emit(new DatabaseWasReceived({connection: message.connection, database: message.payload}));
       }
     });
@@ -47,9 +49,13 @@ class DatabaseManger {
 
   getListOfDatabaseForConnection(connectionData: EstablishedConnectionInterface): Database[] {
     if (!this.databaseList[connectionData.connection.id]) {
-      this.databaseList[connectionData.connection.id] = [];
+      return [];
     }
-    return this.databaseList[connectionData.connection.id];
+
+    const list:Database[] = [];
+
+    LoopThrough.loop(this.databaseList[connectionData.connection.id]).subscribe((database) => list.push(database));
+    return list;
   }
 
   aksForDatabaseList(connectionData: EstablishedConnectionInterface): void {
@@ -61,7 +67,6 @@ class DatabaseManger {
 
     try {
       this.connectionManager.getClientForConnection(connectionData).sendCommand(command);
-      this.databaseList[connectionData.connection.id] = [];
     } catch (e) {
       console.error('Connection not found');
     }

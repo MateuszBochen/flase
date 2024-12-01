@@ -3,6 +3,9 @@
   margin: 3px;
   border-radius: 10px;
   padding: 3px;
+  max-height: 100%;
+  overflow: auto;
+  box-sizing: border-box;
 }
 
 .vertical-slider-root ul {
@@ -27,13 +30,14 @@
 
   display: none;
 }
-.vertical-slider-root ul .vertical-slider-item.active .vertical-slider-item-component {
+.vertical-slider-root ul .vertical-slider-item.active > .vertical-slider-item-component {
   display: block;
   background: #00000036;
   margin-left: 4px;
   padding: 4px;
   border-radius: 4px;
   cursor: default;
-  max-height: 3000px;
+  max-height: 100%;
   height: auto;
+  overflow: auto;
 }
