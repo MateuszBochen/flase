@@ -1,5 +1,5 @@
 
-.vertical-slider-root .vertical-slider-item:has(div.is-connect) {
+.vertical-slider-root .vertical-slider-item:has(button.is-connect) {
   color: #7ac8f3;
 }
 

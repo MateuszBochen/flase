@@ -11,11 +11,11 @@ const tableManager = TableManager.getInstance();
 /** TableListMenu */
 export default (props: TableListMenuPropsInterface) => {
   const [state, setState] = useState<TableInformationInterface[]>([]);
-
   useEffect(() => {
     tableManager.askForTableList(props.connection, props.database, false);
     const newList = tableManager.getTablesListForDatabase(props.connection, props.database);
     setState([...newList]);
+    console.log('TableListMenu');
   }, []);
 
   useEffect(() => {

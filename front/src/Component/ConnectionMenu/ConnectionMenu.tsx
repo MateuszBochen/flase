@@ -4,72 +4,29 @@ import {faDatabase, faSatelliteDish, faInfoCircle, faMicrochip, faUsersRectangle
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import React, {useCallback, useEffect, useState} from 'react';
 import HorizontalButtonList from '../../UI/Button/HorizontalButtonList';
-import Popup from '../../UI/Popup/Popup';
-import ConnectionForm from '../ConnectionForm/ConnectionForm';
-import EventBus from '../../Library/EventBus/EventBus';
-import ConnectionWasEstablished from '../../Library/Connection/Event/ConnectionWasEstablished';
 import ConnectionManager from '../../Library/Connection/ConnectionManager';
 import './style.css';
 import DatabaseListMenu from '../DatabaseListMenu/DatabaseListMenu';
 import DatabaseManger from '../../Library/Database/DatabaseManger';
 import toast from 'react-hot-toast';
+import ConnectionControlIcon from './ConnectionControlIcon';
 
 /** Connection manger */
 const connectionManger = ConnectionManager.getInstance();
-const connectedColor = '#b1dc14';
+
 
 /** ConnectionMenu */
 export default (props: ConnectionMenuPropsInterface) => {
-  const [connectPopup, setConnectPopup] = useState<boolean>(false);
-  const [connectionIsActive, setConnectionIsActive] = useState<boolean>(connectionManger.checkIfConnectionIsActive(props.connectionData));
-
-  const handleCloseConnectionDialog = useCallback(() => {
-    setConnectPopup(false);
-  }, [connectPopup]);
-
-  const handleOpenConnectionDialog = useCallback(() => {
-    setConnectPopup(true);
-  }, [connectPopup]);
-
-  useEffect(() => {
-    /** Close connection popup if connection was established */
-    const connectionWasEstablished = EventBus.subscribe(ConnectionWasEstablished.name, () => {
-      handleCloseConnectionDialog();
-    });
-
-    return () => {
-      EventBus.unSub(connectionWasEstablished);
-    }
-
-  }, [connectPopup]);
-
-  useEffect(() => {
-    // connection status checker
-    const interValId = setInterval(() => {
-      setConnectionIsActive(connectionManger.checkIfConnectionIsActive(props.connectionData));
-    }, 1000);
-
-    return () => {
-      clearInterval(interValId);
-    }
-
-  }, [props.connectionData, connectionIsActive]);
-
   const handleLoadDatabaseList = useCallback(() => {
     try {
       DatabaseManger.getInstance().aksForDatabaseList(connectionManger.getEstablishedConnection(props.connectionData));
     } catch (e) {
-      if (connectionIsActive) {
-        toast.error('Unable to load database list');
-      } else {
-        toast.error('First You need to be connected');
-      }
-
+      toast.error('Unable to load database list');
     }
-  }, [props.connectionData, connectionIsActive]);
+  }, [props.connectionData]);
 
   return (
-    <div className={connectionIsActive ? 'is-connect' : ''}>
+    <div>
       <HorizontalButtonList>
         <InvisibleButton
           tooltip={"Connection details"}
@@ -99,27 +56,9 @@ export default (props: ConnectionMenuPropsInterface) => {
         >
           <FontAwesomeIcon icon={faDatabase} />
         </InvisibleButton>
-
-        <InvisibleButton
-          tooltip={connectionIsActive ? 'Connected, click for disconnect' : 'Click to connect to database'}
-          onClickWheel={handleOpenConnectionDialog}
-          onClickLeft={handleOpenConnectionDialog}
-          position={'end'}
-          disabled={connectionIsActive}
-        >
-          <FontAwesomeIcon icon={faSatelliteDish} color={connectionIsActive ? connectedColor : undefined} />
-        </InvisibleButton>
+        <ConnectionControlIcon connectionData={props.connectionData} />
       </HorizontalButtonList>
       <DatabaseListMenu connection={props.connectionData} />
-      <Popup
-        isOpen={connectPopup}
-        label={`Connect to ${props.connectionData.displayName}`}
-        onClickOk={handleCloseConnectionDialog}
-      >
-        <ConnectionForm
-          connectionData={props.connectionData}
-        />
-      </Popup>
     </div>
   );
 }

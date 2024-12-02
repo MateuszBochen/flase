@@ -1,6 +1,5 @@
 import DatabaseManger from '../../Library/Database/DatabaseManger';
 import {useCallback, useEffect, useState} from 'react';
-import Database from '../../Library/Database/Interface/Database';
 import ConnectionManager from '../../Library/Connection/ConnectionManager';
 import DatabaseListMenuPropsInterface from './DatabaseListMenuPropsInterface';
 import EventBus from '../../Library/EventBus/EventBus';
@@ -14,7 +13,6 @@ const databaseManger = DatabaseManger.getInstance();
 
 /** DatabaseListMenu */
 export default (props: DatabaseListMenuPropsInterface) => {
-
   const [state, setState] = useState<VerticalSliderItem[]>([]);
 
   const convertToVerticalSliderItem = useCallback(() => {
@@ -31,6 +29,7 @@ export default (props: DatabaseListMenuPropsInterface) => {
   }, [props, state]);
 
   useEffect(() => {
+    console.log('DatabaseListMenu');
     try {
       convertToVerticalSliderItem();
     } catch (e) {}

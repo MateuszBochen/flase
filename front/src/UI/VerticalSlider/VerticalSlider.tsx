@@ -18,6 +18,7 @@ export default (props: VerticalSliderPropsInterface) => {
   }));
 
   useEffect(() => {
+    console.log('VerticalSlider');
     if (containerRef.current) {
       containerRef.current.style.height = `calc(100% - ${containerRef.current.offsetTop + 3}px`;
     }

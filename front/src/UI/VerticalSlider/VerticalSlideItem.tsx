@@ -1,9 +1,13 @@
 
 import VerticalSlideItemPropsInterface from './Interface/VerticalSlideItemPropsInerface';
-import React, {useCallback} from 'react';
+import React, {useCallback, useEffect} from 'react';
 
 /* VerticalSlideItem */
 export default (props: VerticalSlideItemPropsInterface) => {
+
+  useEffect(() => {
+    console.log('VerticalSlideItem');
+  }, []);
 
   const onClickHandler = useCallback((event: React.MouseEvent) => {
     event.stopPropagation();

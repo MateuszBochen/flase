@@ -6,8 +6,9 @@ interface InvisibleButtonPropsInterface {
   onClickLeft: (event: MouseEvent<HTMLButtonElement>) => void;
   onClickWheel: (event: MouseEvent<HTMLButtonElement>) => void;
   tooltip: string;
-  position?: 'start'|'end'
-  disabled?: boolean
+  position?: 'start'|'end';
+  disabled?: boolean;
+  className?: string;
 }
 
 export default InvisibleButtonPropsInterface;
