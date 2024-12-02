@@ -1,4 +1,4 @@
-import ConnectionMenuPropsInterface from './ConnectionMenuPropsInterface';
+import ConnectionMenuPropsInterface from './Interface/ConnectionMenuPropsInterface';
 import InvisibleButton from '../../UI/Button/InvisibleButton';
 import {faDatabase, faSatelliteDish, faInfoCircle, faMicrochip, faUsersRectangle} from '@fortawesome/free-solid-svg-icons';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
@@ -10,6 +10,7 @@ import DatabaseListMenu from '../DatabaseListMenu/DatabaseListMenu';
 import DatabaseManger from '../../Library/Database/DatabaseManger';
 import toast from 'react-hot-toast';
 import ConnectionControlIcon from './ConnectionControlIcon';
+import Box from '../../UI/Box/Box';
 
 /** Connection manger */
 const connectionManger = ConnectionManager.getInstance();
@@ -26,7 +27,7 @@ export default (props: ConnectionMenuPropsInterface) => {
   }, [props.connectionData]);
 
   return (
-    <div>
+    <Box maxPossibleHeight={true}>
       <HorizontalButtonList>
         <InvisibleButton
           tooltip={"Connection details"}
@@ -59,6 +60,6 @@ export default (props: ConnectionMenuPropsInterface) => {
         <ConnectionControlIcon connectionData={props.connectionData} />
       </HorizontalButtonList>
       <DatabaseListMenu connection={props.connectionData} />
-    </div>
+    </Box>
   );
 }

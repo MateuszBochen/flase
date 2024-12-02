@@ -11,14 +11,12 @@ export default <T,>(props: TabOpenerPropsInterface<T>) => {
   const onSameTabHandler = useCallback((event: MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
     event.preventDefault();
-    console.log('onSameTabHandler');
     EventBus.emit(new CurrentTabComponentWasSelected(props.tab));
   }, [props.tab]);
 
   const onNewTabHandler = useCallback((event: MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
     event.preventDefault();
-    console.log('onNewTabHandler');
     EventBus.emit(new NewTabComponentWasSelected(props.tab));
   }, [props.tab]);
 

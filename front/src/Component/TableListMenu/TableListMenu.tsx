@@ -1,10 +1,14 @@
-import TableListMenuPropsInterface from './TableListMenuPropsInterface';
+import TableListMenuPropsInterface from './Interface/TableListMenuPropsInterface';
 import TableManager from '../../Library/Table/TableManager';
 import {useEffect, useState} from 'react';
 import TableInformationInterface from '../../Library/Table/Interface/TableInformationInterface';
 import EventBus from '../../Library/EventBus/EventBus';
 import TableInformationWasReceived from '../../Library/Table/Event/TableInformationWasReceived';
 import ReceivedTableInformationInterface from '../../Library/Table/Interface/ReceivedTableInformationInterface';
+import Box from '../../UI/Box/Box';
+import TableList from './TableList';
+import './style.css';
+
 
 const tableManager = TableManager.getInstance();
 
@@ -15,7 +19,6 @@ export default (props: TableListMenuPropsInterface) => {
     tableManager.askForTableList(props.connection, props.database, false);
     const newList = tableManager.getTablesListForDatabase(props.connection, props.database);
     setState([...newList]);
-    console.log('TableListMenu');
   }, []);
 
   useEffect(() => {
@@ -26,10 +29,12 @@ export default (props: TableListMenuPropsInterface) => {
   }, [props.connection, props.database, state]);
 
   return (
-    <div>
-      <ul>
-        {state.map((tableInformation) => <li key={tableInformation.tableName}>{tableInformation.tableName}</li>)}
-      </ul>
-    </div>
+    <Box maxPossibleHeight={true} style={{maxHeight: '300px'}} className="table-list-menu-root">
+      <TableList
+        connection={props.connection}
+        database={props.database}
+        tables={state}
+      />
+    </Box>
   );
 }

@@ -3,6 +3,7 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import SlideItemInterface from './Interface/SlideItemInterface';
 import VerticalSlideItem from './VerticalSlideItem';
 import './style.css';
+import Box from '../Box/Box';
 
 /** VerticalSlider */
 export default (props: VerticalSliderPropsInterface) => {
@@ -18,7 +19,6 @@ export default (props: VerticalSliderPropsInterface) => {
   }));
 
   useEffect(() => {
-    console.log('VerticalSlider');
     if (containerRef.current) {
       containerRef.current.style.height = `calc(100% - ${containerRef.current.offsetTop + 3}px`;
     }
@@ -49,7 +49,7 @@ export default (props: VerticalSliderPropsInterface) => {
   }, [state, props]);
 
   return (
-    <div className="vertical-slider-root" ref={containerRef}>
+    <Box maxPossibleHeight={true} className="vertical-slider-root" possibleHeightOffset={3}>
       <ul>
         {state.length === 0 ? (props.labelIfEmpty || 'No results') : ''}
         {state.map((slideItem, index) => {
@@ -63,6 +63,6 @@ export default (props: VerticalSliderPropsInterface) => {
           );
         })}
       </ul>
-    </div>
+    </Box>
   );
 }

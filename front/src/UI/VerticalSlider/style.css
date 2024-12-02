@@ -6,6 +6,7 @@
   max-height: 100%;
   overflow: auto;
   box-sizing: border-box;
+  width: calc(100% - 6px);
 }
 
 .vertical-slider-root ul {

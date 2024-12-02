@@ -1,0 +1,33 @@
+.table-list-menu-root input {
+  width: 100%;
+  box-sizing: border-box;
+  background-color: #ffffff0f;
+  border: none;
+  color: #91989c;
+}
+.table-list-menu-root input:focus-visible {
+  border-color: #4fffff1f;
+}
+
+.table-list-menu-root li {
+  border-bottom: solid 1px #2b2b2b;
+}
+
+.table-list-menu-root li:last-child {
+  border: none;
+}
+
+.table-list-menu-root li button {
+  color: #91989c;
+  width: 100%;
+  text-align: left;
+  line-height: 1.3rem;
+  padding-left: 3px;
+  padding-right: 3px;
+}
+.table-list-menu-root li button:hover {
+  background: #ffffff0f;
+}
+.table-list-menu-root li:last-child button {
+  padding-bottom: 0;
+}

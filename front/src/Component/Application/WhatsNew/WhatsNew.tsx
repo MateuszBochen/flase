@@ -1,5 +1,6 @@
 import React, {FC} from 'react';
 import './style.css';
+import Box from '../../../UI/Box/Box';
 
 /**
  * This is a default application
@@ -7,7 +8,7 @@ import './style.css';
  */
 const WhatsNew: FC<undefined> = () => {
   return(
-    <div>
+    <Box maxPossibleHeight={true}>
       <h1>
         JavaScript Application MySQL Utilities
       </h1>
@@ -65,7 +66,7 @@ const WhatsNew: FC<undefined> = () => {
           Users accounts management
         </li>
       </ol>
-    </div>
+    </Box>
   );
 }
 

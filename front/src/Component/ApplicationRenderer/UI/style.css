@@ -1,6 +1,11 @@
+.application-render-root {
+  height: 89%;
+}
+
 .application-render-root .tab-wrapper {
   display: none;
 }
 .application-render-root .tab-wrapper.active {
   display: block;
+  height: 100%;
 }

@@ -7,6 +7,7 @@ import DatabaseWasReceived from '../../Library/Database/Event/DatabaseWasReceive
 import VerticalSliderItem from '../../UI/VerticalSlider/Interface/VerticalSliderItem';
 import VerticalSlider from '../../UI/VerticalSlider/VerticalSlider';
 import TableListMenu from '../TableListMenu/TableListMenu';
+import Box from '../../UI/Box/Box';
 
 const connectionManger = ConnectionManager.getInstance();
 const databaseManger = DatabaseManger.getInstance();
@@ -29,7 +30,6 @@ export default (props: DatabaseListMenuPropsInterface) => {
   }, [props, state]);
 
   useEffect(() => {
-    console.log('DatabaseListMenu');
     try {
       convertToVerticalSliderItem();
     } catch (e) {}
@@ -53,10 +53,12 @@ export default (props: DatabaseListMenuPropsInterface) => {
   }
 
   return (
-    <VerticalSlider
-      items={state}
-      allowClose={true}
-      automateOpenFirst={false}
-    />
+    <Box maxPossibleHeight={true}>
+      <VerticalSlider
+        items={state}
+        allowClose={true}
+        automateOpenFirst={false}
+      />
+    </Box>
   );
 }

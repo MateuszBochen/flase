@@ -1,6 +1,7 @@
 import './style.css';
 import React, {useContext} from 'react';
 import {ApplicationRendererContext} from '../API/Context/ApplicationRendererContext';
+import Box from '../../../UI/Box/Box';
 /**
  * ApplicationRender
  * @author Mateusz Bochen
@@ -8,14 +9,14 @@ import {ApplicationRendererContext} from '../API/Context/ApplicationRendererCont
 export default () => {
   const context = useContext(ApplicationRendererContext);
   return (
-    <div className="application-render-root">
+    <Box className="application-render-root" maxPossibleHeight={true}>
       {context.tabs.map((tabItem, index) => {
         return (
-          <div className={`tab-wrapper ${index === context.currentTab ? 'active' : ''}`} key={tabItem.id}>
+          <Box maxPossibleHeight={true} className={`tab-wrapper ${index === context.currentTab ? 'active' : ''}`} key={tabItem.id}>
             {React.createElement(tabItem.component, { ...tabItem.props, key: tabItem.id})}
-          </div>
+          </Box>
         );
       })}
-    </div>
+    </Box>
   );
 }

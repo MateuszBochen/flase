@@ -1,5 +1,5 @@
-import ConnectionDataInterface from '../../Library/Connection/Interface/ConnectionDataInterface';
-import Database from '../../Library/Database/Interface/Database';
+import ConnectionDataInterface from '../../../Library/Connection/Interface/ConnectionDataInterface';
+import Database from '../../../Library/Database/Interface/Database';
 
 interface TableListMenuPropsInterface {
   connection: ConnectionDataInterface;
