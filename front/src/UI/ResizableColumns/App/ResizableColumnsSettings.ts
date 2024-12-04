@@ -9,28 +9,28 @@ interface SettingsListInterface {
  * Here is place to store of width of column
  * @author Mateusz Bochen
  */
-class HorizontalResizableColumnSettings {
+class ResizableColumnsSettings {
 
   private static settingsKeyStore = 'HorizontalResizableColumnSettings';
   private static defaultValue = '15%';
-  private static instance:HorizontalResizableColumnSettings;
+  private static instance:ResizableColumnsSettings;
 
-  private list:SettingsListInterface;
+  private readonly list:SettingsListInterface;
 
   /**
    * Public static
    */
-  public static getInstance(): HorizontalResizableColumnSettings {
-    if (!HorizontalResizableColumnSettings.instance) {
-      HorizontalResizableColumnSettings.instance = new HorizontalResizableColumnSettings();
+  public static getInstance(): ResizableColumnsSettings {
+    if (!ResizableColumnsSettings.instance) {
+      ResizableColumnsSettings.instance = new ResizableColumnsSettings();
     }
 
-    return HorizontalResizableColumnSettings.instance;
+    return ResizableColumnsSettings.instance;
   }
 
 
   constructor() {
-    const list = SettingsAPI.getSettings<SettingsListInterface>(HorizontalResizableColumnSettings.settingsKeyStore);
+    const list = SettingsAPI.getSettings<SettingsListInterface>(ResizableColumnsSettings.settingsKeyStore);
     if (list) {
       this.list = list;
     } else {
@@ -49,14 +49,14 @@ class HorizontalResizableColumnSettings {
       }
     }
 
-    return HorizontalResizableColumnSettings.defaultValue;
+    return ResizableColumnsSettings.defaultValue;
   }
 
   /** save new value for column width*/
   public setValue(name:string, newValue: string): void {
     this.list[name] = newValue;
-    SettingsAPI.setSettings<SettingsListInterface>(HorizontalResizableColumnSettings.settingsKeyStore, this.list);
+    SettingsAPI.setSettings<SettingsListInterface>(ResizableColumnsSettings.settingsKeyStore, this.list);
   }
 }
 
-export default HorizontalResizableColumnSettings;
+export default ResizableColumnsSettings;

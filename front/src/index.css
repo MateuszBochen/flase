@@ -70,3 +70,28 @@ body {
 .disabled {
   cursor: not-allowed !important;
 }
+
+
+input {
+  box-sizing: border-box;
+}
+
+/*
+
+#root > .view-port-root {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+
+
+#root > .view-port-root > .horizontal-resizable-column-root,
+#root > .view-port-root > .adjustable-column-root {
+  display: flex;
+  flex-direction: column;
+  flex-basis: 100%;
+  !*flex: 1;*!
+}
+*/

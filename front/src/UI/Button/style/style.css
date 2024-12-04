@@ -6,6 +6,7 @@
   padding: 5px;
   cursor: pointer;
   margin: 0;
+
 }
 
 .button.normal {
@@ -144,6 +145,7 @@
   border: none;
   background: transparent;
   cursor: pointer;
+  color: #bcc7cd;
 }
 
 .horizontal-button-list-root {

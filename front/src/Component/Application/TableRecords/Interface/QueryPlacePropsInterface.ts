@@ -1,12 +1,11 @@
 import ConnectionDataInterface from '../../../../Library/Connection/Interface/ConnectionDataInterface';
 import Database from '../../../../Library/Database/Interface/Database';
 import TableInformationInterface from '../../../../Library/Table/Interface/TableInformationInterface';
-import ApplicationInterface from '../../ApplicationInterface';
 
-interface TableRecordsPropsInterface extends ApplicationInterface {
+interface QueryPlacePropsInterface {
   connection: ConnectionDataInterface;
   database: Database;
   table: TableInformationInterface;
 }
 
-export default TableRecordsPropsInterface;
+export default QueryPlacePropsInterface;
