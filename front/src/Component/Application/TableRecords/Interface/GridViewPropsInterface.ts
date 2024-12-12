@@ -2,11 +2,11 @@ import ConnectionDataInterface from '../../../../Library/Connection/Interface/Co
 import Database from '../../../../Library/Database/Interface/Database';
 import TableInformationInterface from '../../../../Library/Table/Interface/TableInformationInterface';
 
-interface QueryPlacePropsInterface {
+interface GridViewPropsInterface {
   connection: ConnectionDataInterface;
   database: Database;
   table: TableInformationInterface;
   tabId: string;
 }
 
-export default QueryPlacePropsInterface;
+export default GridViewPropsInterface;

@@ -4,7 +4,7 @@ import CommandType from './Enum/CommandType';
 import ReloadDatabaseListCommandHandler from './CommandHandler/ReloadDatabaseListCommandHandler';
 import ClientWebSocket from './ClientWebSocket';
 import ReloadTablesListCommandHandler from './CommandHandler/ReloadTablesListCommandHandler';
-import DatabaseInterface from '../Driver/Interface/Data/DatabaseInterface';
+import HandleSelectQueryRequestHandler from './CommandHandler/HandleSelectQueryRequestHandler';
 
 class WebsocketRequest {
   private databaseDriver: DriverInterface;
@@ -30,7 +30,9 @@ class WebsocketRequest {
       case CommandType.RELOAD_TABLES_LIST:
         new ReloadTablesListCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
         return;
-
+      case CommandType.SEND_SELECT_QUERY:
+        new HandleSelectQueryRequestHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
+        return;
       default:
         console.log(`Command ${command.command} not supported`);
     }

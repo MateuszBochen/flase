@@ -1,14 +1,14 @@
-import IconButton from '../../../UI/Button/IconButton';
+import IconButton from '../../../../UI/Button/IconButton';
 import {faArrowLeft, faArrowRight} from '@fortawesome/free-solid-svg-icons';
 import React, {useEffect, useState} from 'react';
-import QueryHistoryPropsInterface from './Interface/QueryHistoryPropsInterface';
+import QueryHistoryPropsInterface from '../Interface/QueryHistoryPropsInterface';
 
 
 /** QueryHistory */
 export default (props: QueryHistoryPropsInterface) => {
 
-  const [history, setHistory] = useState<string[]>([]); // Przechowuje historię stringów
-  const [currentIndex, setCurrentIndex] = useState<number>(-1); // Index aktualnego elementu w historii
+  const [history, setHistory] = useState<string[]>([]);
+  const [currentIndex, setCurrentIndex] = useState<number>(-1);
 
   useEffect(() => {
     if (props.value) {
@@ -19,23 +19,21 @@ export default (props: QueryHistoryPropsInterface) => {
         } else {
           setHistory((prev) => [...prev, props.value]);
         }
-        setCurrentIndex((prev) => prev + 1); // Zaktualizuj indeks
+        setCurrentIndex((prev) => prev + 1);
       }
     }
   }, [props.value]);
 
   const goPrevious = () => {
-    console.log(history);
     if (currentIndex > 0) {
-      setCurrentIndex((prev) => prev - 1); // Przesuń się w lewo
+      setCurrentIndex((prev) => prev - 1);
       props.onHistoryChange(history[currentIndex-1]);
     }
   };
 
   const goNext = () => {
-    console.log(history);
     if (currentIndex < history.length - 1) {
-      setCurrentIndex((prev) => prev + 1); // Przesuń się w prawo
+      setCurrentIndex((prev) => prev + 1);
       props.onHistoryChange(history[currentIndex+1]);
     }
   };

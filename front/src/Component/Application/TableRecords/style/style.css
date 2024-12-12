@@ -4,14 +4,14 @@
     max-height: 100%;
 }
 .table-records-root .cmp-table-data-header{
-    height: 75px;
+    height: 52px;
     width: 100%;
 
 }
 
 .table-records-root .cmp-table-data-content {
-    max-height: calc(100% - 75px);
-    height: calc(100% - 75px);
+    max-height: calc(100% - 52px);
+    height: calc(100% - 52px);
     overflow: auto;
 }
 
@@ -77,3 +77,4 @@
 .speed-dial-buttons {
     border-bottom: solid 1px #84868b;
 }
+

@@ -1,16 +1,20 @@
-import React, {Component, useCallback, useState} from 'react';
-import IconButton from '../../../UI/Button/IconButton';
+import React, {Component, useCallback, useEffect, useState} from 'react';
+import IconButton from '../../../../UI/Button/IconButton';
 import {faArrowLeft, faArrowRight, faList, faQuestion} from '@fortawesome/free-solid-svg-icons';
-import Editor from '../../../UI/Editor/Editor';
+import Editor from '../../../../UI/Editor/Editor';
 /*# import connect from 'react-redux/es/connect/connect';
 # import IconButton from "../../../Components/Buttons/IconButton";
 # import {faArrowLeft, faArrowRight, faList, faQuestion} from "@fortawesome/fontawesome-free-solid";
 # import Editor from "../../../Components/Editor/Editor";
 # import ApplicationManager from '../Application/ApplicationManager';*/
-import defaultMysqlKeyWords from '../../../Library/Database/Driver/Adapter/MySql/DefaultAutocompleteKeywords';
-import QueryPlacePropsInterface from './Interface/QueryPlacePropsInterface';
-import DriverFactory from '../../../Library/Database/Driver/DriverFactory';
+import defaultMysqlKeyWords from '../../../../Library/Database/Driver/Adapter/MySql/DefaultAutocompleteKeywords';
+import QueryPlacePropsInterface from '../Interface/QueryPlacePropsInterface';
+import DriverFactory from '../../../../Library/Database/Driver/DriverFactory';
 import QueryHistory from './QueryHistory';
+import RecordManager from '../../../../Library/Record/RecordManager';
+import QueryRequestDataInterface from '../../../../Library/Record/Interface/QueryRequestDataInterface';
+import EventBus from '../../../../Library/EventBus/EventBus';
+import QueryWasChanged from '../Event/QueryWasChanged';
 
 /** QueryPlace */
 export default (props: QueryPlacePropsInterface) => {
@@ -18,52 +22,37 @@ export default (props: QueryPlacePropsInterface) => {
   const [currentQuery, setCurrentQuery] = useState<string>(DriverFactory.getDriver(props.connection).getDefaultQuery(props.table));
 
 
+  useEffect(() => {
+    changeQueryHandler(currentQuery);
+  }, []);
+
   const onSearchHandler = useCallback((newQuery: string) => {
-    console.log(newQuery);
     setCurrentQuery(newQuery);
+    changeQueryHandler(newQuery);
   }, [currentQuery]);
 
   const onHistoryChange = useCallback((historyQuery: string) => {
-    console.log(historyQuery);
     setCurrentQuery(historyQuery);
-  }, [currentQuery])
+    changeQueryHandler(historyQuery);
+  }, [currentQuery]);
 
-  /*/!** @type ApplicationManager *!/
-  applicationManager = undefined;
+  const changeQueryHandler = useCallback((query: string) => {
+    console.log('new Query', query);
 
-  constructor(props) {
-      super(props);
-      this.applicationManager = ApplicationManager.getInstance(props.tabIndex);
-      this.state = {
-          currentQuery: this.props.query,
-      }
-  }
+    const queryRequest: QueryRequestDataInterface = {
+      query: query,
+      database: props.database,
+      tabId: props.tabId,
+    }
 
-  componentDidUpdate(prevProps, prevState, snapshot) {
-      if (prevProps.query !== this.props.query) {
-          this.setState({
-              currentQuery: this.props.query,
-          });
-      }
-  }
+    EventBus.emit<QueryRequestDataInterface>(new QueryWasChanged(queryRequest));
 
-  sqlEditHandler = () => {
-      const { query } = this.props;
-      if (this.state.currentQuery !== query) {
-          this.applicationManager.sendQuery(this.state.currentQuery);
-      } else {
-          this.applicationManager.sendQuery();
-      }
-  }
+    RecordManager.getInstance().sendQuery(
+      props.connection,
+      queryRequest
+    );
 
-  goToQueryHandler = (queryIndex) => {
-      this.applicationManager.historyQuery(queryIndex);
-  }
-
-  render() {
-      const { database } = this.props;
-      const { currentQuery } = this.state;
-      const { currentQueryIndex, queryHistory, tableName } = this.props;*/
+  }, []);
 
   return (
     <div className="cmp-table-data-header">
@@ -78,7 +67,6 @@ export default (props: QueryPlacePropsInterface) => {
           <Editor
             defaultText={currentQuery}
             syntax={"sql"}
-            onChange={(e) => {}}
             hints={defaultMysqlKeyWords}
             isOneliner={true}
             onSearch={onSearchHandler}
