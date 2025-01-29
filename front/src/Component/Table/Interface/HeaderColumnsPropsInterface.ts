@@ -1,10 +1,13 @@
-import ColumnInterface from '../../../Library/Table/Interface/ColumnInterface';
+import {MutableRefObject} from 'react';
 
 
+/**
+ * @author Mateusz Bochen
+ */
 interface HeaderColumnsPropsInterface {
-  columns: ColumnInterface[]; //Column PropTypes.arrayOf(PropTypes.instanceOf(Column)),
   onColumnDidMount: () => void;
   onSort: () => void;
+  parentRef: MutableRefObject<HTMLDivElement | null>;
 }
 
 export default HeaderColumnsPropsInterface;

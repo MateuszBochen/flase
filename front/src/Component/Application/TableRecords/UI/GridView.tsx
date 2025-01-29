@@ -7,17 +7,18 @@ import MessageInterface from '../../../../Library/WebSocket/Interface/MessageInt
 import TotalCountInterface from '../../../../Library/Record/Interface/TotalCountInterface';
 import MessageType from '../../../../Library/WebSocket/Enum/MessageType';
 import SingleSelectColumnInterface from '../../../../Library/Record/Interface/SingleSelectColumnInterface';
-import ColumnInterface from '../../../../Library/Table/Interface/ColumnInterface';
 import {SingleRowType} from '../../../Table/Interface/RecordsViewPropsInterface';
 import SingleSelectRecordInterface from '../../../../Library/Record/Interface/SingleSelectRecordInterface';
 import QueryWasChanged from '../Event/QueryWasChanged';
 import QueryRequestDataInterface from '../../../../Library/Record/Interface/QueryRequestDataInterface';
+import RecordsViewRefInterface from '../../../Table/Interface/RecordsViewRefInterface';
 
 /** GridView */
 export default (props: GridViewPropsInterface) => {
   const [totalRecords, setTotalRecords] = useState<number>(0);
-  const [columns, setColumns] = useState<ColumnInterface[]>([]);
   const [rows, setRows] = useState<SingleRowType[]>([]);
+
+  const recordsRef = useRef<RecordsViewRefInterface|null>(null);
 
   /** handle query change */
   useEffect(() => {
@@ -25,7 +26,6 @@ export default (props: GridViewPropsInterface) => {
       const eventData = event.getData();
       if (eventData.tabId === props.tabId) {
         setTotalRecords(0);
-        setColumns([]);
         setRows([]);
       }
     });
@@ -34,14 +34,14 @@ export default (props: GridViewPropsInterface) => {
       EventBus.unSub(eventId);
     };
 
-  }, [totalRecords, columns, rows]);
+  }, [totalRecords, rows]);
 
   /** handle total count */
   useEffect(() => {
     const eventId = EventBus.subscribe<MessageInterface<TotalCountInterface>>(WebsocketReceivedAMessage.name, (event) => {
       const eventData = event.getData();
       if (eventData.payload.tabId === props.tabId && eventData.message === MessageType.SELECT_TOTAL_COUNT) {
-        setTotalRecords(eventData.payload.totalCount);
+        // setTotalRecords(eventData.payload.totalCount);
       }
     });
 
@@ -57,7 +57,7 @@ export default (props: GridViewPropsInterface) => {
       const eventData = event.getData();
 
       if (eventData.payload.tabId === props.tabId && eventData.message === MessageType.SINGLE_SELECT_COLUMN) {
-        setColumns((prevState) => [...prevState, ...eventData.payload.columns]);
+        recordsRef.current!.setColumns(eventData.payload.columns);
       }
     });
 
@@ -65,16 +65,15 @@ export default (props: GridViewPropsInterface) => {
       EventBus.unSub(eventId);
     }
 
-  }, [columns]);
+  }, []);
 
 
   /** handle new record */
   useEffect(() => {
-
     const eventId = EventBus.subscribe<MessageInterface<SingleSelectRecordInterface>>(WebsocketReceivedAMessage.name, (event) => {
       const eventData = event.getData();
       if (eventData.payload.tabId === props.tabId && eventData.message === MessageType.SINGLE_SELECT_RECORD) {
-        setRows((prevState) => [...prevState, eventData.payload.rowDataValue]);
+        recordsRef.current!.addRow(eventData.payload.rowDataValue);
       }
     });
 
@@ -84,12 +83,11 @@ export default (props: GridViewPropsInterface) => {
 
   }, [rows]);
 
-
+  console.log('Grid View');
   return (
     <div className="cmp-table-data-content">
       <RecordsView
-        columns={columns}
-        records={rows}
+        ref={recordsRef}
         loadedRecords={0}
         possibleRecords={0}
         total={totalRecords}

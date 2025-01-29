@@ -8,6 +8,16 @@ export default (columnName: string, columnRef: React.RefObject<HTMLDivElement|nu
   const rootWidth = useRef<number>(0);
 
   useLayoutEffect(() => {
+    const observer = new ResizeObserver(() => {
+      if (rootRef.current) {
+        /** set new with of parent */
+        rootWidth.current = getWidth(rootRef.current);
+        if (rightRef.current && columnRef.current) {
+          setNewWidth(rightRef.current, `${rootWidth.current - getWidth(columnRef.current)}px`)
+        }
+      }
+    });
+
     if (columnRef.current) {
       const defaultWidth = horizontalResizableColumnSettings.getDefaultWithForName(columnName) || '20%';
 
@@ -25,19 +35,13 @@ export default (columnName: string, columnRef: React.RefObject<HTMLDivElement|nu
       }
 
       /** handle window resize */
-      new ResizeObserver(() => {
-        if (rootRef.current) {
-          /** set new with of parent */
-          rootWidth.current = getWidth(rootRef.current);
-
-          if (rightRef.current && columnRef.current) {
-            setNewWidth(rightRef.current, `${rootWidth.current - getWidth(columnRef.current)}px`)
-          }
-
-        }
-      }).observe(rootRef.current);
-
+      observer.observe(rootRef.current);
     }
+
+    return () => {
+      if (observer && rootRef.current) observer.unobserve(rootRef.current);
+    }
+
   });
 
   const handleResize = () => {

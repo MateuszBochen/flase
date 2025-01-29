@@ -1,10 +1,9 @@
-import ColumnInterface from '../../../Library/Table/Interface/ColumnInterface';
+import {MutableRefObject} from 'react';
 
 interface DataGridPropsInterface {
-  columns: ColumnInterface[]; // PropTypes.arrayOf(PropTypes.instanceOf(Column)),
-  records: {[key:string]: string|number}[]; // PropTypes.array,
   tabIndex: number; //PropTypes.number,
   cellRender: () => void; //PropTypes.any,
+  parentRef: MutableRefObject<HTMLDivElement | null>;
 }
 
 export default DataGridPropsInterface;

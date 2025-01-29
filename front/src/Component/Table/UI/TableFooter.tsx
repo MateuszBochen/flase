@@ -1,33 +1,27 @@
-import React, {Component} from 'react';
+import React, {Component, forwardRef, useImperativeHandle, useState} from 'react';
 import TableFooterPropsInterface from '../../Application/TableRecords/Interface/TableFooterPropsInterface';
 import IconButton from '../../../UI/Button/IconButton';
 import {faCircleChevronLeft, faCircleChevronRight} from '@fortawesome/free-solid-svg-icons';
+import TableFooterRefInterface from '../../Application/TableRecords/Interface/TableFooterRefInterface';
+
 
 
 
 
 /** TableFooter */
-export default (props:TableFooterPropsInterface) => {
-  /* constructor(props) {
-       super(props);
+export default forwardRef<TableFooterRefInterface, TableFooterPropsInterface>((props: TableFooterPropsInterface, ref) => {
 
-       this.state = {
-           currentPage: this.props.page + 1,
-       }
-   }
+  const [page, setPage] = useState<number>(0);
+  const [length, setLength] = useState<number>(0);
+  const [perPage, setPerPage] = useState<number>(0);
+  const [total, setTotal] = useState<number>(0);
 
-   componentDidUpdate(prevProps, prevState, snapshot) {
-       if (prevProps.page !== this.props.page) {
-           this.setState({
-               currentPage: this.props.page + 1,
-           });
-       }
-   }
-
-   onChangePageHandler = (newPage) => {
-       const { onPageChange } = this.props;
-       onPageChange(newPage);
-   };*/
+  useImperativeHandle(ref, () => ({
+    setPage: (page: number) => setPage(page),
+    setLength: (length: number) => setLength(length),
+    setPerPage: (perPage: number) => setPerPage(perPage),
+    setTotal: (total: number) => setTotal(total),
+  } as TableFooterRefInterface));
 
 
   return (
@@ -62,13 +56,13 @@ export default (props:TableFooterPropsInterface) => {
 
       <div className="cmp-records-view-pager-item pager-info">
         <div>
-          Page: {props.page} &nbsp;/&nbsp; {Math.ceil(props.total / props.perPage)}
+          Page: {page} &nbsp;/&nbsp; {Math.ceil(total / perPage)}
         </div>
         <div>
-          &nbsp; Records: &nbsp; {props.page * props.perPage - (props.length) + (props.page * props.perPage)}
-          &nbsp;/&nbsp;{props.total}
+          &nbsp; Records: &nbsp; {page * perPage - (length) + (page * perPage)}
+          &nbsp;/&nbsp;{total}
         </div>
       </div>
     </div>
   );
-}
+});
