@@ -1,4 +1,6 @@
 import {MutableRefObject} from 'react';
+import ColumnInterface from '../../../Library/Table/Interface/ColumnInterface';
+import {DirectionOrder} from '../Enum/DirectionOrder';
 
 
 /**
@@ -6,7 +8,7 @@ import {MutableRefObject} from 'react';
  */
 interface HeaderColumnsPropsInterface {
   onColumnDidMount: () => void;
-  onSort: () => void;
+  onSort: (column: ColumnInterface, direction: DirectionOrder) => void;
   parentRef: MutableRefObject<HTMLDivElement | null>;
 }
 

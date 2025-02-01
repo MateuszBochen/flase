@@ -1,6 +1,9 @@
 import QueryInterface from '../../../Interface/QueryInterface';
-import {AST, Parser, Select} from 'node-sql-parser';
+import {AST, Parser, Select, Update} from 'node-sql-parser';
 import toast from 'react-hot-toast';
+import ColumnInterface from '../../../../Table/Interface/ColumnInterface';
+import {DirectionOrder} from '../../../../../Component/Table/Enum/DirectionOrder';
+import SortTableItemInterface from '../../../../../Component/Table/Interface/SortTableItemInterface';
 
 
 class QueryModel implements QueryInterface {
@@ -40,6 +43,49 @@ class QueryModel implements QueryInterface {
       console.error('Error parsing SQL:', error);
       return '';
     }
+  }
+
+  getRecordsLimits(): {offset: number, limit: number} {
+    if (Array.isArray(this.parsed)) {
+      return {offset: 0, limit: 100};
+    }
+    const localParsed: AST  = {...this.parsed} as Select;
+
+    if (!localParsed.limit?.seperator) {
+      return {offset: 0, limit: 100};
+    }
+
+    if (localParsed.limit.seperator === ',') {
+      return {offset: localParsed.limit?.value[0].value || 0, limit: localParsed.limit?.value[1].value || 100};
+    }
+
+    return {offset: localParsed.limit?.value[1].value || 0, limit: localParsed.limit?.value[0].value || 100};
+  }
+
+  changeOffset(offset: number): QueryInterface
+  {
+    const localParsed: AST  = {...this.parsed} as Select;
+
+    if (!localParsed.limit?.seperator) {
+      return this;
+    }
+
+    if (localParsed.limit.seperator === ',') {
+      localParsed.limit.value[0].value = offset;
+    } else {
+      localParsed.limit.value[1].value = offset;
+    }
+
+    return this.changeQuery(this.parser.sqlify(localParsed));
+  }
+
+  changeOrder(sortOrder: SortTableItemInterface[]): QueryInterface {
+    const localParsed: AST  = {...this.parsed} as Select;
+    localParsed.orderby = sortOrder.map((sortTableOrder) => {
+      return { expr: { type: "column_ref", column: sortTableOrder.column.name }, type: sortTableOrder.direction }
+    });
+
+    return this.changeQuery(this.parser.sqlify(localParsed));
   }
 }
 

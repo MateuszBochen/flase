@@ -1,7 +1,6 @@
-import PropTypes from 'prop-types';
 
 interface TableFooterPropsInterface {
-  onPageChange: () => void; //PropTypes.func,
+  onPageChange: (page: number, perPage: number, maxPages: number) => void;
 }
 
 export default TableFooterPropsInterface;

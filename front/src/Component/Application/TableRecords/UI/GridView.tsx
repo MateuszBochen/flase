@@ -1,6 +1,6 @@
 import RecordsView from '../../../Table/RecordsView';
 import GridViewPropsInterface from '../Interface/GridViewPropsInterface';
-import {useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import EventBus from '../../../../Library/EventBus/EventBus';
 import WebsocketReceivedAMessage from '../../../../Library/WebSocket/Event/WebsocketReceivedAMessage';
 import MessageInterface from '../../../../Library/WebSocket/Interface/MessageInterface';
@@ -11,6 +11,12 @@ import SingleSelectRecordInterface from '../../../../Library/Record/Interface/Si
 import QueryWasChanged from '../Event/QueryWasChanged';
 import QueryRequestDataInterface from '../../../../Library/Record/Interface/QueryRequestDataInterface';
 import RecordsViewRefInterface from '../../../Table/Interface/RecordsViewRefInterface';
+import PageWasChanged from '../Event/PageWasChanged';
+import PaginationDataInterface from '../Interface/PaginationDataInterface';
+import ColumnInterface from '../../../../Library/Table/Interface/ColumnInterface';
+import {DirectionOrder} from '../../../Table/Enum/DirectionOrder';
+import OrderDirectionWasChanged from '../Event/OrderDirectionWasChanged';
+import SortDirectionDataInterface from '../Interface/SortDirectionDataInterface';
 
 /** GridView */
 export default (props: GridViewPropsInterface) => {
@@ -23,18 +29,21 @@ export default (props: GridViewPropsInterface) => {
     const eventId = EventBus.subscribe<QueryRequestDataInterface>(QueryWasChanged.name, (event) => {
       const eventData = event.getData();
       if (eventData.tabId === props.tabId) {
-        console.log(event.getData().query.getOnlyColumnsAsString());
+        const queryModel = event.getData().query;
+        const limit = queryModel.getRecordsLimits();
 
-        if (columnsRef.current === event.getData().query.getOnlyColumnsAsString()) {
+        console.log(queryModel.getOnlyColumnsAsString());
+
+        if (columnsRef.current === queryModel.getOnlyColumnsAsString()) {
           console.log('Tylko dane');
           recordsRef.current!.reset('records');
         } else {
           console.log('cala tabela');
-          columnsRef.current = event.getData().query.getOnlyColumnsAsString();
+          columnsRef.current = queryModel.getOnlyColumnsAsString();
           recordsRef.current!.reset();
         }
 
-
+        recordsRef.current!.setLimit(limit.offset, limit.limit);
 
 
       }
@@ -51,7 +60,7 @@ export default (props: GridViewPropsInterface) => {
     const eventId = EventBus.subscribe<MessageInterface<TotalCountInterface>>(WebsocketReceivedAMessage.name, (event) => {
       const eventData = event.getData();
       if (eventData.payload.tabId === props.tabId && eventData.message === MessageType.SELECT_TOTAL_COUNT) {
-        // setTotalRecords(eventData.payload.totalCount);
+        recordsRef.current!.setTotal(eventData.payload.totalCount);
       }
     });
 
@@ -74,9 +83,7 @@ export default (props: GridViewPropsInterface) => {
     return () => {
       EventBus.unSub(eventId);
     }
-
   }, []);
-
 
   /** handle new record */
   useEffect(() => {
@@ -93,18 +100,32 @@ export default (props: GridViewPropsInterface) => {
 
   }, [recordsRef]);
 
+  /**
+   * Handle page change
+   */
+  const onPageChangeHandler = useCallback((page: number, perPage: number, maxPages: number) => {
+    EventBus.emit<PaginationDataInterface>(new PageWasChanged(props.tabId, page, perPage, maxPages));
+  }, [props.tabId]);
+
+  /**
+   * Handle change order
+   */
+  const onSortHandler = useCallback((column: ColumnInterface, direction: DirectionOrder) => {
+    const event = new OrderDirectionWasChanged({
+      column: column,
+      direction: direction,
+      tabId: props.tabId,
+    });
+    EventBus.emit<SortDirectionDataInterface>(event);
+  }, [props.tabId]);
+
   console.log('Grid View');
   return (
     <div className="cmp-table-data-content">
       <RecordsView
         ref={recordsRef}
-        loadedRecords={0}
-        possibleRecords={0}
-        total={0}
-        page={0}
-        perPage={0}
-        onPageChange={() => {}}
-        onSort={() => {}}
+        onPageChange={onPageChangeHandler}
+        onSort={onSortHandler}
         queryLoading={false}
         cellRender={undefined}
       />
