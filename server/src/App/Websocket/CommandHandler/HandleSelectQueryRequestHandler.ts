@@ -17,16 +17,20 @@ import SingleSelectColumnInterface from '../../Driver/Interface/Data/SingleSelec
 class HandleSelectQueryRequestHandler extends AbstractCommandHandler<QueryRequestDataInterface> {
 
   handle = (data: QueryRequestDataInterface): void => {
-
     this.driver.selectDatabase(data.database.name).then(() => {
-      // first count the records
-      this.countRecords(data.query);
 
       // send info about columns of table
-      this.sendColumnsFromSelect(data.query);
+      this.sendColumnsFromSelect(data.query).then(() => {
 
-      // return records
-      this.streamQueries(data.query);
+        // first count the records
+        this.countRecords(data.query);
+
+        // return records
+        this.streamQueries(data.query);
+
+      }).catch((e) => {
+        console.error(e);
+      });
 
     }).catch(() => {
       console.log('unable to switch database');
@@ -44,20 +48,23 @@ class HandleSelectQueryRequestHandler extends AbstractCommandHandler<QueryReques
 
 
   private countRecords = (query: string) => {
-    this.driver.countRecords(query).then((totalCountDto: TotalCountDto) => {
-      // dispatch information about query total records
-      const message = new WsMessage<TotalCountInterface>(
-        this.command.connectionData.connection,
-        MessageType.SELECT_TOTAL_COUNT,
-        {
-          tabId: this.command.payload.tabId,
-          totalCount: totalCountDto.totalCount,
-        } as TotalCountInterface,
-      );
+    try {
+      this.driver.countRecords(query).then((totalCountDto: TotalCountDto) => {
+        // dispatch information about query total records
+        const message = new WsMessage<TotalCountInterface>(
+          this.command.connectionData.connection,
+          MessageType.SELECT_TOTAL_COUNT,
+          {
+            tabId: this.command.payload.tabId,
+            totalCount: totalCountDto.totalCount,
+          } as TotalCountInterface,
+        );
 
-      this.clientWebsocket.send<TotalCountInterface>(message);
-
-    });
+        this.clientWebsocket.send<TotalCountInterface>(message);
+      });
+    } catch (e) {
+      console.error(HandleSelectQueryRequestHandler.name, 'countRecords', e);
+    }
   }
 
 
@@ -79,33 +86,46 @@ class HandleSelectQueryRequestHandler extends AbstractCommandHandler<QueryReques
 
 
   /** to test maybe will be done on front */
-  private sendColumnsFromSelect = (query: string) => {
+  private sendColumnsFromSelect = (query: string):Promise<void> => {
 
     let selectFromTypes:SelectFromType[] = [];
-    try {
-      selectFromTypes = this.driver.getSelectFromTypeFromQuery(query);
-    } catch (e) {
-      console.error(HandleSelectQueryRequestHandler.name, 'sendColumnsFromSelect', e);
-      return;
-    }
 
-    selectFromTypes.forEach((selectFromType) => {
-      this.driver.getColumnsOfTable(selectFromType.db || this.command.payload.database.name, selectFromType)
-        .then((listOfColumnTypes) => {
+    return new Promise((resolve, reject) => {
+      try {
+        selectFromTypes = this.driver.getSelectFromTypeFromQuery(query);
+      } catch (e) {
+        console.error(HandleSelectQueryRequestHandler.name, 'sendColumnsFromSelect', e);
+        reject();
+        return;
+      }
+      if (!selectFromTypes) {
+        console.error(HandleSelectQueryRequestHandler.name, 'Where exception?');
+        reject();
+        return;
+      }
 
-          const payload:SingleSelectColumnInterface = {
-            tabId: this.command.payload.tabId,
-            columns: listOfColumnTypes,
-          }
+      selectFromTypes.forEach((selectFromType, index, array) => {
+        this.driver.getColumnsOfTable(selectFromType.db || this.command.payload.database.name, selectFromType)
+          .then((listOfColumnTypes) => {
 
-          const message = new WsMessage<SingleSelectColumnInterface>(
-            this.command.connectionData.connection,
-            MessageType.SINGLE_SELECT_COLUMN,
-            payload,
-          );
+            const payload: SingleSelectColumnInterface = {
+              tabId: this.command.payload.tabId,
+              columns: listOfColumnTypes,
+            }
 
-          this.clientWebsocket.send<SingleSelectColumnInterface>(message);
-        });
+            const message = new WsMessage<SingleSelectColumnInterface>(
+              this.command.connectionData.connection,
+              MessageType.SINGLE_SELECT_COLUMN,
+              payload,
+            );
+
+            this.clientWebsocket.send<SingleSelectColumnInterface>(message);
+
+            if (index === array.length - 1) {
+              resolve();
+            }
+          });
+      });
     });
   }
 }

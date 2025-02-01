@@ -24,7 +24,12 @@ export default (props: EditorPropsInterface) => {
     /** disable enter if is oneliner */
     if (props.isOneliner) {
       editor.onKeyDown((e) => {
-        if (e.code === 'Enter' || e.keyCode === 13) {
+        const suggestController = editor.getContribution<any>("editor.contrib.suggestController");
+        if (suggestController && suggestController.model && suggestController.model.state !== 0) {
+          return;
+        }
+
+        if (e.code === 'Enter' || e.keyCode === 13 || e.code === 'NumpadEnter') {
           e.preventDefault();
           if (props.onSearch) {
             props.onSearch(editor.getValue());
@@ -51,7 +56,7 @@ export default (props: EditorPropsInterface) => {
           range: range,
         }];
 
-        props.hints?.forEach((sqlHint) => {
+        props.customKeyWords?.forEach((sqlHint) => {
           tableSuggestions.push({
             label: sqlHint,
             kind: monaco.languages.CompletionItemKind.Class,

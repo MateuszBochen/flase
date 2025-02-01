@@ -3,6 +3,7 @@ import CommandType from '../WebSocket/Enum/CommandType';
 import ConnectionManager from '../Connection/ConnectionManager';
 import QueryRequestDataInterface from './Interface/QueryRequestDataInterface';
 import CommandInterface from '../WebSocket/Interface/CommandInterface';
+import WebSocketQueryRequestDataInterface from './Interface/WebSocketQueryRequestDataInterface';
 
 
 class RecordManager {
@@ -30,13 +31,19 @@ class RecordManager {
       const establishedConnection = this.connectionManager.getEstablishedConnection(connection);
       const api = this.connectionManager.getClientForConnection(establishedConnection);
 
+      const wsQuery = {
+        query: query.query.query,
+        database: query.database,
+        tabId: query.tabId
+      } as WebSocketQueryRequestDataInterface;
+
       const command = {
         connectionData: establishedConnection,
         command: CommandType.SEND_SELECT_QUERY,
-        payload: query,
-      } as CommandInterface<QueryRequestDataInterface>;
+        payload: wsQuery,
+      } as CommandInterface<WebSocketQueryRequestDataInterface>;
 
-      api.sendCommand<QueryRequestDataInterface>(command)
+      api.sendCommand<WebSocketQueryRequestDataInterface>(command)
 
     } catch (e) {
 

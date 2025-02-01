@@ -7,7 +7,6 @@ import MessageInterface from '../../../../Library/WebSocket/Interface/MessageInt
 import TotalCountInterface from '../../../../Library/Record/Interface/TotalCountInterface';
 import MessageType from '../../../../Library/WebSocket/Enum/MessageType';
 import SingleSelectColumnInterface from '../../../../Library/Record/Interface/SingleSelectColumnInterface';
-import {SingleRowType} from '../../../Table/Interface/RecordsViewPropsInterface';
 import SingleSelectRecordInterface from '../../../../Library/Record/Interface/SingleSelectRecordInterface';
 import QueryWasChanged from '../Event/QueryWasChanged';
 import QueryRequestDataInterface from '../../../../Library/Record/Interface/QueryRequestDataInterface';
@@ -15,18 +14,29 @@ import RecordsViewRefInterface from '../../../Table/Interface/RecordsViewRefInte
 
 /** GridView */
 export default (props: GridViewPropsInterface) => {
-  const [totalRecords, setTotalRecords] = useState<number>(0);
-  const [rows, setRows] = useState<SingleRowType[]>([]);
-
   const recordsRef = useRef<RecordsViewRefInterface|null>(null);
+
+  const columnsRef = useRef<string>('*');
 
   /** handle query change */
   useEffect(() => {
     const eventId = EventBus.subscribe<QueryRequestDataInterface>(QueryWasChanged.name, (event) => {
       const eventData = event.getData();
       if (eventData.tabId === props.tabId) {
-        setTotalRecords(0);
-        setRows([]);
+        console.log(event.getData().query.getOnlyColumnsAsString());
+
+        if (columnsRef.current === event.getData().query.getOnlyColumnsAsString()) {
+          console.log('Tylko dane');
+          recordsRef.current!.reset('records');
+        } else {
+          console.log('cala tabela');
+          columnsRef.current = event.getData().query.getOnlyColumnsAsString();
+          recordsRef.current!.reset();
+        }
+
+
+
+
       }
     });
 
@@ -34,7 +44,7 @@ export default (props: GridViewPropsInterface) => {
       EventBus.unSub(eventId);
     };
 
-  }, [totalRecords, rows]);
+  }, [recordsRef]);
 
   /** handle total count */
   useEffect(() => {
@@ -81,7 +91,7 @@ export default (props: GridViewPropsInterface) => {
       EventBus.unSub(eventId);
     }
 
-  }, [rows]);
+  }, [recordsRef]);
 
   console.log('Grid View');
   return (
@@ -90,7 +100,7 @@ export default (props: GridViewPropsInterface) => {
         ref={recordsRef}
         loadedRecords={0}
         possibleRecords={0}
-        total={totalRecords}
+        total={0}
         page={0}
         perPage={0}
         onPageChange={() => {}}

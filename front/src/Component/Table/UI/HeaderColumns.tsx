@@ -3,6 +3,7 @@ import HeaderColumnsPropsInterface from '../Interface/HeaderColumnsPropsInterfac
 import HeaderColumn from './HeaderColumn';
 import HeaderColumnsRefInterface from '../Interface/HeaderColumnsRefInterface';
 import ColumnInterface from '../../../Library/Table/Interface/ColumnInterface';
+import HeaderSkeleton from './Skeleton/HeaderSkeleton';
 
 
 export default forwardRef<HeaderColumnsRefInterface|null, HeaderColumnsPropsInterface>((props: HeaderColumnsPropsInterface, ref) => {
@@ -11,8 +12,12 @@ export default forwardRef<HeaderColumnsRefInterface|null, HeaderColumnsPropsInte
 
   useImperativeHandle(ref, () => ({
     setColumns: (columns: ColumnInterface[]) => setColumns(columns),
-
+    reset: () => setColumns([]),
   } as HeaderColumnsRefInterface));
+
+  if (columns.length === 0) {
+    return <HeaderSkeleton />
+  }
 
   return (
     <div className="header-columns-row">

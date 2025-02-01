@@ -24,6 +24,12 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
     setColumns: (columns: ColumnInterface[]) => {
       columnsViewRef.current!.setColumns(columns);
       dataGridViewRef.current!.setColumns(columns);
+    },
+    reset: (option?: string) => {
+      if (option !== 'records') {
+        columnsViewRef.current!.reset();
+      }
+      dataGridViewRef.current!.reset();
     }
 
   } as RecordsViewRefInterface));

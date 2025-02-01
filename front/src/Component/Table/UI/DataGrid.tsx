@@ -17,7 +17,8 @@ export default forwardRef<DataGridRefInterface|null, DataGridPropsInterface>((pr
 
   const [records, setRecords] = useState<SingleRowType[]>([]);
   const [columns, setColumns] = useState<ColumnInterface[]>([]);
-
+  const [topScroll, setTopScroll] = useState<number>(0);
+  const leftShiftIsPressed = useRef<boolean>(false);
 
   useImperativeHandle(ref, () => ({
     addRow: (rowItem: SingleRowType) => {
@@ -25,18 +26,32 @@ export default forwardRef<DataGridRefInterface|null, DataGridPropsInterface>((pr
     },
     setColumns: (columns: ColumnInterface[]) => {
       setColumns(columns);
+    },
+    reset: () => {
+      setColumns([]);
+      setRecords([]);
+      setTopScroll(0);
     }
 
   } as DataGridRefInterface));
 
   const mainTableContentContainer = useRef<HTMLDivElement|null>(null);
   const [sizeTableContent, setSizeTableContent] = useState({width: 0, height: 0});
-  const [topScroll, setTopScroll] = useState<number>(0);
+
   const rowHeight = 21;
 
   const scrollHandle = useCallback((event: WheelEvent) => {
 
     setTopScroll((prevState) => {
+      if (leftShiftIsPressed.current) {
+        return prevState;
+      }
+
+
+      if (records.length === 0) {
+        return prevState;
+      }
+
       const newState = Math.ceil(prevState + (event.deltaY / 10));
       if (newState <= 0) {
         return 0
@@ -44,15 +59,30 @@ export default forwardRef<DataGridRefInterface|null, DataGridPropsInterface>((pr
       if (records.length < newState) {
         return prevState;
       }
+
+      const leftToShow = records.length - prevState;
+      if (leftToShow * rowHeight < sizeTableContent.height && newState > prevState) {
+        return prevState;
+      }
+
       return newState;
     });
-  }, [topScroll, records]);
+  }, [records, sizeTableContent]);
+
+  const onKeyDownHandler = useCallback((event: KeyboardEvent) => {
+    if (event.code === 'ShiftLeft') {
+      leftShiftIsPressed.current = !leftShiftIsPressed.current;
+    }
+
+  }, []);
 
   useEffect(() => {
     if (mainTableContentContainer.current) {
       mainTableContentContainer.current.onwheel =  scrollHandle;
+      document.onkeydown =  onKeyDownHandler;
+      document.onkeyup =  onKeyDownHandler;
     }
-  }, [records]);
+  }, [records, sizeTableContent]);
 
   useEffect(() => {
     const observer = new ResizeObserver((entries: ResizeObserverEntry[]) => {
@@ -101,7 +131,6 @@ export default forwardRef<DataGridRefInterface|null, DataGridPropsInterface>((pr
     const collections = [];
     if (sizeTableContent.height) {
       const calcMaxRows = Math.ceil((sizeTableContent.height)/rowHeight);
-      console.log('calcMaxRows', calcMaxRows);
       const maxRows = Math.min(calcMaxRows, records.length);
       if (maxRows > 0) {
         for (let i: number = 0; i < maxRows; i++) {
@@ -123,41 +152,3 @@ export default forwardRef<DataGridRefInterface|null, DataGridPropsInterface>((pr
   );
 });
 
-
-/*
-class DataGrid extends Component {
-    rowRender = (data, columns) => {
-        const { tabIndex, cellRender} = this.props;
-        return data.map((item) => {
-            return (
-                <Row
-                    cellRender={cellRender}
-                    tabIndex={tabIndex}
-                    key={`row_${item.id}`}
-                    rowItem={item}
-                    columns={columns}
-                />
-            );
-        });
-    }
-
-    render() {
-        const { columns, records} = this.props;
-
-        return (
-            <tbody>
-                {this.rowRender(records, columns)}
-            </tbody>
-        );
-    }
-
-}
-
-DataGrid.propTypes = {
-    columns: PropTypes.arrayOf(PropTypes.instanceOf(Column)),
-    records: PropTypes.array,
-    tabIndex: PropTypes.number,
-    cellRender: PropTypes.any,
-}
-
-export default DataGrid;*/

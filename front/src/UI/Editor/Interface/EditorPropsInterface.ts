@@ -7,6 +7,7 @@ interface EditorPropsInterface {
   onKeyDown?: (value: string, event: KeyboardEvent<HTMLInputElement>) => void;
   onSearch?: (query: string) => void;
   hints?: string[];
+  customKeyWords?: string[];
   isOneliner?: boolean;
 }
 export default EditorPropsInterface;

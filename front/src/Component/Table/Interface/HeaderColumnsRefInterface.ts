@@ -2,7 +2,8 @@ import ColumnInterface from '../../../Library/Table/Interface/ColumnInterface';
 
 
 interface HeaderColumnsRefInterface {
-  setColumns: (columns: ColumnInterface[]) => void; //Column PropTypes.arrayOf(PropTypes.instanceOf(Column)),
+  setColumns: (columns: ColumnInterface[]) => void;
+  reset: () => void;
 }
 
 export default HeaderColumnsRefInterface;
