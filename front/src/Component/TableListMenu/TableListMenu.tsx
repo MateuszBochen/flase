@@ -8,6 +8,7 @@ import ReceivedTableInformationInterface from '../../Library/Table/Interface/Rec
 import Box from '../../UI/Box/Box';
 import TableList from './TableList';
 import './style.css';
+import TableListWasReloaded from '../../Library/Table/Event/TableListWasReloaded';
 
 
 const tableManager = TableManager.getInstance();
@@ -22,11 +23,21 @@ export default (props: TableListMenuPropsInterface) => {
   }, []);
 
   useEffect(() => {
-    EventBus.subscribe<ReceivedTableInformationInterface>(TableInformationWasReceived.name, () => {
-      const newList = tableManager.getTablesListForDatabase(props.connection, props.database);
-      setState([...newList]);
+    const refresh = () => setState([...tableManager.getTablesListForDatabase(props.connection, props.database)]);
+
+    const receivedId = EventBus.subscribe<ReceivedTableInformationInterface>(TableInformationWasReceived.name, refresh);
+    const reloadedId = EventBus.subscribe<{connection: {id: string}, database: {name: string}}>(TableListWasReloaded.name, (event) => {
+      const data = event.getData();
+      if (data.connection.id === props.connection.id && data.database.name === props.database.name) {
+        refresh();
+      }
     });
-  }, [props.connection, props.database, state]);
+
+    return () => {
+      EventBus.unSub(receivedId);
+      EventBus.unSub(reloadedId);
+    };
+  }, [props.connection, props.database]);
 
   return (
     <Box maxPossibleHeight={true} style={{maxHeight: '300px'}} className="table-list-menu-root">

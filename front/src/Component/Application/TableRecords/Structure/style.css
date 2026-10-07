@@ -1,0 +1,267 @@
+.cmp-structure-view {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  color: #a9b7c6;
+  background-color: #2b2b2b;
+}
+
+.cmp-structure-view .structure-action {
+  padding: 1px 8px;
+  border: solid 1px #555;
+  border-radius: 3px;
+  color: #bbbbbb;
+  background-color: #3c3f41;
+  font: inherit;
+  cursor: pointer;
+}
+
+.cmp-structure-view .structure-action:hover:not(:disabled) {
+  color: #ffffff;
+  background-color: #4c5052;
+}
+
+.cmp-structure-view .structure-action:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.cmp-structure-view .structure-content {
+  flex: 1;
+  overflow: auto;
+  padding: 8px 10px 20px;
+}
+
+.cmp-structure-view .structure-error,
+.cmp-structure-view .structure-warning {
+  margin: 8px 10px 0;
+  padding: 6px 10px;
+  font-family: monospace;
+  white-space: pre-wrap;
+}
+
+.cmp-structure-view .structure-error {
+  color: #ff6b68;
+  border-left: solid 3px #ff6b68;
+}
+
+.cmp-structure-view .structure-warning {
+  margin: 0 0 8px;
+  color: #e0c46c;
+  border-left: solid 3px #e0c46c;
+}
+
+.cmp-structure-view .structure-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 24px;
+  padding: 6px 0 10px;
+}
+
+.cmp-structure-view .structure-info > div span {
+  margin-right: 6px;
+  color: #808080;
+}
+
+.cmp-structure-view .structure-info > div.wide {
+  flex-basis: 100%;
+}
+
+.cmp-structure-view .structure-section {
+  margin-top: 12px;
+}
+
+.cmp-structure-view .structure-section h3 {
+  margin: 0 0 4px;
+  font-size: 0.95rem;
+  font-weight: normal;
+  color: #cc7832;
+}
+
+.cmp-structure-view .structure-count {
+  margin-left: 6px;
+  color: #808080;
+  font-size: 0.8rem;
+}
+
+.cmp-structure-view .structure-empty {
+  color: #808080;
+  font-style: italic;
+}
+
+.cmp-structure-view .structure-table {
+  border-collapse: collapse;
+  min-width: 60%;
+}
+
+.cmp-structure-view .structure-table th,
+.cmp-structure-view .structure-table td {
+  padding: 2px 10px 2px 4px;
+  border-bottom: solid 1px #3c3f41;
+  text-align: left;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+.cmp-structure-view .structure-table th {
+  color: #808080;
+  font-weight: normal;
+}
+
+.cmp-structure-view .structure-table td.name {
+  color: #ffc66d;
+}
+
+.cmp-structure-view .structure-table td.type {
+  color: #6897bb;
+}
+
+.cmp-structure-view .structure-table td.code {
+  font-family: monospace;
+  white-space: pre-wrap;
+}
+
+.cmp-structure-view .structure-table .muted,
+.cmp-structure-view .structure-table td.muted {
+  color: #808080;
+}
+
+.cmp-structure-view .structure-link {
+  padding: 0;
+  border: none;
+  color: #589df6;
+  background: none;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.cmp-structure-view .structure-ddl {
+  position: relative;
+}
+
+.cmp-structure-view .structure-ddl .copy {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 1;
+}
+
+.cmp-structure-view .structure-action.danger {
+  color: #ff8a87;
+}
+
+.cmp-structure-view .structure-action.danger:hover:not(:disabled) {
+  color: #ffffff;
+  background-color: #a8413e;
+}
+
+.cmp-structure-view .structure-section-action {
+  margin-left: 12px;
+  padding: 0 6px;
+  border: none;
+  color: #589df6;
+  background: none;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.cmp-structure-view .structure-section-action:hover {
+  text-decoration: underline;
+}
+
+.cmp-structure-view .structure-row:hover td {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+.cmp-structure-view .structure-table td .expression {
+  color: #cc7832;
+}
+
+.cmp-structure-view .structure-gone {
+  margin: 8px 10px 0;
+  padding: 6px 10px;
+  color: #e0c46c;
+  border-left: solid 3px #e0c46c;
+}
+
+.structure-hint,
+.cmp-structure-form .hint {
+  margin-top: 6px;
+  color: #808080;
+  font-size: 0.85rem;
+}
+
+/**   FORMS   */
+.cmp-structure-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 460px;
+  max-height: 65vh;
+  overflow-y: auto;
+}
+
+.cmp-structure-form > label {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  align-items: center;
+  gap: 8px;
+}
+
+.cmp-structure-form label.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cmp-structure-form > label.checkbox {
+  padding-left: 118px;
+}
+
+.cmp-structure-form input:not([type="checkbox"]),
+.cmp-structure-form select {
+  padding: 2px 6px;
+  border: solid 1px #555;
+  border-radius: 3px;
+  color: #a9b7c6;
+  background-color: #1e1e1e;
+  font: inherit;
+}
+
+.cmp-structure-form .inline {
+  display: flex;
+  gap: 6px;
+}
+
+.cmp-structure-form .inline input {
+  flex: 1;
+}
+
+.cmp-structure-form .index-columns {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cmp-structure-form .index-column {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cmp-structure-form .index-column .order {
+  display: inline-block;
+  width: 14px;
+  color: #e0c46c;
+}
+
+.cmp-structure-form .index-column .length {
+  width: 80px;
+}
+
+.cmp-structure-view .structure-loading {
+  margin: 8px 10px;
+  color: #808080;
+}

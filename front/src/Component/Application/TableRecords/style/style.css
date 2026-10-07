@@ -78,3 +78,44 @@
     /*border-bottom: solid 1px #84868b;*/
 }
 
+
+/**   LAYOUT - header height depends on view (query editor is hidden in structure view)   */
+.table-records-root {
+    display: flex;
+    flex-direction: column;
+}
+.table-records-root .cmp-table-data-header {
+    height: auto;
+    flex: none;
+}
+.table-records-root .table-records-body {
+    flex: 1;
+    min-height: 0;
+}
+.table-records-root .table-records-view {
+    height: 100%;
+}
+.table-records-root .table-records-body .cmp-table-data-content {
+    height: 100%;
+    max-height: 100%;
+}
+
+/**   TOOLBAR (view switch, reload, table operations)   */
+.table-records-root .speed-dial-buttons {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    height: 22px;
+    padding: 0 4px;
+}
+.table-records-root .speed-dial-buttons .icon-button {
+    width: 24px;
+    height: 20px;
+    border-radius: 3px;
+}
+.table-records-root .speed-dial-buttons .speed-dial-separator {
+    width: 1px;
+    height: 14px;
+    margin: 0 4px;
+    background-color: #5a5d5f;
+}

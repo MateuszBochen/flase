@@ -10,6 +10,9 @@ import EventBus from '../EventBus/EventBus';
 import MessageType from '../WebSocket/Enum/MessageType';
 import TableInformationWasReceived from './Event/TableInformationWasReceived';
 import LoopThrough from '../Loop/LoopThrough';
+import TableInterface from './Interface/TableInterface';
+import StructureChangeRequestInterface from './Interface/StructureChangeInterface';
+import TableListWasReloaded from './Event/TableListWasReloaded';
 
 class TableManager {
   private static instance: TableManager;
@@ -76,6 +79,8 @@ class TableManager {
     if (this.tablesList[connection.id] && this.tablesList[connection.id][database.name]) {
       delete this.tablesList[connection.id][database.name];
     }
+    // lists must drop removed tables also when database becomes empty (no table message comes)
+    EventBus.emit(new TableListWasReloaded({connection, database}));
 
     try {
       const establishedConnection = this.connectionManager.getEstablishedConnection(connection);
@@ -91,6 +96,33 @@ class TableManager {
     } catch (e) {}
   }
 
+  /** columns, indexes, keys, triggers and DDL - answer is TABLE_STRUCTURE message for tabId */
+  askForTableStructure(connection: ConnectionDataInterface, table: TableInterface, tabId: string): void {
+    try {
+      const establishedConnection = this.connectionManager.getEstablishedConnection(connection);
+      this.connectionManager.getClientForConnection(establishedConnection).sendCommand({
+        connectionData: establishedConnection,
+        command: CommandType.GET_TABLE_STRUCTURE,
+        payload: {tabId, table},
+      });
+    } catch (e) {
+      console.error('Connection not found', e);
+    }
+  }
+
+  /** ALTER / TRUNCATE / DROP / RENAME / COPY - answer is STRUCTURE_CHANGE_PREVIEW or STRUCTURE_CHANGE_APPLIED for tabId */
+  changeStructure(connection: ConnectionDataInterface, request: StructureChangeRequestInterface): void {
+    try {
+      const establishedConnection = this.connectionManager.getEstablishedConnection(connection);
+      this.connectionManager.getClientForConnection(establishedConnection).sendCommand({
+        connectionData: establishedConnection,
+        command: CommandType.CHANGE_STRUCTURE,
+        payload: request,
+      });
+    } catch (e) {
+      console.error('Connection not found', e);
+    }
+  }
 }
 
 export default TableManager;

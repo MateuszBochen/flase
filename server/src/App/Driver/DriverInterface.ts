@@ -7,6 +7,8 @@ import DriverSessionInterface from './DriverSessionInterface';
 import TableInterface from './Interface/Data/TableInterface';
 import RowChangeInterface from './Interface/Data/RowChangeInterface';
 import RowChangeStatementInterface from './Interface/Data/RowChangeStatementInterface';
+import TableStructureInterface from './Interface/Data/TableStructureInterface';
+import {StructureChangeType} from './Interface/Data/StructureChangeInterface';
 
 interface DriverInterface {
 
@@ -60,6 +62,21 @@ interface DriverInterface {
    * Build escaped sql statements for row changes of given table
    */
   buildRowChangeStatements(table: TableInterface, changes: RowChangeInterface[]): RowChangeStatementInterface[];
+
+  /**
+   * Columns, indexes, keys, triggers and DDL of table (or view)
+   */
+  getTableStructure(table: TableInterface): Promise<TableStructureInterface>;
+
+  /**
+   * Build escaped DDL statements for structure change. Throws for invalid definition.
+   */
+  buildStructureChangeStatements(table: TableInterface, change: StructureChangeType): Promise<string[]>;
+
+  /**
+   * Execute DDL statements one by one (DDL is committed immediately, it cannot be rolled back)
+   */
+  executeStatements(statements: string[]): Promise<void>;
 }
 
 export default DriverInterface;

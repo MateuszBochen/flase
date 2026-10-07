@@ -18,7 +18,7 @@ const CLOSE_SESSION_NOT_FOUND = 4001;
 const RECONNECT_DELAYS_MS = [1000, 2000, 5000, 10000, 30000];
 
 /** commands with answer for a tab, client must tell the tab when the answer will never come */
-const TAB_COMMANDS = [CommandType.SEND_SELECT_QUERY, CommandType.APPLY_ROW_CHANGES];
+const TAB_COMMANDS = [CommandType.SEND_SELECT_QUERY, CommandType.APPLY_ROW_CHANGES, CommandType.GET_TABLE_STRUCTURE, CommandType.CHANGE_STRUCTURE];
 
 /**
  * Websocket of one established connection.
@@ -132,8 +132,8 @@ class WebSocketApiClient {
   /** answers of commands sent before connection was lost will never come */
   private failPendingTabCommands(): void {
     this.pendingTabCommands.forEach((command, tabId) => {
-      const error = command === CommandType.APPLY_ROW_CHANGES
-        ? 'Connection to server was lost while saving. Changes may or may not be saved - reload data to check.'
+      const error = command === CommandType.APPLY_ROW_CHANGES || command === CommandType.CHANGE_STRUCTURE
+        ? 'Connection to server was lost while saving. Changes may or may not be saved - reload to check.'
         : 'Connection to server was lost. Run the query again.';
 
       EventBus.emit(new WebsocketReceivedAMessage<QueryErrorInterface>({
@@ -151,6 +151,9 @@ class WebSocketApiClient {
       MessageType.QUERY_ERROR,
       MessageType.ROW_CHANGES_PREVIEW,
       MessageType.ROW_CHANGES_APPLIED,
+      MessageType.TABLE_STRUCTURE,
+      MessageType.STRUCTURE_CHANGE_PREVIEW,
+      MessageType.STRUCTURE_CHANGE_APPLIED,
     ].includes(message.message);
   }
 }

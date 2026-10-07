@@ -12,9 +12,18 @@ import ConnectionRequestInterface from '../../../Connection/Interface/Connection
 import {ParsedDsn} from '@soluble/dsn-parser';
 import DriverSessionInterface from '../../DriverSessionInterface';
 import MysqlSession from './MysqlSession';
+import MysqlDdlBuilder from './MysqlDdlBuilder';
+import {StructureChangeType} from '../../Interface/Data/StructureChangeInterface';
 import TableInterface from '../../Interface/Data/TableInterface';
 import RowChangeInterface, {RowValuesType} from '../../Interface/Data/RowChangeInterface';
 import RowChangeStatementInterface from '../../Interface/Data/RowChangeStatementInterface';
+import TableStructureInterface, {
+  StructureColumnInterface,
+  StructureForeignKeyInterface,
+  StructureIndexInterface,
+  StructureTableInfoInterface,
+  StructureTriggerInterface,
+} from '../../Interface/Data/TableStructureInterface';
 const mysql = require('mysql');
 const { Parser } = require('node-sql-parser');
 
@@ -301,6 +310,231 @@ class MysqlAdapter implements DriverInterface {
           throw new Error(`Unknown change ${(change as RowChangeInterface).kind}`);
       }
     });
+  }
+
+  async getTableStructure(table: TableInterface): Promise<TableStructureInterface> {
+    const warnings: string[] = [];
+    const db = table.databaseName;
+    const name = table.name;
+    // missing privileges for one part must not hide the rest
+    const load = <T>(part: string, loader: Promise<T>, fallback: T): Promise<T> => loader.catch((e) => {
+      warnings.push(`${part}: ${e?.sqlMessage || e?.message || e}`);
+      return fallback;
+    });
+
+    const info = await load('Table information', this.loadTableInfo(db, name), null);
+    if (!info) {
+      throw new Error(`Table ${db}.${name} does not exist`);
+    }
+    const isView = /VIEW/i.test(info.type);
+
+    const [columns, indexes, foreignKeys, referencedBy, triggers, ddl] = await Promise.all([
+      load('Columns', this.loadStructureColumns(db, name), []),
+      isView ? Promise.resolve([]) : load('Indexes', this.loadIndexes(db, name), []),
+      isView ? Promise.resolve([]) : load('Foreign keys', this.loadForeignKeys('k.`TABLE_SCHEMA` = ? AND k.`TABLE_NAME` = ?', db, name), []),
+      isView ? Promise.resolve([]) : load('Referenced by', this.loadForeignKeys('k.`REFERENCED_TABLE_SCHEMA` = ? AND k.`REFERENCED_TABLE_NAME` = ?', db, name), []),
+      isView ? Promise.resolve([]) : load('Triggers', this.loadTriggers(db, name), []),
+      load('DDL', this.loadDdl(db, name), ''),
+    ]);
+
+    return {table: {databaseName: db, name}, info, columns, indexes, foreignKeys, referencedBy, triggers, ddl, warnings};
+  }
+
+  async buildStructureChangeStatements(table: TableInterface, change: StructureChangeType): Promise<string[]> {
+    // generated columns cannot be inserted - copy only real columns
+    const copyColumns = change.kind === 'copy' && change.withData
+      ? (await this.loadStructureColumns(table.databaseName, table.name))
+        .filter((column) => !column.generationExpression)
+        .map((column) => column.name)
+      : undefined;
+    return MysqlDdlBuilder.build(table, change, copyColumns);
+  }
+
+  async executeStatements(statements: string[]): Promise<void> {
+    for (let index = 0; index < statements.length; index++) {
+      try {
+        await this.queryRows(statements[index]);
+      } catch (e: any) {
+        // DDL is committed immediately - tell which statements were already executed
+        if (statements.length > 1 && e?.sqlMessage) {
+          e.sqlMessage = `${e.sqlMessage}. Executed ${index} of ${statements.length} statements.`;
+        }
+        throw e;
+      }
+    }
+  }
+
+  private queryRows(sql: string, params: any[] = []): Promise<any[]> {
+    return new Promise((resolve, reject) => {
+      this.getPool().query(sql, params, (err: MysqlError | null, rows: any[]) => err ? reject(err) : resolve(rows));
+    });
+  }
+
+  private static toNumber(value: any): number | null {
+    return value === null || value === undefined ? null : Number(value);
+  }
+
+  private async loadTableInfo(db: string, name: string): Promise<StructureTableInfoInterface | null> {
+    const rows = await this.queryRows(
+      `SELECT \`TABLE_TYPE\`, \`ENGINE\`, \`TABLE_COLLATION\`, \`ROW_FORMAT\`, \`TABLE_ROWS\`, \`DATA_LENGTH\`,
+              \`INDEX_LENGTH\`, \`AUTO_INCREMENT\`, \`TABLE_COMMENT\`, \`CREATE_TIME\`, \`UPDATE_TIME\`
+       FROM \`information_schema\`.\`TABLES\` WHERE \`TABLE_SCHEMA\` = ? AND \`TABLE_NAME\` = ?`,
+      [db, name],
+    );
+    if (!rows.length) {
+      return null;
+    }
+    const row = rows[0];
+    return {
+      type: row.TABLE_TYPE,
+      engine: row.ENGINE,
+      collation: row.TABLE_COLLATION,
+      rowFormat: row.ROW_FORMAT,
+      rows: MysqlAdapter.toNumber(row.TABLE_ROWS),
+      dataLength: MysqlAdapter.toNumber(row.DATA_LENGTH),
+      indexLength: MysqlAdapter.toNumber(row.INDEX_LENGTH),
+      autoIncrement: MysqlAdapter.toNumber(row.AUTO_INCREMENT),
+      comment: row.TABLE_COMMENT || '',
+      createTime: row.CREATE_TIME,
+      updateTime: row.UPDATE_TIME,
+    };
+  }
+
+  /** SHOW FULL COLUMNS - default is the same on MySQL and MariaDB (information_schema quotes it on MariaDB) */
+  private async loadStructureColumns(db: string, name: string): Promise<StructureColumnInterface[]> {
+    const [rows, schemaRows, isMariaDb] = await Promise.all([
+      this.queryRows('SHOW FULL COLUMNS FROM ??.??', [db, name]),
+      this.queryRows(
+        'SELECT `COLUMN_NAME`, `COLUMN_DEFAULT`, `GENERATION_EXPRESSION` FROM `information_schema`.`COLUMNS` WHERE `TABLE_SCHEMA` = ? AND `TABLE_NAME` = ?',
+        [db, name],
+      ),
+      this.isMariaDb(),
+    ]);
+    const schemaColumns = new Map(schemaRows.map((row) => [row.COLUMN_NAME, row]));
+
+    return rows.map((row) => ({
+      name: row.Field,
+      type: row.Type,
+      nullable: row.Null === 'YES',
+      defaultValue: row.Default === undefined ? null : row.Default,
+      defaultIsExpression: MysqlAdapter.isDefaultExpression(row, schemaColumns.get(row.Field)?.COLUMN_DEFAULT, isMariaDb),
+      generationExpression: schemaColumns.get(row.Field)?.GENERATION_EXPRESSION || null,
+      extra: row.Extra || '',
+      comment: row.Comment || '',
+      collation: row.Collation,
+      key: row.Key || '',
+    }));
+  }
+
+  /**
+   * MySQL marks expression defaults with DEFAULT_GENERATED.
+   * MariaDB quotes literal strings in information_schema, expressions are not quoted.
+   */
+  private static isDefaultExpression(row: any, schemaDefault: string | null | undefined, isMariaDb: boolean): boolean {
+    if (row.Default === null || row.Default === undefined) {
+      return false;
+    }
+    if (/DEFAULT_GENERATED/i.test(row.Extra || '') || /^(current_timestamp|now|localtime|localtimestamp)(\(\d*\))?$/i.test(row.Default)) {
+      return true;
+    }
+    // MySQL returns literal defaults unquoted - without DEFAULT_GENERATED they are values
+    if (!isMariaDb || typeof schemaDefault !== 'string' || schemaDefault === 'NULL') {
+      return false;
+    }
+    const isQuoted = schemaDefault.startsWith("'");
+    const isNumber = /^-?\d+(\.\d+)?(e[+-]?\d+)?$/i.test(schemaDefault);
+    return !isQuoted && !isNumber;
+  }
+
+  private mariaDb: Promise<boolean> | null = null;
+
+  /** server flavor, read once per connection */
+  private isMariaDb(): Promise<boolean> {
+    if (!this.mariaDb) {
+      this.mariaDb = this.queryRows('SELECT VERSION() AS `version`')
+        .then((rows) => /mariadb/i.test(rows[0]?.version || ''))
+        .catch(() => {
+          this.mariaDb = null;
+          return false;
+        });
+    }
+    return this.mariaDb;
+  }
+
+  private async loadIndexes(db: string, name: string): Promise<StructureIndexInterface[]> {
+    const rows = await this.queryRows('SHOW INDEX FROM ??.??', [db, name]);
+    const indexes = new Map<string, StructureIndexInterface>();
+    rows.forEach((row) => {
+      if (!indexes.has(row.Key_name)) {
+        indexes.set(row.Key_name, {
+          name: row.Key_name,
+          unique: Number(row.Non_unique) === 0,
+          primary: row.Key_name === 'PRIMARY',
+          type: row.Index_type,
+          columns: [],
+          comment: row.Index_comment || '',
+        });
+      }
+      indexes.get(row.Key_name)!.columns.push({
+        // functional index (MySQL 8) has expression instead of column
+        name: row.Column_name ?? `(${row.Expression})`,
+        subPart: MysqlAdapter.toNumber(row.Sub_part),
+        descending: row.Collation === 'D',
+      });
+    });
+    return Array.from(indexes.values());
+  }
+
+  private async loadForeignKeys(where: string, db: string, name: string): Promise<StructureForeignKeyInterface[]> {
+    const rows = await this.queryRows(
+      `SELECT k.\`CONSTRAINT_NAME\`, k.\`TABLE_SCHEMA\`, k.\`TABLE_NAME\`, k.\`COLUMN_NAME\`,
+              k.\`REFERENCED_TABLE_SCHEMA\`, k.\`REFERENCED_TABLE_NAME\`, k.\`REFERENCED_COLUMN_NAME\`,
+              r.\`UPDATE_RULE\`, r.\`DELETE_RULE\`
+       FROM \`information_schema\`.\`KEY_COLUMN_USAGE\` k
+       JOIN \`information_schema\`.\`REFERENTIAL_CONSTRAINTS\` r
+         ON r.\`CONSTRAINT_SCHEMA\` = k.\`CONSTRAINT_SCHEMA\` AND r.\`CONSTRAINT_NAME\` = k.\`CONSTRAINT_NAME\` AND r.\`TABLE_NAME\` = k.\`TABLE_NAME\`
+       WHERE ${where} AND k.\`REFERENCED_TABLE_NAME\` IS NOT NULL
+       ORDER BY k.\`TABLE_SCHEMA\`, k.\`TABLE_NAME\`, k.\`CONSTRAINT_NAME\`, k.\`ORDINAL_POSITION\``,
+      [db, name],
+    );
+    const keys = new Map<string, StructureForeignKeyInterface>();
+    rows.forEach((row) => {
+      const id = `${row.TABLE_SCHEMA}.${row.TABLE_NAME}.${row.CONSTRAINT_NAME}`;
+      if (!keys.has(id)) {
+        keys.set(id, {
+          name: row.CONSTRAINT_NAME,
+          table: {databaseName: row.TABLE_SCHEMA, name: row.TABLE_NAME},
+          columns: [],
+          referencedTable: {databaseName: row.REFERENCED_TABLE_SCHEMA, name: row.REFERENCED_TABLE_NAME},
+          referencedColumns: [],
+          onUpdate: row.UPDATE_RULE,
+          onDelete: row.DELETE_RULE,
+        });
+      }
+      keys.get(id)!.columns.push(row.COLUMN_NAME);
+      keys.get(id)!.referencedColumns.push(row.REFERENCED_COLUMN_NAME);
+    });
+    return Array.from(keys.values());
+  }
+
+  private async loadTriggers(db: string, name: string): Promise<StructureTriggerInterface[]> {
+    const rows = await this.queryRows(
+      `SELECT \`TRIGGER_NAME\`, \`ACTION_TIMING\`, \`EVENT_MANIPULATION\`, \`ACTION_STATEMENT\`
+       FROM \`information_schema\`.\`TRIGGERS\` WHERE \`EVENT_OBJECT_SCHEMA\` = ? AND \`EVENT_OBJECT_TABLE\` = ?
+       ORDER BY \`EVENT_MANIPULATION\`, \`ACTION_TIMING\`, \`ACTION_ORDER\``,
+      [db, name],
+    );
+    return rows.map((row) => ({
+      name: row.TRIGGER_NAME,
+      timing: row.ACTION_TIMING,
+      event: row.EVENT_MANIPULATION,
+      statement: row.ACTION_STATEMENT,
+    }));
+  }
+
+  private async loadDdl(db: string, name: string): Promise<string> {
+    const rows = await this.queryRows('SHOW CREATE TABLE ??.??', [db, name]);
+    return rows[0]?.['Create Table'] || rows[0]?.['Create View'] || '';
   }
 
   /** NULL must be compared with IS NULL, `= NULL` never matches */

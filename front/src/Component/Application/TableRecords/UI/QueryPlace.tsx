@@ -1,6 +1,6 @@
 import React, {useCallback, useEffect, useState} from 'react';
 import IconButton from '../../../../UI/Button/IconButton';
-import {faList, faQuestion} from '@fortawesome/free-solid-svg-icons';
+import {faCopy, faEraser, faPenToSquare, faRotateRight, faTable, faTableColumns, faTrashCan} from '@fortawesome/free-solid-svg-icons';
 import Editor from '../../../../UI/Editor/Editor';
 import defaultMysqlKeyWords from '../../../../Library/Database/Driver/Adapter/MySql/DefaultAutocompleteKeywords';
 import QueryPlacePropsInterface from '../Interface/QueryPlacePropsInterface';
@@ -130,15 +130,31 @@ export default (props: QueryPlacePropsInterface) => {
     <div className="cmp-table-data-header">
       <div className="speed-dial-buttons">
         <IconButton
-          icon={faList}
-          onClick={() => {}}
+          icon={faTable}
+          tooltip="Data"
+          active={props.view === 'data'}
+          onClick={() => props.onViewChange('data')}
         />
         <IconButton
-          icon={faQuestion}
-          onClick={() => {}}
+          icon={faTableColumns}
+          tooltip="Structure"
+          active={props.view === 'structure'}
+          onClick={() => props.onViewChange('structure')}
         />
+        <span className="speed-dial-separator" />
+        <IconButton
+          icon={faRotateRight}
+          tooltip={props.view === 'data' ? 'Reload data' : 'Reload structure'}
+          disabled={props.tableOperationsDisabled}
+          onClick={props.onReload}
+        />
+        <span className="speed-dial-separator" />
+        <IconButton icon={faPenToSquare} tooltip="Rename table…" disabled={props.tableOperationsDisabled} onClick={() => props.onTableOperation('rename')} />
+        <IconButton icon={faCopy} tooltip="Copy table…" disabled={props.tableOperationsDisabled} onClick={() => props.onTableOperation('copy')} />
+        <IconButton icon={faEraser} tooltip="Truncate table…" danger disabled={props.tableOperationsDisabled} onClick={() => props.onTableOperation('truncate')} />
+        <IconButton icon={faTrashCan} tooltip="Drop table…" danger disabled={props.tableOperationsDisabled} onClick={() => props.onTableOperation('drop')} />
       </div>
-      <div className="cmp-table-data-navbar">
+      <div className="cmp-table-data-navbar" style={{display: props.view === 'data' ? undefined : 'none'}}>
         <div className="cmp-table-data-navbar-buttons">
           <QueryHistory value={currentQuery.query} onHistoryChange={onHistoryChange} />
           <div className="icon database-name">

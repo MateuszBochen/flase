@@ -6,6 +6,8 @@ import ClientWebSocket from './ClientWebSocket';
 import ReloadTablesListCommandHandler from './CommandHandler/ReloadTablesListCommandHandler';
 import HandleSelectQueryRequestHandler from './CommandHandler/HandleSelectQueryRequestHandler';
 import ApplyRowChangesCommandHandler from './CommandHandler/ApplyRowChangesCommandHandler';
+import GetTableStructureCommandHandler from './CommandHandler/GetTableStructureCommandHandler';
+import ChangeStructureCommandHandler from './CommandHandler/ChangeStructureCommandHandler';
 import WsMessage from './Dto/WsMessage';
 import MessageType from './Enum/MessageType';
 import QueryErrorInterface from '../Driver/Interface/Data/QueryErrorInterface';
@@ -71,6 +73,12 @@ class WebsocketRequest {
         return;
       case CommandType.APPLY_ROW_CHANGES:
         new ApplyRowChangesCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
+        return;
+      case CommandType.GET_TABLE_STRUCTURE:
+        new GetTableStructureCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
+        return;
+      case CommandType.CHANGE_STRUCTURE:
+        new ChangeStructureCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
         return;
       default:
         throw new Error(`Command ${command.command} not supported`);
