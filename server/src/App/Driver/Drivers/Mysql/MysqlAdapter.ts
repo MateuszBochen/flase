@@ -12,12 +12,17 @@ import ConnectionRequestInterface from '../../../Connection/Interface/Connection
 import {ParsedDsn} from '@soluble/dsn-parser';
 import DriverSessionInterface from '../../DriverSessionInterface';
 import MysqlSession from './MysqlSession';
+import TableInterface from '../../Interface/Data/TableInterface';
+import RowChangeInterface, {RowValuesType} from '../../Interface/Data/RowChangeInterface';
+import RowChangeStatementInterface from '../../Interface/Data/RowChangeStatementInterface';
 const mysql = require('mysql');
 const { Parser } = require('node-sql-parser');
 
 class MysqlAdapter implements DriverInterface {
   private consoleLog = true;
   private pool: Pool | null = null;
+  /** credentials were verified and disconnect was not called */
+  private connected = false;
   private keepaliveIntervalId: NodeJS.Timeout | null = null;
   private connectionData: ConnectionRequestInterface;
   private parser: typeof Parser;
@@ -30,16 +35,7 @@ class MysqlAdapter implements DriverInterface {
   }
 
   connect(): Promise<DriverInterface> {
-    const pool: Pool = mysql.createPool({
-      host: this.dsnOptions.host,
-      // undefined falls back to the driver default (3306)
-      port: this.dsnOptions.port,
-      user: this.connectionData.userData.username,
-      password: this.connectionData.userData.password,
-      insecureAuth: true,
-      multipleStatements: true,
-      connectionLimit: 10,
-    });
+    const pool = this.createPool();
 
     // check credentials with first connection
     return new Promise((resolve, reject) => {
@@ -53,6 +49,7 @@ class MysqlAdapter implements DriverInterface {
         connection.release();
 
         this.pool = pool;
+        this.connected = true;
         this.keepaliveIntervalId = setInterval(this.keepalive, 1000 * 60 * 5);
         resolve(this);
       });
@@ -60,15 +57,36 @@ class MysqlAdapter implements DriverInterface {
   }
 
   disconnect(): void {
+    this.connected = false;
     if (this.keepaliveIntervalId) {
       clearInterval(this.keepaliveIntervalId);
       this.keepaliveIntervalId = null;
     }
+    this.releaseConnections();
+  }
 
+  releaseConnections(): void {
     if (this.pool) {
       this.pool.end((err) => err && this.log(err));
       this.pool = null;
     }
+  }
+
+  private createPool(): Pool {
+    return mysql.createPool({
+      host: this.dsnOptions.host,
+      // undefined falls back to the driver default (3306)
+      port: this.dsnOptions.port,
+      user: this.connectionData.userData.username,
+      password: this.connectionData.userData.password,
+      insecureAuth: true,
+      multipleStatements: true,
+      connectionLimit: 5,
+      // values must stay as they are in database - dates without timezone shift, big numbers without rounding
+      dateStrings: true,
+      supportBigNumbers: true,
+      bigNumberStrings: true,
+    });
   }
 
   openSession(database: string): Promise<DriverSessionInterface> {
@@ -185,11 +203,17 @@ class MysqlAdapter implements DriverInterface {
 
           columns.forEach((column:any) => {
             const reference = this.findReference(column.Field, referencesResult);
+            const type = `${column.Type}`;
             const columnType:ColumnInterface = {
               table: {databaseName, name: selectFromType.table, alias: selectFromType.as},
               autoIncrement: column.Extra === 'auto_increment',
               defaultValue: column.Default,
               name: column.Field,
+              key: column.Field,
+              orgName: column.Field,
+              type,
+              enumValues: MysqlAdapter.parseEnumValues(type),
+              editable: MysqlAdapter.isEditableType(type) && !/GENERATED/i.test(column.Extra || ''),
               nullable: column.Null === 'YES',
               primaryKey: column.Key === 'PRI',
               reference,
@@ -203,9 +227,124 @@ class MysqlAdapter implements DriverInterface {
     });
   }
 
+  getEditableTableOfQuery(query: string): {table: SelectFromType | null, reason?: string} {
+    let parsed;
+    try {
+      parsed = this.parser.astify(query);
+    } catch (e) {
+      return {table: null, reason: 'Query could not be analysed'};
+    }
+
+    const statements = Array.isArray(parsed) ? parsed : [parsed];
+    const ast = statements[0];
+    if (statements.length !== 1 || ast?.type !== 'select') {
+      return {table: null, reason: 'Only single SELECT result can be edited'};
+    }
+    if (ast._next || ast.union) {
+      return {table: null, reason: 'Result of UNION cannot be edited'};
+    }
+    if (ast.with) {
+      return {table: null, reason: 'Result of WITH query cannot be edited'};
+    }
+    if (!ast.from?.length) {
+      return {table: null, reason: 'Result does not come from a table'};
+    }
+    if (ast.from.length > 1) {
+      return {table: null, reason: 'Result comes from more tables (JOIN)'};
+    }
+    if (!ast.from[0].table || ast.from[0].expr) {
+      return {table: null, reason: 'Result comes from sub query'};
+    }
+    const groupBy = Array.isArray(ast.groupby) ? ast.groupby : ast.groupby?.columns;
+    if (ast.distinct || groupBy?.length || ast.having) {
+      return {table: null, reason: 'Grouped or DISTINCT result cannot be edited'};
+    }
+    const columns = Array.isArray(ast.columns) ? ast.columns : [];
+    if (columns.some((column: any) => column?.expr?.type === 'aggr_func')) {
+      return {table: null, reason: 'Aggregated result cannot be edited'};
+    }
+
+    return {table: ast.from[0]};
+  }
+
+  buildRowChangeStatements(table: TableInterface, changes: RowChangeInterface[]): RowChangeStatementInterface[] {
+    return changes.map((change) => {
+      const limit = change.limitOne ? ' LIMIT 1' : '';
+
+      switch (change.kind) {
+        case 'update':
+          if (!change.values || !Object.keys(change.values).length) {
+            throw new Error('Update without values');
+          }
+          return {
+            sql: mysql.format('UPDATE ??.?? SET ? WHERE ', [table.databaseName, table.name, change.values])
+              + MysqlAdapter.buildWhere(change.where) + limit,
+            expectOneRow: true,
+          };
+        case 'delete':
+          return {
+            sql: mysql.format('DELETE FROM ??.?? WHERE ', [table.databaseName, table.name])
+              + MysqlAdapter.buildWhere(change.where) + limit,
+            expectOneRow: true,
+          };
+        case 'insert': {
+          const values = change.values || {};
+          const columns = Object.keys(values);
+          return {
+            sql: columns.length
+              ? mysql.format('INSERT INTO ??.?? (??) VALUES (?)', [table.databaseName, table.name, columns, columns.map((column) => values[column])])
+              : mysql.format('INSERT INTO ??.?? () VALUES ()', [table.databaseName, table.name]),
+            expectOneRow: false,
+          };
+        }
+        default:
+          throw new Error(`Unknown change ${(change as RowChangeInterface).kind}`);
+      }
+    });
+  }
+
+  /** NULL must be compared with IS NULL, `= NULL` never matches */
+  private static buildWhere(where?: RowValuesType): string {
+    const entries = Object.entries(where || {});
+    if (!entries.length) {
+      // never change whole table
+      throw new Error('Row cannot be identified - missing WHERE values');
+    }
+
+    return entries
+      .map(([column, value]) => value === null
+        ? mysql.format('?? IS NULL', [column])
+        : mysql.format('?? = ?', [column, value]))
+      .join(' AND ');
+  }
+
+  /** enum('a','it''s') -> ['a', "it's"] */
+  private static parseEnumValues(type: string): string[] | undefined {
+    const match = /^enum\((.*)\)$/i.exec(type);
+    if (!match) {
+      return undefined;
+    }
+    const values: string[] = [];
+    const valueRegex = /'((?:[^']|'')*)'/g;
+    let item;
+    while ((item = valueRegex.exec(match[1])) !== null) {
+      values.push(item[1].replace(/''/g, "'"));
+    }
+    return values;
+  }
+
+  /** binary values are not sent to client in editable form */
+  private static isEditableType(type: string): boolean {
+    return !/blob|binary|^bit|geometry|point|linestring|polygon/i.test(type);
+  }
+
+  /** pool is opened again after releaseConnections */
   private getPool(): Pool {
-    if (!this.pool) {
+    if (!this.connected) {
       throw new Error('Not connected');
+    }
+    if (!this.pool) {
+      this.pool = this.createPool();
     }
     return this.pool;
   }
@@ -278,8 +417,12 @@ class MysqlAdapter implements DriverInterface {
   }
 
   private keepalive = () => {
+    // released pool is not opened just for keepalive
+    if (!this.pool) {
+      return;
+    }
     try {
-      this.getPool().query('SELECT 1 + 1 AS solution', (err: MysqlError | null) => {
+      this.pool.query('SELECT 1 + 1 AS solution', (err: MysqlError | null) => {
         if (err) {
           console.log(err.code); // 'ER_BAD_DB_ERROR'
         }

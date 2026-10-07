@@ -5,6 +5,7 @@ import ReloadDatabaseListCommandHandler from './CommandHandler/ReloadDatabaseLis
 import ClientWebSocket from './ClientWebSocket';
 import ReloadTablesListCommandHandler from './CommandHandler/ReloadTablesListCommandHandler';
 import HandleSelectQueryRequestHandler from './CommandHandler/HandleSelectQueryRequestHandler';
+import ApplyRowChangesCommandHandler from './CommandHandler/ApplyRowChangesCommandHandler';
 import WsMessage from './Dto/WsMessage';
 import MessageType from './Enum/MessageType';
 import QueryErrorInterface from '../Driver/Interface/Data/QueryErrorInterface';
@@ -67,6 +68,9 @@ class WebsocketRequest {
         return;
       case CommandType.SEND_SELECT_QUERY:
         new HandleSelectQueryRequestHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
+        return;
+      case CommandType.APPLY_ROW_CHANGES:
+        new ApplyRowChangesCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
         return;
       default:
         throw new Error(`Command ${command.command} not supported`);

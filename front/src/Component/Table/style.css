@@ -250,10 +250,13 @@
   border-right: solid 1px #84868b;
   border-top: solid 1px #84868b;
   height: 100%;
+  /* border included - content must fit row height, otherwise cell can be scrolled by 1px */
+  box-sizing: border-box;
 }
 
 .data-table-content .data-table-row .data-table-cell .data-table-cell-content .dtc-content {
-  padding: 2px 3px;
+  /* 1px border + 2px + 17px line + 1px = 21px row */
+  padding: 2px 3px 1px;
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
@@ -289,4 +292,178 @@
 
 .cmp-records-view-pager-root .cmp-records-view-pager-item.pager-info .pager-loading {
   color: #808080;
+}
+
+
+/**   PENDING CHANGES (footer)   */
+.cmp-records-view-pager-root .cmp-records-view-pager-item.pager-extra {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  padding-right: 8px;
+}
+.cmp-records-view-pager-root .pending-bar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.cmp-records-view-pager-root .pending-bar.read-only {
+  color: #808080;
+  cursor: help;
+}
+.cmp-records-view-pager-root .pending-bar .pending-count {
+  color: #e0c46c;
+  margin-right: 6px;
+}
+.cmp-records-view-pager-root .pending-bar .pending-action {
+  padding: 1px 8px;
+  border: none;
+  border-radius: 3px;
+  color: #bbbbbb;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+.cmp-records-view-pager-root .pending-bar .pending-action:hover:not(:disabled) {
+  color: #ffffff;
+  background-color: #4c5052;
+}
+.cmp-records-view-pager-root .pending-bar .pending-action.submit {
+  color: #ffffff;
+  background-color: #499c54;
+}
+.cmp-records-view-pager-root .pending-bar .pending-action.submit:hover:not(:disabled) {
+  background-color: #57b162;
+}
+.cmp-records-view-pager-root .pending-bar .pending-action:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/**   ROW STATES   */
+.data-table-content .data-table-row.selected .data-table-cell .data-table-cell-content {
+  background-color: rgba(75, 110, 175, 0.45);
+}
+.data-table-content .data-table-row .data-table-cell.changed .data-table-cell-content {
+  background-color: rgba(224, 196, 108, 0.35);
+}
+.data-table-content .data-table-row.row-inserted .data-table-cell .data-table-cell-content {
+  background-color: rgba(98, 151, 85, 0.35);
+}
+.data-table-content .data-table-row.row-deleted .data-table-cell .data-table-cell-content {
+  background-color: rgba(255, 107, 104, 0.25);
+  text-decoration: line-through;
+  color: #9a9a9a;
+}
+.data-table-content .data-table-row .data-table-cell .dtc-content .dtc-null {
+  color: #808080;
+  font-style: italic;
+}
+
+/**   CELL EDITOR   */
+.cmp-cell-editor {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  height: 100%;
+}
+.cmp-cell-editor .cell-editor-input {
+  flex: 1;
+  min-width: 0;
+  padding: 1px 3px;
+  border: solid 1px #4b6eaf;
+  outline: none;
+  color: #a9b7c6;
+  background-color: #1e1e1e;
+  font: inherit;
+}
+.cmp-cell-editor .cell-editor-input.is-null::placeholder {
+  color: #808080;
+  font-style: italic;
+}
+.cmp-cell-editor .cell-editor-null {
+  padding: 0 4px;
+  border: solid 1px #555;
+  color: #808080;
+  background-color: #3c3f41;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+.cmp-cell-editor .cell-editor-null.active {
+  color: #1e1e1e;
+  background-color: #e0c46c;
+}
+.cmp-cell-editor.form textarea.cell-editor-input {
+  resize: vertical;
+  min-height: 60px;
+}
+
+/**   ROW FORM   */
+.cmp-row-form {
+  max-height: 65vh;
+  overflow-y: auto;
+  min-width: 500px;
+  padding-right: 6px;
+}
+.cmp-row-form .row-form-field {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 3px 0;
+  border-bottom: solid 1px rgba(255, 255, 255, 0.05);
+}
+.cmp-row-form .row-form-label {
+  display: flex;
+  flex-direction: column;
+  width: 30%;
+  min-width: 140px;
+  padding-top: 2px;
+}
+.cmp-row-form .row-form-label .row-form-type {
+  color: #808080;
+  font-size: 0.75rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cmp-row-form .row-form-editor {
+  display: flex;
+  flex: 1;
+  gap: 4px;
+  min-height: 24px;
+}
+.cmp-row-form .row-form-read-only {
+  color: #808080;
+  padding: 2px 3px;
+}
+.cmp-row-form .row-form-default {
+  flex: 1;
+  text-align: left;
+  padding: 2px 6px;
+  border: dashed 1px #555;
+  color: #808080;
+  background: transparent;
+  font-style: italic;
+  cursor: pointer;
+}
+.cmp-row-form .row-form-use-default {
+  padding: 0 6px;
+  border: solid 1px #555;
+  color: #808080;
+  background-color: #3c3f41;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+/**   SQL PREVIEW   */
+.cmp-sql-preview {
+  max-height: 60vh;
+  max-width: 80vw;
+  overflow: auto;
+  margin: 0;
+  padding: 8px;
+  color: #a9b7c6;
+  background-color: #1e1e1e;
+  white-space: pre-wrap;
+  word-break: break-all;
+  user-select: text;
 }

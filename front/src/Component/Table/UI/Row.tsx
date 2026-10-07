@@ -1,29 +1,23 @@
 import RowPropsInterface from '../Interface/RowPropsInterface';
-import LoopThrough from '../../../Library/Loop/LoopThrough';
 import Cell from './Cell';
-import {useEffect} from 'react';
 
 /** Row */
 export default (props: RowPropsInterface) => {
-
-
-
-/*  useEffect(() => {
-
-    const keyName = `${column.alias}-${column.name}`;
-    const cellClassName = `.cmp-data-data-cell-${keyName}`;
-    const columnClassName = `#cmp-data-data-header-cell-${keyName}`;
-
-
-    const headerElement = document.getElementById(columnClassName);
-
-  }, [props.columns]);*/
+  const edit = props.edit;
+  const selected = edit?.selectedRow === props.rowIndex ? 'selected' : '';
 
   return (
-    <div className="data-table-row">
-      {props.columns.map((column) => {
+    <div
+      className={`data-table-row row-${props.rowState} ${selected}`}
+      onMouseDown={() => edit?.onSelectRow(props.rowIndex)}
+    >
+      {props.columns.map((column, index) => {
 
-        const keyName = `${column.alias}-${column.name}`;
+        const keyName = `${column.alias}-${column.name}-${index}`;
+        const canEditCell = !!edit?.canEdit && !!column.editable && props.rowState !== 'deleted';
+        const isEditing = canEditCell
+          && edit?.editingCell?.rowIndex === props.rowIndex
+          && edit?.editingCell?.columnKey === column.key;
 
         return (
           <Cell
@@ -31,8 +25,19 @@ export default (props: RowPropsInterface) => {
             cellRender={props.cellRender}
             key={keyName}
             column={column}
-            value={props.rowItem[column.name]}
+            value={props.rowItem[column.key]}
             gridRef={props.gridRef}
+            placeholder={props.rowState === 'inserted' ? 'DEFAULT' : undefined}
+            changed={props.rowState === 'inserted' || (!!props.changedValues && column.key in props.changedValues)}
+            isEditing={isEditing}
+            onDoubleClick={canEditCell ? () => edit!.onStartEdit(props.rowIndex, column) : undefined}
+            onContextMenu={edit ? (event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              edit.onContextMenu(event, props.rowIndex, column);
+            } : undefined}
+            onCommit={(value) => edit!.onCommitEdit(props.rowIndex, column, value)}
+            onCancel={() => edit!.onCancelEdit()}
           />
         );
       })}

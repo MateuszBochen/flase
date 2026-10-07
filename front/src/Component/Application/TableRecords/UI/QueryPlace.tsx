@@ -21,6 +21,7 @@ import PaginationDataInterface from '../Interface/PaginationDataInterface';
 import SortDirectionDataInterface from '../Interface/SortDirectionDataInterface';
 import OrderDirectionWasChanged from '../Event/OrderDirectionWasChanged';
 import SortTableItemInterface from '../../../Table/Interface/SortTableItemInterface';
+import QueryRefreshWasRequested from '../Event/QueryRefreshWasRequested';
 
 /** QueryPlace */
 export default (props: QueryPlacePropsInterface) => {
@@ -62,9 +63,20 @@ export default (props: QueryPlacePropsInterface) => {
       }
     });
 
+    /** run current query again, e.g. after rows were saved */
+    const eventRefreshId = EventBus.subscribe<string>(QueryRefreshWasRequested.name, (event) => {
+      if (event.getData() === props.tabId) {
+        setCurrentQuery((previousQuery) => {
+          changeQueryHandler(previousQuery);
+          return previousQuery;
+        });
+      }
+    });
+
     return () => {
       EventBus.unSub(eventPaginationEventId);
       EventBus.unSub(eventOrderId);
+      EventBus.unSub(eventRefreshId);
     };
 
 

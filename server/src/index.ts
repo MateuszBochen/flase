@@ -6,6 +6,7 @@ import EstablishConnectionResultInterface from './App/Connection/Interface/Estab
 import EstablishedUser from './App/Connection/Interface/EstablishedUser';
 import WebsocketRequest from './App/Websocket/WebsocketRequest';
 import JWT from './App/JWT/JWT';
+import Settings from './App/Settings/Settings';
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
@@ -30,7 +31,29 @@ app.use(bodyParser.json());
  */
 const connections: {[key:string]: DriverInterface} = {};
 
+/** number of open websockets per token, database connections are released when it drops to 0 */
+const openWebsockets: {[key:string]: number} = {};
+const releaseTimers: {[key:string]: ReturnType<typeof setTimeout>} = {};
+
+const cancelRelease = (token: string) => {
+  clearTimeout(releaseTimers[token]);
+  delete releaseTimers[token];
+};
+
+/** close database connections when no websocket of this login is open for a while */
+const scheduleRelease = (token: string) => {
+  cancelRelease(token);
+  releaseTimers[token] = setTimeout(() => {
+    delete releaseTimers[token];
+    if (!openWebsockets[token]) {
+      connections[token]?.releaseConnections();
+    }
+  }, Settings.getIdleConnectionReleaseMs());
+};
+
 const closeConnection = (token: string) => {
+  cancelRelease(token);
+  delete openWebsockets[token];
   if (connections[token]) {
     connections[token].disconnect();
     delete connections[token];
@@ -55,6 +78,8 @@ app.post('/api/login', (req:Request, res:Response) => {
   connector.connect(data).then((response: EstablishConnectionResultInterface) => {
     if (response.driver && response.userData) {
       connections[response.userData.token] = response.driver;
+      // released if client never opens websocket
+      scheduleRelease(response.userData.token);
       res.send(response.userData);
     } else {
       console.log('login fail', response.error);
@@ -90,6 +115,17 @@ app.ws('/ws/:token', (ws:WebSocket, req: Request) => {
   }
 
   console.info('New websocket connection');
+  cancelRelease(token);
+  openWebsockets[token] = (openWebsockets[token] || 0) + 1;
+
+  // browser tab closed - keep login, but do not hold database connections
+  ws.addEventListener('close', () => {
+    openWebsockets[token] = Math.max(0, (openWebsockets[token] || 1) - 1);
+    if (openWebsockets[token] === 0 && connections[token]) {
+      scheduleRelease(token);
+    }
+  });
+
   new WebsocketRequest(connections[token], ws).procedure();
 });
 

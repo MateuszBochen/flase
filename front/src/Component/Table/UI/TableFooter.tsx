@@ -24,6 +24,13 @@ export default forwardRef<TableFooterRefInterface, TableFooterPropsInterface>((p
       setAllPages(Math.ceil(total/perPage));
     },
     setLength: (length: number) => setLength(length),
+    adjustTotal: (difference: number) => {
+      setTotal((previous) => {
+        const newTotal = Math.max(0, previous + difference);
+        setAllPages(Math.ceil(newTotal / perPageRef.current));
+        return newTotal;
+      });
+    },
     setTotal: (total: number) => {
       setTotal(total);
       setAllPages(Math.ceil(total/perPageRef.current));
@@ -74,6 +81,11 @@ export default forwardRef<TableFooterRefInterface, TableFooterPropsInterface>((p
           <div className="pager-loading">&nbsp; Loading…</div>
         )}
       </div>
+      {props.children && (
+        <div className="cmp-records-view-pager-item pager-extra">
+          {props.children}
+        </div>
+      )}
     </div>
   );
 });

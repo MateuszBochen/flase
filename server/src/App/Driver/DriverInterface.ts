@@ -4,6 +4,9 @@ import ColumnInterface from './Interface/Data/ColumnInterface';
 import SelectFromType from '../../Driver/Type/Data/SelectFromType';
 import TableInformationInterface from './Interface/Data/TableInformationInterface';
 import DriverSessionInterface from './DriverSessionInterface';
+import TableInterface from './Interface/Data/TableInterface';
+import RowChangeInterface from './Interface/Data/RowChangeInterface';
+import RowChangeStatementInterface from './Interface/Data/RowChangeStatementInterface';
 
 interface DriverInterface {
 
@@ -16,6 +19,11 @@ interface DriverInterface {
    * Close all connections of driver
    */
   disconnect(): void;
+
+  /**
+   * Close database connections while nobody uses them, they are opened again on next query
+   */
+  releaseConnections(): void;
 
   /**
    * Open dedicated session with given database selected
@@ -41,6 +49,17 @@ interface DriverInterface {
    * Returns list of columns of given table
    */
   getColumnsOfTable(databaseName: string, selectFromType: SelectFromType):Promise<ColumnInterface[]>;
+
+  /**
+   * Returns table which rows can be edited in result of given query,
+   * or reason why result is read only.
+   */
+  getEditableTableOfQuery(query: string): {table: SelectFromType | null, reason?: string};
+
+  /**
+   * Build escaped sql statements for row changes of given table
+   */
+  buildRowChangeStatements(table: TableInterface, changes: RowChangeInterface[]): RowChangeStatementInterface[];
 }
 
 export default DriverInterface;

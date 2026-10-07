@@ -4,6 +4,7 @@ import ConnectionManager from '../Connection/ConnectionManager';
 import QueryRequestDataInterface from './Interface/QueryRequestDataInterface';
 import CommandInterface from '../WebSocket/Interface/CommandInterface';
 import WebSocketQueryRequestDataInterface from './Interface/WebSocketQueryRequestDataInterface';
+import ApplyRowChangesRequestInterface from './Interface/ApplyRowChangesRequestInterface';
 
 
 class RecordManager {
@@ -47,6 +48,22 @@ class RecordManager {
 
     } catch (e) {
 
+    }
+  }
+
+  /** send edited rows to server, with dryRun server only returns sql for preview */
+  applyRowChanges = (connection: ConnectionDataInterface, request: ApplyRowChangesRequestInterface) => {
+    try {
+      const establishedConnection = this.connectionManager.getEstablishedConnection(connection);
+      const api = this.connectionManager.getClientForConnection(establishedConnection);
+
+      api.sendCommand<ApplyRowChangesRequestInterface>({
+        connectionData: establishedConnection,
+        command: CommandType.APPLY_ROW_CHANGES,
+        payload: request,
+      });
+    } catch (e) {
+      console.error('Connection not found', e);
     }
   }
 }

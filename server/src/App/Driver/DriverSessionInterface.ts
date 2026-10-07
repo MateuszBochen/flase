@@ -2,6 +2,8 @@ import {Observable} from 'rxjs';
 import TotalCountDto from '../../Driver/Dto/TotalCountDto';
 import RowDto from '../../Driver/Dto/RowDto';
 import UpdateResultType from '../../Driver/Type/UpdateResultType';
+import ResultFieldInterface from './Interface/Data/ResultFieldInterface';
+import RowChangeStatementInterface from './Interface/Data/RowChangeStatementInterface';
 
 /**
  * Dedicated database connection with a selected database.
@@ -17,9 +19,15 @@ interface DriverSessionInterface {
 
   /**
    * Stream rows of given select query. Observable completes when all rows were sent.
-   * onFields is called once with names of result columns, before first row.
+   * onFields is called once with description of result columns, before first row.
    */
-  streamSelect(query: string, onFields?: (fieldNames: string[]) => void): Observable<RowDto>;
+  streamSelect(query: string, onFields?: (fields: ResultFieldInterface[]) => void): Observable<RowDto>;
+
+  /**
+   * Execute statements in one transaction, resolves with sum of affected rows.
+   * Rolls back when any statement fails or does not match expected row.
+   */
+  executeInTransaction(statements: RowChangeStatementInterface[]): Promise<number>;
 
   /**
    * Function execute update query.

@@ -82,7 +82,10 @@ class QueryModel implements QueryInterface {
   changeOrder(sortOrder: SortTableItemInterface[]): QueryInterface {
     const localParsed: AST  = {...this.parsed} as Select;
     localParsed.orderby = sortOrder.map((sortTableOrder) => {
-      return { expr: { type: "column_ref", column: sortTableOrder.column.name }, type: sortTableOrder.direction }
+      const column = sortTableOrder.column;
+      // name repeated in result (JOIN) must be qualified by table alias
+      const table = column.key !== column.name && column.alias ? column.alias : null;
+      return { expr: { type: "column_ref", table, column: column.name }, type: sortTableOrder.direction }
     });
 
     return this.changeQuery(this.parser.sqlify(localParsed));

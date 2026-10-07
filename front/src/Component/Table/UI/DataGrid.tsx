@@ -11,6 +11,7 @@ import Row from './Row';
 import DataGridRefInterface from '../Interface/DataGridRefInterface';
 import {SingleRowType} from '../Interface/RecordsViewPropsInterface';
 import ColumnInterface from '../../../Library/Table/Interface/ColumnInterface';
+import {getDisplayedRow, getRowState} from '../Edit/PendingChanges';
 
 /** DataGrid */
 export default forwardRef<DataGridRefInterface|null, DataGridPropsInterface>((props: DataGridPropsInterface, ref) => {
@@ -27,11 +28,20 @@ export default forwardRef<DataGridRefInterface|null, DataGridPropsInterface>((pr
     setColumns: (columns: ColumnInterface[]) => {
       setColumns(columns);
     },
-    reset: () => {
+    reset: (keepScroll?: boolean) => {
       setColumns([]);
       setRecords([]);
-      setTopScroll(0);
-    }
+      if (!keepScroll) {
+        setTopScroll(0);
+      }
+    },
+    applyChanges: (updated: {[rowIndex: number]: SingleRowType}, deleted: number[]) => {
+      const deletedRows = new Set(deleted);
+      setRecords((previous) => previous
+        .map((record, index) => updated[index] ? {...record, ...updated[index]} : record)
+        .filter((record, index) => !deletedRows.has(index)));
+    },
+    getRecords: () => records,
 
   } as DataGridRefInterface));
 
@@ -39,6 +49,20 @@ export default forwardRef<DataGridRefInterface|null, DataGridPropsInterface>((pr
   const [sizeTableContent, setSizeTableContent] = useState({width: 0, height: 0});
 
   const rowHeight = 21;
+
+  const changes = props.edit?.changes;
+  const rowsCount = records.length + (changes?.inserted.length || 0);
+
+  /** scroll to the end when new row was added, so it is visible */
+  const insertedCount = changes?.inserted.length || 0;
+  const previousInsertedCount = useRef<number>(insertedCount);
+  useEffect(() => {
+    if (insertedCount > previousInsertedCount.current && sizeTableContent.height) {
+      const visibleRows = Math.floor(sizeTableContent.height / rowHeight);
+      setTopScroll(Math.max(0, rowsCount - visibleRows));
+    }
+    previousInsertedCount.current = insertedCount;
+  }, [insertedCount]);
 
   const scrollHandle = useCallback((event: WheelEvent) => {
 
@@ -48,7 +72,7 @@ export default forwardRef<DataGridRefInterface|null, DataGridPropsInterface>((pr
       }
 
 
-      if (records.length === 0) {
+      if (rowsCount === 0) {
         return prevState;
       }
 
@@ -56,18 +80,18 @@ export default forwardRef<DataGridRefInterface|null, DataGridPropsInterface>((pr
       if (newState <= 0) {
         return 0
       }
-      if (records.length < newState) {
+      if (rowsCount < newState) {
         return prevState;
       }
 
-      const leftToShow = records.length - prevState;
+      const leftToShow = rowsCount - prevState;
       if (leftToShow * rowHeight < sizeTableContent.height && newState > prevState) {
         return prevState;
       }
 
       return newState;
     });
-  }, [records, sizeTableContent]);
+  }, [rowsCount, sizeTableContent]);
 
   const onKeyDownHandler = useCallback((event: KeyboardEvent) => {
     if (event.code === 'ShiftLeft') {
@@ -82,7 +106,7 @@ export default forwardRef<DataGridRefInterface|null, DataGridPropsInterface>((pr
       document.onkeydown =  onKeyDownHandler;
       document.onkeyup =  onKeyDownHandler;
     }
-  }, [records, sizeTableContent]);
+  }, [rowsCount, sizeTableContent]);
 
   useEffect(() => {
     const observer = new ResizeObserver((entries: ResizeObserverEntry[]) => {
@@ -110,28 +134,34 @@ export default forwardRef<DataGridRefInterface|null, DataGridPropsInterface>((pr
 
   const displayRow = useCallback((index: number) => {
 
-    if (records.length <= index) {
+    if (rowsCount <= index) {
       return null;
     }
+
+    const rowItem = changes ? getDisplayedRow(changes, records, index) : records[index];
 
     return (
       <Row
         cellRender={props.cellRender}
         tabIndex={props.tabIndex}
-        rowItem={records[index]}
+        rowItem={rowItem}
+        rowIndex={index}
+        rowState={changes ? getRowState(changes, records, index) : 'normal'}
+        changedValues={changes?.updated[index]}
+        edit={props.edit}
         columns={columns}
         key={index}
         gridRef={props.parentRef}
       />
     );
-  }, [columns, records]);
+  }, [columns, records, rowsCount, props.edit]);
 
 
   const renderElements = useCallback(() => {
     const collections = [];
     if (sizeTableContent.height) {
       const calcMaxRows = Math.ceil((sizeTableContent.height)/rowHeight);
-      const maxRows = Math.min(calcMaxRows, records.length);
+      const maxRows = Math.min(calcMaxRows, rowsCount);
       if (maxRows > 0) {
         for (let i: number = 0; i < maxRows; i++) {
           collections.push(displayRow(i+topScroll));
@@ -139,10 +169,17 @@ export default forwardRef<DataGridRefInterface|null, DataGridPropsInterface>((pr
       }
     }
     return collections;
-  }, [columns, records, sizeTableContent, topScroll]);
+  }, [columns, records, rowsCount, sizeTableContent, topScroll, displayRow]);
 
   return (
-    <div className="data-table-content" ref={mainTableContentContainer}>
+    <div
+      className="data-table-content"
+      ref={mainTableContentContainer}
+      onContextMenu={props.edit ? (event) => {
+        event.preventDefault();
+        props.edit!.onContextMenu(event, null, null);
+      } : undefined}
+    >
       <div className="data-table-content-wrapper">
         <div className="data-table-content-window">
           {renderElements()}

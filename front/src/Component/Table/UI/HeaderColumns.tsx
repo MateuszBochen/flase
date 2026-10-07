@@ -21,10 +21,11 @@ export default forwardRef<HeaderColumnsRefInterface|null, HeaderColumnsPropsInte
 
   return (
     <div className="header-columns-row">
-      {columns.map((column) => (<HeaderColumn
+      {columns.map((column, index) => (<HeaderColumn
         column={column}
         onSort={props.onSort}
-        key={column.name}
+        // same name can be in result more times (JOIN)
+        key={`${column.alias}-${column.name}-${index}`}
         gridRef={props.parentRef}
       />))}
     </div>
