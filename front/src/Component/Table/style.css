@@ -266,3 +266,27 @@
 .data-table-content .data-table-row:last-child .data-table-cell{
 /*  border-bottom: solid 1px #91989c;*/
 }
+
+/**   QUERY STATUS   */
+.cmp-records-view .cmp-records-view-table-wrapper .cmp-records-view-message {
+  position: absolute;
+  top: 30px;
+  left: 2px;
+  right: 2px;
+  padding: 8px 10px;
+  color: #a9b7c6;
+  background-color: #2b2b2b;
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: text;
+}
+
+.cmp-records-view .cmp-records-view-table-wrapper .cmp-records-view-message.cmp-records-view-message-error {
+  color: #ff6b68;
+  border-left: solid 3px #ff6b68;
+  font-family: monospace;
+}
+
+.cmp-records-view-pager-root .cmp-records-view-pager-item.pager-info .pager-loading {
+  color: #808080;
+}

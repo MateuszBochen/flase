@@ -6,14 +6,16 @@ import MessageType from '../Enum/MessageType';
 
 class ReloadDatabaseListCommandHandler extends AbstractCommandHandler<null> {
   handle = (data: null): void => {
-    this.driver.getListOfDatabases().subscribe((databaseItem: DatabaseInterface) => {
-      this.clientWebsocket.send<DatabaseInterface>(new WsMessage<DatabaseInterface>(
-        this.command.connectionData.connection,
-        MessageType.DATABASE_BASE_ITEM,
-        databaseItem,
-      ));
+    this.driver.getListOfDatabases().subscribe({
+      next: (databaseItem: DatabaseInterface) => {
+        this.clientWebsocket.send<DatabaseInterface>(new WsMessage<DatabaseInterface>(
+          this.command.connectionData.connection,
+          MessageType.DATABASE_BASE_ITEM,
+          databaseItem,
+        ));
+      },
+      error: (error) => this.sendError(error),
     });
-    console.log('handled');
   }
 }
 

@@ -14,6 +14,10 @@ import WebSocketApiClient from '../WebSocket/WebSocketApiClient';
 import LoopThrough from '../Loop/LoopThrough';
 import WebsocketConnectionWasClosed from '../WebSocket/Event/WebsocketConnectionWasClosed';
 import DisconnectRequest from '../API/Request/DisconnectRequest';
+import WebsocketReceivedAMessage from '../WebSocket/Event/WebsocketReceivedAMessage';
+import MessageInterface from '../WebSocket/Interface/MessageInterface';
+import MessageType from '../WebSocket/Enum/MessageType';
+import QueryErrorInterface from '../Record/Interface/QueryErrorInterface';
 
 
 /**
@@ -49,6 +53,14 @@ class ConnectionManager {
       this.disconnect(event.getData());
     });
 
+    /** every server side error is shown to the user, tab errors are displayed also in the grid */
+    EventBus.subscribe<MessageInterface<QueryErrorInterface>>(WebsocketReceivedAMessage.name, (event) => {
+      const message = event.getData();
+      if (message.message === MessageType.QUERY_ERROR) {
+        toast.error(message.payload.error);
+      }
+    });
+
     LoopThrough.loop<EstablishedConnectionInterface>(this.listOfEstablishedConnections).subscribe((establishedConnection: EstablishedConnectionInterface) => {
       this.connectWithApi(establishedConnection);
     });
@@ -74,8 +86,9 @@ class ConnectionManager {
 
       /** inform application about connection */
       EventBus.emit(new ConnectionWasEstablished());
-    }).catch(() => {
-      toast.error('Connection request rejected!');
+    }).catch((e) => {
+      const reason = e?.response?.data?.error;
+      toast.error(reason ? `Connection request rejected: ${reason}` : 'Connection request rejected!');
       EventBus.emit(new ConnectionRequestWasRejected());
     });
   }

@@ -11,6 +11,15 @@ class JWT {
 
     return jwt.sign(payload, Settings.getJWTSecret(), options);
   }
+
+  /** returns payload of valid token, null for invalid or expired token */
+  public static verify(token: string): JwtPayload | null {
+    try {
+      return jwt.verify(token, Settings.getJWTSecret()) as JwtPayload;
+    } catch (e) {
+      return null;
+    }
+  }
 }
 
 export default JWT;

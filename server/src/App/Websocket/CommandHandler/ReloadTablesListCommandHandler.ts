@@ -7,12 +7,15 @@ import TableInformationInterface from '../../Driver/Interface/Data/TableInformat
 class ReloadTablesListCommandHandler extends AbstractCommandHandler<DatabaseInterface> {
 
   handle = (data: DatabaseInterface): void => {
-    this.driver.getListOfTablesInDatabase(data.name).subscribe((table) => {
-      this.clientWebsocket.send<TableInformationInterface>(new WsMessage<TableInformationInterface>(
-        this.command.connectionData.connection,
-        MessageType.TABLE_BASE_ITEM,
-        table,
-      ));
+    this.driver.getListOfTablesInDatabase(data.name).subscribe({
+      next: (table) => {
+        this.clientWebsocket.send<TableInformationInterface>(new WsMessage<TableInformationInterface>(
+          this.command.connectionData.connection,
+          MessageType.TABLE_BASE_ITEM,
+          table,
+        ));
+      },
+      error: (error) => this.sendError(error),
     });
   }
 }

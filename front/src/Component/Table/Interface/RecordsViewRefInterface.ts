@@ -7,6 +7,8 @@ interface RecordsViewRefInterface {
   reset: (option?: string) => void;
   setTotal: (total: number) => void;
   setLimit: (offset: number, perPage: number) => void;
+  setFinished: (rows: number) => void;
+  setError: (error: string) => void;
 }
 
 export default RecordsViewRefInterface;

@@ -5,10 +5,19 @@ import ReloadDatabaseListCommandHandler from './CommandHandler/ReloadDatabaseLis
 import ClientWebSocket from './ClientWebSocket';
 import ReloadTablesListCommandHandler from './CommandHandler/ReloadTablesListCommandHandler';
 import HandleSelectQueryRequestHandler from './CommandHandler/HandleSelectQueryRequestHandler';
+import WsMessage from './Dto/WsMessage';
+import MessageType from './Enum/MessageType';
+import QueryErrorInterface from '../Driver/Interface/Data/QueryErrorInterface';
 
 class WebsocketRequest {
+  /** same command sent again in this time is skipped (react strict mode runs effects twice) */
+  private static readonly DUPLICATE_COMMAND_WINDOW_MS = 500;
+
   private databaseDriver: DriverInterface;
   private readonly clientWebsocket: WebSocket;
+  private lastCommand: string = '';
+  private lastCommandTimeStamp: number = 0;
+
   constructor(databaseDriver: DriverInterface, clientWebsocket: WebSocket) {
     this.databaseDriver = databaseDriver;
     this.clientWebsocket = clientWebsocket;
@@ -16,9 +25,35 @@ class WebsocketRequest {
 
   public procedure(): void {
     this.clientWebsocket.onmessage = (event) => {
-      const command = JSON.parse(event.data) as CommandInterface;
-      this.resolveCommand(command);
+      let command: CommandInterface;
+      try {
+        command = JSON.parse(event.data) as CommandInterface;
+      } catch (e) {
+        console.error('Invalid websocket message', event.data);
+        return;
+      }
+
+      if (this.isDuplicate(event.data)) {
+        console.log(`Command ${command.command} skipped - duplicate`);
+        return;
+      }
+
+      try {
+        this.resolveCommand(command);
+      } catch (e) {
+        this.sendError(command, e);
+      }
     }
+  }
+
+  private isDuplicate(rawCommand: string): boolean {
+    const now = Date.now();
+    const isDuplicate = rawCommand === this.lastCommand
+      && now - this.lastCommandTimeStamp < WebsocketRequest.DUPLICATE_COMMAND_WINDOW_MS;
+
+    this.lastCommand = rawCommand;
+    this.lastCommandTimeStamp = now;
+    return isDuplicate;
   }
 
   private resolveCommand(command:CommandInterface) : void {
@@ -34,8 +69,21 @@ class WebsocketRequest {
         new HandleSelectQueryRequestHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
         return;
       default:
-        console.log(`Command ${command.command} not supported`);
+        throw new Error(`Command ${command.command} not supported`);
     }
+  }
+
+  private sendError(command: CommandInterface, error: any): void {
+    console.error(error);
+    new ClientWebSocket(this.clientWebsocket).send<QueryErrorInterface>(new WsMessage<QueryErrorInterface>(
+      command.connectionData?.connection,
+      MessageType.QUERY_ERROR,
+      {
+        command: command.command,
+        error: error?.message || String(error),
+        tabId: command.payload?.tabId,
+      },
+    ));
   }
 }
 

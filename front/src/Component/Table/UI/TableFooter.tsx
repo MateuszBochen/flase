@@ -70,6 +70,9 @@ export default forwardRef<TableFooterRefInterface, TableFooterPropsInterface>((p
           &nbsp; Records: &nbsp; {showsFrom} - {showsTo}
           &nbsp;/&nbsp;{total}
         </div>
+        {props.loading && (
+          <div className="pager-loading">&nbsp; Loading…</div>
+        )}
       </div>
     </div>
   );

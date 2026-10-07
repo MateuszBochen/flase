@@ -3,67 +3,36 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const stream_1 = __importDefault(require("stream"));
 const rxjs_1 = require("rxjs");
-const TotalCountDto_1 = __importDefault(require("../../../../Driver/Dto/TotalCountDto"));
-const RowDto_1 = __importDefault(require("../../../../Driver/Dto/RowDto"));
-const dsn_parser_1 = require("@soluble/dsn-parser");
+const MysqlSession_1 = __importDefault(require("./MysqlSession"));
 const mysql = require('mysql');
 const { Parser } = require('node-sql-parser');
 class MysqlAdapter {
     constructor(connectionData, dsnOptions) {
         this.consoleLog = true;
-        /** prevent for query spam */
-        this.lastQuery = '';
-        this.lastQueryTimeStamp = 0;
+        this.pool = null;
+        this.keepaliveIntervalId = null;
         this.streamQueryResults = (query) => {
             this.log(`Query Stream: ${query}`);
-            const now = Date.now();
-            if (this.lastQuery === query && (now - this.lastQueryTimeStamp < 500)) {
-                this.log(`Query Skipped: ${query}`);
-                return new rxjs_1.Observable();
-            }
-            this.lastQuery = query;
-            this.lastQueryTimeStamp = now;
             return new rxjs_1.Observable(observer => {
-                this.nativeConnection.query(query)
-                    .on('error', (error) => {
-                    observer.error(error);
-                })
-                    .stream()
-                    .pipe(new stream_1.default.Transform({
-                    objectMode: true,
-                    transform: (row, encoding, callback) => {
-                        observer.next(row);
-                        try {
-                            callback();
-                        }
-                        catch (e) {
-                            console.log(e);
-                            observer.error(e);
-                        }
-                    }
-                }));
+                this.getPool().query(query)
+                    .on('error', (error) => observer.error(error))
+                    .on('result', (row) => observer.next(row))
+                    // 'end' is emitted also after error - complete is then ignored by rxjs
+                    .on('end', () => observer.complete());
             });
         };
-        this.preparePrimaryColumns = (columnsOfTable, records, databaseName) => {
-            const columns = [];
-            for (const tableColumn of columnsOfTable) {
-                for (const record of records) {
-                    if (record.Column_name === tableColumn.name && record.Key_name === 'PRIMARY') {
-                        columns.push(tableColumn);
-                    }
-                }
-            }
-            return columns;
+        this.preparePrimaryColumns = (columnsOfTable, records) => {
+            return columnsOfTable.filter((tableColumn) => records.some((record) => {
+                return record.Column_name === tableColumn.name && record.Key_name === 'PRIMARY';
+            }));
         };
         this.keepalive = () => {
             try {
-                this.nativeConnection.query('SELECT 1 + 1 AS solution', (err) => {
+                this.getPool().query('SELECT 1 + 1 AS solution', (err) => {
                     if (err) {
                         console.log(err.code); // 'ER_BAD_DB_ERROR'
                     }
-                    console.log('Keepalive RDS connection pool using connection id');
                 });
             }
             catch (e) {
@@ -75,96 +44,134 @@ class MysqlAdapter {
         this.dsnOptions = dsnOptions;
     }
     connect() {
-        const parsedDsn = dsn_parser_1.parseDsnOrThrow(this.connectionData.connectionData.dsn);
-        this.nativeConnection = mysql.createConnection({
-            host: parsedDsn.host,
+        const pool = mysql.createPool({
+            host: this.dsnOptions.host,
+            // undefined falls back to the driver default (3306)
+            port: this.dsnOptions.port,
             user: this.connectionData.userData.username,
             password: this.connectionData.userData.password,
             insecureAuth: true,
             multipleStatements: true,
+            connectionLimit: 10,
         });
+        // check credentials with first connection
         return new Promise((resolve, reject) => {
-            this.nativeConnection.connect((err) => {
+            pool.getConnection((err, connection) => {
                 if (err) {
                     this.log(err);
-                    return reject(err);
+                    pool.end();
+                    reject(err);
+                    return;
                 }
-                setInterval(this.keepalive, 1000 * 60 * 5);
+                connection.release();
+                this.pool = pool;
+                this.keepaliveIntervalId = setInterval(this.keepalive, 1000 * 60 * 5);
                 resolve(this);
             });
         });
     }
-    selectDatabase(database) {
-        const useDatabaseQuery = `USE ${database}`;
+    disconnect() {
+        if (this.keepaliveIntervalId) {
+            clearInterval(this.keepaliveIntervalId);
+            this.keepaliveIntervalId = null;
+        }
+        if (this.pool) {
+            this.pool.end((err) => err && this.log(err));
+            this.pool = null;
+        }
+    }
+    openSession(database) {
         return new Promise((resolve, reject) => {
-            this.nativeConnection.query(useDatabaseQuery, (err) => {
-                // If change database fails
+            this.getPool().getConnection((err, connection) => {
                 if (err) {
                     reject(err);
                     return;
                 }
-                resolve();
+                connection.query('USE ??', [database], (useErr) => {
+                    if (useErr) {
+                        connection.release();
+                        reject(useErr);
+                        return;
+                    }
+                    resolve(new MysqlSession_1.default(connection, this.parser));
+                });
             });
         });
     }
     getListOfDatabases() {
         const query = 'SHOW DATABASES';
         return new rxjs_1.Observable(observer => {
-            this.streamQueryResults(query).subscribe((record) => {
-                observer.next({ name: `${record.Database}` });
+            this.streamQueryResults(query).subscribe({
+                next: (record) => observer.next({ name: `${record.Database}` }),
+                error: (error) => observer.error(error),
+                complete: () => observer.complete(),
             });
         });
     }
     getListOfTablesInDatabase(databaseName) {
-        const useDatabaseQuery = `SHOW TABLES FROM \`${databaseName}\``;
+        const showTablesQuery = mysql.format('SHOW TABLES FROM ??', [databaseName]);
         this.log('Show tables');
         return new rxjs_1.Observable(observer => {
-            this.streamQueryResults(useDatabaseQuery).subscribe((record) => {
-                Object.entries(record).forEach((item) => {
-                    const tableName = record[item[0]] + '';
-                    const showKeysFromTableQuery = `SHOW KEYS FROM \`${databaseName}\`.\`${tableName}\` WHERE 1`;
-                    // send empty object to short loading
-                    observer.next({
-                        tableName: tableName,
-                        columns: [],
-                        preload: true,
-                        dataBaseName: databaseName,
-                        primaryColumns: [],
-                        uniqueColumns: [],
-                    });
-                    this.nativeConnection.query(showKeysFromTableQuery, (err, keysRecords) => {
-                        if (err) {
-                            observer.error(err);
-                            return;
-                        }
-                        this.getColumnsOfTable(databaseName, { table: tableName }).then((columnsOfTable) => {
-                            observer.next({
-                                tableName: tableName,
-                                columns: columnsOfTable,
-                                preload: false,
-                                dataBaseName: databaseName,
-                                primaryColumns: this.preparePrimaryColumns(columnsOfTable, keysRecords, databaseName),
-                                uniqueColumns: [],
-                            });
+            // tables still waiting for keys and columns
+            let pending = 0;
+            let allTablesListed = false;
+            const completeIfDone = () => {
+                if (allTablesListed && pending === 0) {
+                    observer.complete();
+                }
+            };
+            this.streamQueryResults(showTablesQuery).subscribe({
+                next: (record) => {
+                    Object.values(record).forEach((value) => {
+                        const tableName = `${value}`;
+                        const showKeysFromTableQuery = mysql.format('SHOW KEYS FROM ??.??', [databaseName, tableName]);
+                        pending++;
+                        // send empty object to short loading
+                        observer.next({
+                            tableName: tableName,
+                            columns: [],
+                            preload: true,
+                            dataBaseName: databaseName,
+                            primaryColumns: [],
+                            uniqueColumns: [],
+                        });
+                        this.getPool().query(showKeysFromTableQuery, (err, keysRecords) => {
+                            if (err) {
+                                observer.error(err);
+                                return;
+                            }
+                            this.getColumnsOfTable(databaseName, { table: tableName }).then((columnsOfTable) => {
+                                observer.next({
+                                    tableName: tableName,
+                                    columns: columnsOfTable,
+                                    preload: false,
+                                    dataBaseName: databaseName,
+                                    primaryColumns: this.preparePrimaryColumns(columnsOfTable, keysRecords),
+                                    uniqueColumns: [],
+                                });
+                                pending--;
+                                completeIfDone();
+                            }).catch((error) => observer.error(error));
                         });
                     });
-                });
+                },
+                error: (error) => observer.error(error),
+                complete: () => {
+                    allTablesListed = true;
+                    completeIfDone();
+                },
             });
         });
     }
     getSelectFromTypeFromQuery(query) {
-        try {
-            const ast = this.parser.astify(query);
-            return ast.from;
-        }
-        catch (e) {
-            throw new Error(e);
-        }
+        const ast = this.parser.astify(query);
+        const statement = Array.isArray(ast) ? ast[0] : ast;
+        return (statement === null || statement === void 0 ? void 0 : statement.from) || [];
     }
     getColumnsOfTable(databaseName, selectFromType) {
-        const showColumnsQuery = `SHOW COLUMNS FROM \`${databaseName}\`.\`${selectFromType.table}\``;
+        const showColumnsQuery = mysql.format('SHOW COLUMNS FROM ??.??', [databaseName, selectFromType.table]);
         return new Promise((resolve, reject) => {
-            this.nativeConnection.query(showColumnsQuery, (err, columns) => {
+            this.getPool().query(showColumnsQuery, (err, columns) => {
                 if (err) {
                     reject(err);
                     return;
@@ -185,77 +192,15 @@ class MysqlAdapter {
                         newColumns.push(columnType);
                     });
                     resolve(newColumns);
-                });
+                }).catch(reject);
             });
         });
     }
-    countRecords(query) {
-        return new Promise((resolve, reject) => {
-            let countQuery;
-            try {
-                countQuery = this.getAllCountRowsQuery(query);
-            }
-            catch (e) {
-                console.log(444444444444444);
-                reject(e);
-                return;
-            }
-            if (countQuery === '') {
-                reject('Fail');
-            }
-            this.nativeConnection.query(countQuery, (err, results) => {
-                if (err) {
-                    reject(err);
-                    return;
-                }
-                resolve(new TotalCountDto_1.default(results[0].total));
-            });
-        });
-    }
-    streamSelect(query) {
-        return new rxjs_1.Observable(observer => {
-            this.streamQueryResults(query).subscribe((rowItem) => {
-                observer.next(new RowDto_1.default(rowItem));
-            });
-        });
-    }
-    updateQuery(query) {
-        return new Promise((resolve, reject) => {
-            this.nativeConnection.query(query, (err, result) => {
-                if (err) {
-                    reject(`${err.sqlMessage}: ${query}`);
-                    return;
-                }
-                resolve({
-                    affectedRows: +result.affectedRows,
-                    message: `${result.message}): ${query}`,
-                });
-            });
-        });
-    }
-    /**
-     * Function helping change select query into count query
-     */
-    getAllCountRowsQuery(query) {
-        const ast = this.parser.astify(query);
-        ast.limit = null;
-        ast.columns = [
-            {
-                expr: {
-                    type: 'aggr_func',
-                    name: 'COUNT',
-                    args: {
-                        expr: {
-                            type: 'star',
-                            value: '*'
-                        }
-                    },
-                    over: null
-                },
-                as: 'total'
-            },
-        ];
-        return this.parser.sqlify(ast);
+    getPool() {
+        if (!this.pool) {
+            throw new Error('Not connected');
+        }
+        return this.pool;
     }
     getReferencesColumns(databaseName, tableName) {
         const sql = `SELECT
@@ -264,12 +209,12 @@ class MysqlAdapter {
           \`REFERENCED_COLUMN_NAME\`
       FROM \`INFORMATION_SCHEMA\`.\`KEY_COLUMN_USAGE\`
       WHERE
-          \`TABLE_SCHEMA\` = '${databaseName}'
-      AND \`TABLE_NAME\` = '${tableName}'
+          \`TABLE_SCHEMA\` = ?
+      AND \`TABLE_NAME\` = ?
       AND \`REFERENCED_TABLE_NAME\` IS NOT NULL
       `;
         return new Promise((resolve, reject) => {
-            this.nativeConnection.query(sql, (err, results) => {
+            this.getPool().query(sql, [databaseName, tableName], (err, results) => {
                 if (err) {
                     reject(err);
                     return;
@@ -289,14 +234,7 @@ class MysqlAdapter {
         });
     }
     findReference(columnName, references) {
-        if (references.length) {
-            for (let i = 0; i < references.length; i++) {
-                if (columnName === references[i].originColumnName) {
-                    return references[i];
-                }
-            }
-        }
-        return undefined;
+        return references.find((reference) => reference.originColumnName === columnName);
     }
     log(input) {
         if (this.consoleLog) {
@@ -310,4 +248,4 @@ class MysqlAdapter {
     }
 }
 exports.default = MysqlAdapter;
-//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiTXlzcWxBZGFwdGVyLmpzIiwic291cmNlUm9vdCI6IiIsInNvdXJjZXMiOlsiLi4vLi4vLi4vLi4vLi4vc3JjL0FwcC9Ecml2ZXIvRHJpdmVycy9NeXNxbC9NeXNxbEFkYXB0ZXIudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7Ozs7QUFFQSxvREFBaUQ7QUFDakQsK0JBQWdDO0FBR2hDLHlGQUFpRTtBQUNqRSwyRUFBbUQ7QUFRbkQsb0RBQStEO0FBQy9ELE1BQU0sS0FBSyxHQUFHLE9BQU8sQ0FBQyxPQUFPLENBQUMsQ0FBQztBQUMvQixNQUFNLEVBQUUsTUFBTSxFQUFFLEdBQUcsT0FBTyxDQUFDLGlCQUFpQixDQUFDLENBQUM7QUFFOUMsTUFBTSxZQUFZO0lBV2hCLFlBQVksY0FBMEMsRUFBRSxVQUFxQjtRQVZyRSxlQUFVLEdBQUcsSUFBSSxDQUFDO1FBTTFCLDZCQUE2QjtRQUNyQixjQUFTLEdBQVcsRUFBRSxDQUFDO1FBQ3ZCLHVCQUFrQixHQUFXLENBQUMsQ0FBQztRQStLL0IsdUJBQWtCLEdBQUcsQ0FBQyxLQUFZLEVBQXlCLEVBQUU7WUFDbkUsSUFBSSxDQUFDLEdBQUcsQ0FBQyxpQkFBaUIsS0FBSyxFQUFFLENBQUMsQ0FBQztZQUNuQyxNQUFNLEdBQUcsR0FBRyxJQUFJLENBQUMsR0FBRyxFQUFFLENBQUM7WUFFdkIsSUFBSSxJQUFJLENBQUMsU0FBUyxLQUFLLEtBQUssSUFBSSxDQUFDLEdBQUcsR0FBRyxJQUFJLENBQUMsa0JBQWtCLEdBQUcsR0FBRyxDQUFDLEVBQUU7Z0JBQ3JFLElBQUksQ0FBQyxHQUFHLENBQUMsa0JBQWtCLEtBQUssRUFBRSxDQUFDLENBQUM7Z0JBQ3BDLE9BQU8sSUFBSSxpQkFBVSxFQUFFLENBQUM7YUFDekI7WUFFRCxJQUFJLENBQUMsU0FBUyxHQUFHLEtBQUssQ0FBQztZQUN2QixJQUFJLENBQUMsa0JBQWtCLEdBQUcsR0FBRyxDQUFDO1lBRTlCLE9BQU8sSUFBSSxpQkFBVSxDQUFDLFFBQVEsQ0FBQyxFQUFF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
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiTXlzcWxBZGFwdGVyLmpzIiwic291cmNlUm9vdCI6IiIsInNvdXJjZXMiOlsiLi4vLi4vLi4vLi4vLi4vc3JjL0FwcC9Ecml2ZXIvRHJpdmVycy9NeXNxbC9NeXNxbEFkYXB0ZXIudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7Ozs7QUFFQSwrQkFBZ0M7QUFXaEMsa0VBQTBDO0FBQzFDLE1BQU0sS0FBSyxHQUFHLE9BQU8sQ0FBQyxPQUFPLENBQUMsQ0FBQztBQUMvQixNQUFNLEVBQUUsTUFBTSxFQUFFLEdBQUcsT0FBTyxDQUFDLGlCQUFpQixDQUFDLENBQUM7QUFFOUMsTUFBTSxZQUFZO0lBUWhCLFlBQVksY0FBMEMsRUFBRSxVQUFxQjtRQVByRSxlQUFVLEdBQUcsSUFBSSxDQUFDO1FBQ2xCLFNBQUksR0FBZ0IsSUFBSSxDQUFDO1FBQ3pCLHdCQUFtQixHQUEwQixJQUFJLENBQUM7UUFnTWxELHVCQUFrQixHQUFHLENBQUMsS0FBWSxFQUF5QixFQUFFO1lBQ25FLElBQUksQ0FBQyxHQUFHLENBQUMsaUJBQWlCLEtBQUssRUFBRSxDQUFDLENBQUM7WUFFbkMsT0FBTyxJQUFJLGlCQUFVLENBQUMsUUFBUSxDQUFDLEVBQUU7Z0JBQy9CLElBQUksQ0FBQyxPQUFPLEVBQUUsQ0FBQyxLQUFLLENBQUMsS0FBSyxDQUFDO3FCQUN4QixFQUFFLENBQUMsT0FBTyxFQUFFLENBQUMsS0FBaUIsRUFBRSxFQUFFLENBQUMsUUFBUSxDQUFDLEtBQUssQ0FBQyxLQUFLLENBQUMsQ0FBQztxQkFDekQsRUFBRSxDQUFDLFFBQVEsRUFBRSxDQUFDLEdBQWUsRUFBRSxFQUFFLENBQUMsUUFBUSxDQUFDLElBQUksQ0FBQyxHQUFHLENBQUMsQ0FBQztvQkFDdEQsdUVBQXVFO3FCQUN0RSxFQUFFLENBQUMsS0FBSyxFQUFFLEdBQUcsRUFBRSxDQUFDLFFBQVEsQ0FBQyxRQUFRLEVBQUUsQ0FBQyxDQUFDO1lBQzFDLENBQUMsQ0FBQyxDQUFDO1FBQ0wsQ0FBQyxDQUFBO1FBeUNP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

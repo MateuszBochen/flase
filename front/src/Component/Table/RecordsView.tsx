@@ -10,8 +10,16 @@ import DataGrid from './UI/DataGrid';
 import DataGridRefInterface from './Interface/DataGridRefInterface';
 import TableFooterRefInterface from '../Application/TableRecords/Interface/TableFooterRefInterface';
 
+type QueryStatus = {
+  loading: boolean;
+  rows: number;
+  error: string|null;
+};
+
 /** RecordsView */
 export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterface>((props, ref) => {
+
+  const [status, setStatus] = useState<QueryStatus>({loading: true, rows: 0, error: null});
 
   const totalRows = useRef<number>(0);
   const dataGridRef = useRef<HTMLDivElement|null>(null);
@@ -40,7 +48,10 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
       footerRef.current!.setLimit(0, 100);
       // footerRef.current!.setPerPage(100);
       totalRows.current = 0;
+      setStatus({loading: true, rows: 0, error: null});
     },
+    setFinished: (rows: number) => setStatus({loading: false, rows, error: null}),
+    setError: (error: string) => setStatus({loading: false, rows: 0, error}),
     setLimit: footerRef.current?.setLimit,
     setTotal: footerRef.current?.setTotal,
 
@@ -70,10 +81,17 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
            parentRef={dataGridRef}
          />
        </div>
+       {status.error && (
+         <div className="cmp-records-view-message cmp-records-view-message-error">{status.error}</div>
+       )}
+       {!status.loading && !status.error && status.rows === 0 && (
+         <div className="cmp-records-view-message">No rows</div>
+       )}
       </div>
       <div className="cmp-records-view-pager">
         <TableFooter
           onPageChange={props.onPageChange}
+          loading={status.loading}
           ref={footerRef}
         />
       </div>

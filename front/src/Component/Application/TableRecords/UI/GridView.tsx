@@ -17,6 +17,8 @@ import ColumnInterface from '../../../../Library/Table/Interface/ColumnInterface
 import {DirectionOrder} from '../../../Table/Enum/DirectionOrder';
 import OrderDirectionWasChanged from '../Event/OrderDirectionWasChanged';
 import SortDirectionDataInterface from '../Interface/SortDirectionDataInterface';
+import QueryFinishedInterface from '../../../../Library/Record/Interface/QueryFinishedInterface';
+import QueryErrorInterface from '../../../../Library/Record/Interface/QueryErrorInterface';
 
 /** GridView */
 export default (props: GridViewPropsInterface) => {
@@ -99,6 +101,34 @@ export default (props: GridViewPropsInterface) => {
     }
 
   }, [recordsRef]);
+
+  /** handle end of query - all records were received */
+  useEffect(() => {
+    const eventId = EventBus.subscribe<MessageInterface<QueryFinishedInterface>>(WebsocketReceivedAMessage.name, (event) => {
+      const eventData = event.getData();
+      if (eventData.payload?.tabId === props.tabId && eventData.message === MessageType.QUERY_FINISHED) {
+        recordsRef.current!.setFinished(eventData.payload.rows);
+      }
+    });
+
+    return () => {
+      EventBus.unSub(eventId);
+    }
+  }, [props.tabId]);
+
+  /** handle query error */
+  useEffect(() => {
+    const eventId = EventBus.subscribe<MessageInterface<QueryErrorInterface>>(WebsocketReceivedAMessage.name, (event) => {
+      const eventData = event.getData();
+      if (eventData.payload?.tabId === props.tabId && eventData.message === MessageType.QUERY_ERROR) {
+        recordsRef.current!.setError(eventData.payload.error);
+      }
+    });
+
+    return () => {
+      EventBus.unSub(eventId);
+    }
+  }, [props.tabId]);
 
   /**
    * Handle page change

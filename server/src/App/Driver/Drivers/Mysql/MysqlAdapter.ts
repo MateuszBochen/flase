@@ -1,32 +1,27 @@
 import DriverInterface from '../../DriverInterface';
 import DatabaseInterface from '../../Interface/Data/DatabaseInterface';
-import stream, {TransformCallback} from 'stream';
 import {Observable} from 'rxjs';
-import {MysqlError} from 'mysql';
+import {MysqlError, Pool, PoolConnection} from 'mysql';
 import RecordType from '../../../../Driver/Type/Data/RecordType';
-import TotalCountDto from '../../../../Driver/Dto/TotalCountDto';
-import RowDto from '../../../../Driver/Dto/RowDto';
 import ColumnInterface from '../../Interface/Data/ColumnInterface';
 import SelectFromType from '../../../../Driver/Type/Data/SelectFromType';
 import MysqlColumnReference from './Type/MysqlColumnReference';
 import ReferenceTableInterface from '../../Interface/Data/ReferenceTableInterface';
 import TableInformationInterface from '../../Interface/Data/TableInformationInterface';
-import UpdateResultType from '../../../../Driver/Type/UpdateResultType';
 import ConnectionRequestInterface from '../../../Connection/Interface/ConnectionRequestInterface';
-import {ParsedDsn, parseDsnOrThrow} from '@soluble/dsn-parser';
+import {ParsedDsn} from '@soluble/dsn-parser';
+import DriverSessionInterface from '../../DriverSessionInterface';
+import MysqlSession from './MysqlSession';
 const mysql = require('mysql');
 const { Parser } = require('node-sql-parser');
 
 class MysqlAdapter implements DriverInterface {
   private consoleLog = true;
-  private nativeConnection: any;
+  private pool: Pool | null = null;
+  private keepaliveIntervalId: NodeJS.Timeout | null = null;
   private connectionData: ConnectionRequestInterface;
   private parser: typeof Parser;
   private dsnOptions: ParsedDsn;
-
-  /** prevent for query spam */
-  private lastQuery: string = '';
-  private lastQueryTimeStamp: number = 0;
 
   constructor(connectionData: ConnectionRequestInterface, dsnOptions: ParsedDsn) {
     this.connectionData = connectionData;
@@ -35,110 +30,151 @@ class MysqlAdapter implements DriverInterface {
   }
 
   connect(): Promise<DriverInterface> {
-
-    const parsedDsn = parseDsnOrThrow(this.connectionData.connectionData.dsn);
-
-    this.nativeConnection = mysql.createConnection({
-      host: parsedDsn.host,
+    const pool: Pool = mysql.createPool({
+      host: this.dsnOptions.host,
+      // undefined falls back to the driver default (3306)
+      port: this.dsnOptions.port,
       user: this.connectionData.userData.username,
       password: this.connectionData.userData.password,
       insecureAuth: true,
       multipleStatements: true,
+      connectionLimit: 10,
     });
 
+    // check credentials with first connection
     return new Promise((resolve, reject) => {
-      this.nativeConnection.connect((err: any) => {
+      pool.getConnection((err: MysqlError, connection: PoolConnection) => {
         if (err) {
           this.log(err);
-          return reject(err);
+          pool.end();
+          reject(err);
+          return;
         }
-        setInterval(this.keepalive, 1000 * 60 * 5);
+        connection.release();
 
+        this.pool = pool;
+        this.keepaliveIntervalId = setInterval(this.keepalive, 1000 * 60 * 5);
         resolve(this);
       });
     });
   }
 
-  selectDatabase(database:string): Promise<void>
-  {
-    const useDatabaseQuery = `USE ${database}`;
+  disconnect(): void {
+    if (this.keepaliveIntervalId) {
+      clearInterval(this.keepaliveIntervalId);
+      this.keepaliveIntervalId = null;
+    }
+
+    if (this.pool) {
+      this.pool.end((err) => err && this.log(err));
+      this.pool = null;
+    }
+  }
+
+  openSession(database: string): Promise<DriverSessionInterface> {
     return new Promise((resolve, reject) => {
-      this.nativeConnection.query(useDatabaseQuery, (err: any) => {
-        // If change database fails
+      this.getPool().getConnection((err: MysqlError, connection: PoolConnection) => {
         if (err) {
           reject(err);
           return;
         }
-        resolve();
+
+        connection.query('USE ??', [database], (useErr: MysqlError | null) => {
+          if (useErr) {
+            connection.release();
+            reject(useErr);
+            return;
+          }
+          resolve(new MysqlSession(connection, this.parser));
+        });
       });
     });
   }
 
-
   getListOfDatabases():Observable<DatabaseInterface> {
     const query = 'SHOW DATABASES';
     return new Observable(observer => {
-      this.streamQueryResults(query).subscribe((record) => {
-        observer.next({name: `${record.Database}`});
+      this.streamQueryResults(query).subscribe({
+        next: (record) => observer.next({name: `${record.Database}`}),
+        error: (error) => observer.error(error),
+        complete: () => observer.complete(),
       });
     });
   }
 
   getListOfTablesInDatabase(databaseName:string): Observable<TableInformationInterface> {
-    const useDatabaseQuery = `SHOW TABLES FROM \`${databaseName}\``;
+    const showTablesQuery = mysql.format('SHOW TABLES FROM ??', [databaseName]);
     this.log('Show tables');
+
     return new Observable(observer => {
-      this.streamQueryResults(useDatabaseQuery).subscribe((record) => {
-        Object.entries(record).forEach((item) => {
-          const tableName = record[item[0]]+'';
-          const showKeysFromTableQuery = `SHOW KEYS FROM \`${databaseName}\`.\`${tableName}\` WHERE 1`;
+      // tables still waiting for keys and columns
+      let pending = 0;
+      let allTablesListed = false;
+      const completeIfDone = () => {
+        if (allTablesListed && pending === 0) {
+          observer.complete();
+        }
+      };
 
-          // send empty object to short loading
-          observer.next({
-            tableName: tableName,
-            columns: [],
-            preload: true,
-            dataBaseName: databaseName,
-            primaryColumns: [],
-            uniqueColumns: [],
-          });
+      this.streamQueryResults(showTablesQuery).subscribe({
+        next: (record) => {
+          Object.values(record).forEach((value) => {
+            const tableName = `${value}`;
+            const showKeysFromTableQuery = mysql.format('SHOW KEYS FROM ??.??', [databaseName, tableName]);
+            pending++;
 
-          this.nativeConnection.query(showKeysFromTableQuery, (err: any, keysRecords: RecordType[]) => {
-            if (err) {
-              observer.error(err);
-              return;
-            }
-            this.getColumnsOfTable(databaseName, {table: tableName}).then((columnsOfTable) => {
-              observer.next({
-                tableName: tableName,
-                columns: columnsOfTable,
-                preload: false,
-                dataBaseName: databaseName,
-                primaryColumns: this.preparePrimaryColumns(columnsOfTable, keysRecords, databaseName),
-                uniqueColumns: [],
-              });
+            // send empty object to short loading
+            observer.next({
+              tableName: tableName,
+              columns: [],
+              preload: true,
+              dataBaseName: databaseName,
+              primaryColumns: [],
+              uniqueColumns: [],
+            });
+
+            this.getPool().query(showKeysFromTableQuery, (err: MysqlError | null, keysRecords: RecordType[]) => {
+              if (err) {
+                observer.error(err);
+                return;
+              }
+
+              this.getColumnsOfTable(databaseName, {table: tableName}).then((columnsOfTable) => {
+                observer.next({
+                  tableName: tableName,
+                  columns: columnsOfTable,
+                  preload: false,
+                  dataBaseName: databaseName,
+                  primaryColumns: this.preparePrimaryColumns(columnsOfTable, keysRecords),
+                  uniqueColumns: [],
+                });
+                pending--;
+                completeIfDone();
+              }).catch((error) => observer.error(error));
             });
           });
-        });
+        },
+        error: (error) => observer.error(error),
+        complete: () => {
+          allTablesListed = true;
+          completeIfDone();
+        },
       });
     });
   }
 
   getSelectFromTypeFromQuery(query:string): SelectFromType[]
   {
-    try {
-      const ast = this.parser.astify(query);
-      return ast.from;
-    } catch (e) {
-      throw new Error(e);
-    }
+    const ast = this.parser.astify(query);
+    const statement = Array.isArray(ast) ? ast[0] : ast;
+    return statement?.from || [];
   }
 
   getColumnsOfTable(databaseName: string, selectFromType:SelectFromType): Promise<ColumnInterface[]> {
-    const showColumnsQuery = `SHOW COLUMNS FROM \`${databaseName}\`.\`${selectFromType.table}\``;
+    const showColumnsQuery = mysql.format('SHOW COLUMNS FROM ??.??', [databaseName, selectFromType.table]);
 
     return new Promise((resolve, reject) => {
-      this.nativeConnection.query(showColumnsQuery, (err: any, columns: any) => {
+      this.getPool().query(showColumnsQuery, (err: MysqlError | null, columns: any) => {
         if (err) {
           reject(err);
           return;
@@ -162,123 +198,29 @@ class MysqlAdapter implements DriverInterface {
           });
 
           resolve(newColumns);
-        });
+        }).catch(reject);
       });
     });
   }
 
-  countRecords(query: string): Promise<TotalCountDto>
-  {
-    return new Promise((resolve, reject) => {
-      let countQuery;
-      try {
-         countQuery = this.getAllCountRowsQuery(query);
-      } catch (e) {
-        console.log(444444444444444);
-        reject(e);
-        return;
-      }
-
-      if (countQuery === '') {
-        reject('Fail');
-      }
-
-      this.nativeConnection.query(countQuery, (err: any, results: any) => {
-        if (err) {
-          reject(err);
-          return;
-        }
-        resolve(new TotalCountDto(results[0].total));
-      });
-    });
-  }
-
-  streamSelect(query:string): Observable<RowDto> {
-    return new Observable(observer => {
-      this.streamQueryResults(query).subscribe((rowItem) => {
-        observer.next(new RowDto(rowItem));
-      });
-    });
+  private getPool(): Pool {
+    if (!this.pool) {
+      throw new Error('Not connected');
+    }
+    return this.pool;
   }
 
   private streamQueryResults = (query:string):Observable<RecordType> => {
     this.log(`Query Stream: ${query}`);
-    const now = Date.now();
-
-    if (this.lastQuery === query && (now - this.lastQueryTimeStamp < 500)) {
-      this.log(`Query Skipped: ${query}`);
-      return new Observable();
-    }
-
-    this.lastQuery = query;
-    this.lastQueryTimeStamp = now;
 
     return new Observable(observer => {
-      this.nativeConnection.query(query)
-        .on('error', (error: MysqlError) => {
-          observer.error(error);
-        })
-        .stream()
-        .pipe(new stream.Transform({
-          objectMode: true,
-          transform: (row: RecordType, encoding: BufferEncoding, callback: TransformCallback) => {
-            observer.next(row);
-            try {
-              callback();
-            } catch (e) {
-              console.log(e);
-              observer.error(e);
-            }
-          }
-        }))
-      ;
+      this.getPool().query(query)
+        .on('error', (error: MysqlError) => observer.error(error))
+        .on('result', (row: RecordType) => observer.next(row))
+        // 'end' is emitted also after error - complete is then ignored by rxjs
+        .on('end', () => observer.complete());
     });
   }
-
-  updateQuery(query:string): Promise<UpdateResultType> {
-    return new Promise((resolve, reject) => {
-      this.nativeConnection.query(query, (err:any, result:RecordType) => {
-        if (err) {
-          reject(`${err.sqlMessage}: ${query}`);
-          return;
-        }
-
-        resolve({
-          affectedRows: +result.affectedRows,
-          message: `${result.message}): ${query}`,
-        });
-      });
-    });
-  }
-
-  /**
-   * Function helping change select query into count query
-   */
-  private getAllCountRowsQuery(query: string): string {
-
-    const ast = this.parser.astify(query);
-
-    ast.limit = null;
-    ast.columns = [
-      {
-        expr: {
-          type: 'aggr_func',
-          name: 'COUNT',
-          args: {
-            expr: {
-              type: 'star',
-              value: '*'
-            }
-          },
-          over: null
-        },
-        as: 'total'
-      },
-    ];
-
-    return this.parser.sqlify(ast);
-  }
-
 
   private getReferencesColumns(databaseName:string, tableName:string):Promise<ReferenceTableInterface[]> {
     const sql = `SELECT
@@ -287,13 +229,13 @@ class MysqlAdapter implements DriverInterface {
           \`REFERENCED_COLUMN_NAME\`
       FROM \`INFORMATION_SCHEMA\`.\`KEY_COLUMN_USAGE\`
       WHERE
-          \`TABLE_SCHEMA\` = '${databaseName}'
-      AND \`TABLE_NAME\` = '${tableName}'
+          \`TABLE_SCHEMA\` = ?
+      AND \`TABLE_NAME\` = ?
       AND \`REFERENCED_TABLE_NAME\` IS NOT NULL
       `;
 
     return new Promise((resolve, reject) => {
-      this.nativeConnection.query(sql, (err: any, results: MysqlColumnReference[]) => {
+      this.getPool().query(sql, [databaseName, tableName], (err: MysqlError | null, results: MysqlColumnReference[]) => {
         if (err) {
           reject(err);
           return;
@@ -316,28 +258,13 @@ class MysqlAdapter implements DriverInterface {
   }
 
   private findReference(columnName:string, references:ReferenceTableInterface[]):undefined|ReferenceTableInterface {
-    if (references.length) {
-      for (let i = 0; i < references.length; i++) {
-        if (columnName === references[i].originColumnName) {
-          return references[i];
-        }
-      }
-    }
-
-    return undefined;
+    return references.find((reference) => reference.originColumnName === columnName);
   }
 
-
-  private preparePrimaryColumns = (columnsOfTable:  ColumnInterface[], records: RecordType[], databaseName: string): ColumnInterface[] => {
-    const columns:ColumnInterface[] = [];
-    for (const tableColumn of columnsOfTable ) {
-      for (const record of records) {
-        if (record.Column_name === tableColumn.name && record.Key_name === 'PRIMARY') {
-          columns.push(tableColumn);
-        }
-      }
-    }
-    return columns;
+  private preparePrimaryColumns = (columnsOfTable: ColumnInterface[], records: RecordType[]): ColumnInterface[] => {
+    return columnsOfTable.filter((tableColumn) => records.some((record) => {
+      return record.Column_name === tableColumn.name && record.Key_name === 'PRIMARY';
+    }));
   }
 
   private log(input:any): void {
@@ -352,11 +279,10 @@ class MysqlAdapter implements DriverInterface {
 
   private keepalive = () => {
     try {
-      this.nativeConnection.query('SELECT 1 + 1 AS solution', (err:any) => {
+      this.getPool().query('SELECT 1 + 1 AS solution', (err: MysqlError | null) => {
         if (err) {
           console.log(err.code); // 'ER_BAD_DB_ERROR'
         }
-        console.log('Keepalive RDS connection pool using connection id');
       });
     } catch (e) {
       console.log(e);

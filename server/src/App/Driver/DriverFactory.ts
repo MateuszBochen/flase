@@ -14,7 +14,6 @@ class DriverFactory {
   getDriver(connectionData: ConnectionRequestInterface): DriverInterface
   {
     const parsedDsn = parseDsnOrThrow(connectionData.connectionData.dsn);
-    console.log(parsedDsn);
 
     switch(parsedDsn.driver) {
       case 'mysql':

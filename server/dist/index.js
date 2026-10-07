@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const EstablishConnection_1 = __importDefault(require("./App/Connection/EstablishConnection"));
 const WebsocketRequest_1 = __importDefault(require("./App/Websocket/WebsocketRequest"));
+const JWT_1 = __importDefault(require("./App/JWT/JWT"));
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
@@ -19,135 +20,67 @@ app.use(bodyParser.json());
  * Is a key value list where key is a jwt token and value is driver interface - which is a db connection
  */
 const connections = {};
+const closeConnection = (token) => {
+    if (connections[token]) {
+        connections[token].disconnect();
+        delete connections[token];
+    }
+};
 /**
  * login and Establish connection with db
  * @author Mateusz Bochen
  */
 app.post('/api/login', (req, res) => {
+    const validationError = EstablishConnection_1.default.validate(req.body);
+    if (validationError) {
+        res.status(400).send({ error: validationError });
+        return;
+    }
     const data = req.body;
     const connector = new EstablishConnection_1.default();
     connector.connect(data).then((response) => {
         if (response.driver && response.userData) {
             connections[response.userData.token] = response.driver;
             res.send(response.userData);
-            res.end();
         }
         else {
-            console.log('login fail');
-            res.status(401);
-            res.send(response.userData);
-            res.end();
+            console.log('login fail', response.error);
+            res.status(401).send({ error: response.error });
         }
-    }).catch((reason) => {
-        console.log('login fail');
-        res.status(401);
-        res.send(reason.userData);
-        res.end();
     });
 });
 /** handle disconnect request */
 app.post('/api/disconnect', (req, res) => {
     const data = req.body;
-    delete connections[data.token];
+    if (typeof (data === null || data === void 0 ? void 0 : data.token) === 'string') {
+        closeConnection(data.token);
+    }
     res.send('ok');
-    res.end();
 });
 app.ws('/ws/:token', (ws, req) => {
-    console.info("New connection has opened d!", req.params.token);
-    if (connections[req.params.token]) {
-        console.info('Connection exist. Ok');
-        const command = req.body;
-        new WebsocketRequest_1.default(connections[req.params.token], ws).procedure();
-    }
-    else {
+    const token = req.params.token;
+    if (!connections[token]) {
         console.error('Connection not exist on server side. Close connection');
         ws.close(1008, 'Connection not exist on server side. Close connection');
+        return;
     }
+    if (!JWT_1.default.verify(token)) {
+        console.error('Token expired or invalid. Close connection');
+        closeConnection(token);
+        ws.close(1008, 'Token expired or invalid');
+        return;
+    }
+    console.info('New websocket connection');
+    new WebsocketRequest_1.default(connections[token], ws).procedure();
 });
 app.listen(3001, () => {
     console.log('Example app listening on port 3001!');
 });
-/** just print connection */
+/** close database connections of expired tokens */
 setInterval(() => {
-    console.log(connections);
+    Object.keys(connections)
+        .filter((token) => !JWT_1.default.verify(token))
+        .forEach((token) => closeConnection(token));
+    console.log(`Active connections: ${Object.keys(connections).length}`);
 }, 1000 * 60);
-/*
-import {Request, Response} from 'express';
-import MysqlAdapter from './Driver/Drivers/Mysql/MysqlAdapter';
-import ConnectionDataType from './Driver/Type/ConnectionDataType';
-import DriverInterface from './Driver/DriverInterface';
-
-const express = require('express');
-const app = express();
-const mysql = require('mysql');
-const cors = require('cors');
-const bodyParser = require('body-parser')
-const uuid = require('uuid');
-const WebSocketOutMessage = require("./Server/WebSocketOutMessage");
-const WebSocketInMessage = require("./Server/WebSocketInMessage");
-const {ACTIONS} = require("./Server/ActionEnum");
-const Application = require('./Application');
-require('express-ws')(app);
-
-app.use(cors());
-app.use(bodyParser.json());
-
-interface IConnection {
-    [key:string]: DriverInterface
-}
-
-const connections: IConnection = {};
-const driverName = 'mysql';
-
-const driverFactory = new DriverFactory();
-
-app.post('/api/login', (req:Request, res:Response) => {
-    const {  host, login, password } = req.body;
-
-    const loginData: ConnectionDataType = {
-        password,
-        user: login,
-        host,
-    }
-
-    const driver = driverFactory.getDriver(driverName, loginData);
-
-    driver.connect().then(() => {
-        const token = uuid.v4();
-        connections[token] = driver;
-        res.send({'token': token});
-    }).catch((error) => {
-        console.log(401);
-        console.log(error);
-        res.status(401);
-        res.send('invalid credentials');
-        res.end();
-    });
-});
-
-app.ws('/ws/:token', (ws:WebSocket, req: Request) => {
-    console.log("New connection has opened!", req.params.token);
-
-    try {
-        if (!connections[req.params.token]) {
-            const message = new WebSocketOutMessage(ACTIONS.LOGOUT, 401, 'connection token not found', []);
-            ws.send(JSON.stringify(message));
-            console.log('socket not found in connection list', req.params.token);
-        } else {
-            console.log('socket ok1', req.params.token);
-            const application = new Application(connections[req.params.token], ws);
-            const messageIn = new WebSocketInMessage(ACTIONS.DATABASE_LIST, []);
-            application.dispatchAction(messageIn);
-        }
-    } catch (e) {
-        console.log(e);
-    }
-});
-
-app.listen(3001, () => {
-    console.log('Example app listening on port 3001!');
-});
-
-
-*/
-//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiaW5kZXguanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyIuLi9zcmMvaW5kZXgudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7Ozs7QUFHQSwrRkFBdUU7QUFJdkUsd0ZBQWdFO0FBQ2hFLE1BQU0sT0FBTyxHQUFHLE9BQU8sQ0FBQyxTQUFTLENBQUMsQ0FBQztBQUNuQyxNQUFNLFVBQVUsR0FBRyxPQUFPLENBQUMsYUFBYSxDQUFDLENBQUM7QUFDMUMsTUFBTSxJQUFJLEdBQUcsT0FBTyxDQUFDLE1BQU0sQ0FBQyxDQUFDO0FBSTdCLHdCQUF3QjtBQUN4QixNQUFNLEdBQUcsR0FBRyxPQUFPLEVBQUUsQ0FBQztBQUV0Qix1QkFBdUI7QUFDdkIsT0FBTyxDQUFDLFlBQVksQ0FBQyxDQUFDLEdBQUcsQ0FBQyxDQUFDO0FBRTNCLEdBQUcsQ0FBQyxHQUFHLENBQUMsSUFBSSxFQUFFLENBQUMsQ0FBQztBQUNoQixHQUFHLENBQUMsR0FBRyxDQUFDLFVBQVUsQ0FBQyxJQUFJLEVBQUUsQ0FBQyxDQUFDO0FBSzNCOzs7R0FHRztBQUNILE1BQU0sV0FBVyxHQUFvQyxFQUFFLENBQUM7QUFJeEQ7OztHQUdHO0FBQ0gsR0FBRyxDQUFDLElBQUksQ0FBQyxZQUFZLEVBQUUsQ0FBQyxHQUFXLEVBQUUsR0FBWSxFQUFFLEVBQUU7SUFDbkQsTUFBTSxJQUFJLEdBQUcsR0FBRyxDQUFDLElBQWtDLENBQUM7SUFDcEQsTUFBTSxTQUFTLEdBQUcsSUFBSSw2QkFBbUIsRUFBRSxDQUFDO0lBQzVDLFNBQVMsQ0FBQyxPQUFPLENBQUMsSUFBSSxDQUFDLENBQUMsSUFBSSxDQUFDLENBQUMsUUFBNEMsRUFBRSxFQUFFO1FBQzVFLElBQUksUUFBUSxDQUFDLE1BQU0sSUFBSSxRQUFRLENBQUMsUUFBUSxFQUFFO1lBQ3hDLFdBQVcsQ0FBQyxRQUFRLENBQUMsUUFBUSxDQUFDLEtBQUssQ0FBQyxHQUFHLFFBQVEsQ0FBQyxNQUFNLENBQUM7WUFDdkQsR0FBRyxDQUFDLElBQUks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
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiaW5kZXguanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyIuLi9zcmMvaW5kZXgudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7Ozs7QUFHQSwrRkFBdUU7QUFHdkUsd0ZBQWdFO0FBQ2hFLHdEQUFnQztBQUNoQyxNQUFNLE9BQU8sR0FBRyxPQUFPLENBQUMsU0FBUyxDQUFDLENBQUM7QUFDbkMsTUFBTSxVQUFVLEdBQUcsT0FBTyxDQUFDLGFBQWEsQ0FBQyxDQUFDO0FBQzFDLE1BQU0sSUFBSSxHQUFHLE9BQU8sQ0FBQyxNQUFNLENBQUMsQ0FBQztBQUk3Qix3QkFBd0I7QUFDeEIsTUFBTSxHQUFHLEdBQUcsT0FBTyxFQUFFLENBQUM7QUFFdEIsdUJBQXVCO0FBQ3ZCLE9BQU8sQ0FBQyxZQUFZLENBQUMsQ0FBQyxHQUFHLENBQUMsQ0FBQztBQUUzQixHQUFHLENBQUMsR0FBRyxDQUFDLElBQUksRUFBRSxDQUFDLENBQUM7QUFDaEIsR0FBRyxDQUFDLEdBQUcsQ0FBQyxVQUFVLENBQUMsSUFBSSxFQUFFLENBQUMsQ0FBQztBQUszQjs7O0dBR0c7QUFDSCxNQUFNLFdBQVcsR0FBb0MsRUFBRSxDQUFDO0FBRXhELE1BQU0sZUFBZSxHQUFHLENBQUMsS0FBYSxFQUFFLEVBQUU7SUFDeEMsSUFBSSxXQUFXLENBQUMsS0FBSyxDQUFDLEVBQUU7UUFDdEIsV0FBVyxDQUFDLEtBQUssQ0FBQyxDQUFDLFVBQVUsRUFBRSxDQUFDO1FBQ2hDLE9BQU8sV0FBVyxDQUFDLEtBQUssQ0FBQyxDQUFDO0tBQzNCO0FBQ0gsQ0FBQyxDQUFDO0FBSUY7OztHQUdHO0FBQ0gsR0FBRyxDQUFDLElBQUksQ0FBQyxZQUFZLEVBQUUsQ0FBQyxHQUFXLEVBQUUsR0FBWSxFQUFFLEVBQUU7SUFDbkQsTUFBTSxlQUFlLEdBQUcsNkJBQW1CLENBQUMsUUFBUSxDQUFDLEdBQUcsQ0FBQyxJQUFJLENBQUMsQ0FBQztJQUMvRCxJQUFJLGVBQWUsRUFBRTtRQUNuQixHQUFHLENBQUMsTUFB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
