@@ -10,3 +10,68 @@ services:
       - "3001:3001"
     volumes:
       - ./:/var/www/html/
+
+  # Test databases. Inside the compose network log in with host `mysql` / `mariadb`;
+  # from the host machine use 127.0.0.1 and the published port.
+  # Init scripts run only on the first start (empty volume) - `docker compose down -v` to re-seed.
+  mysql:
+    image: mysql:8.4
+    container_name: flase_mysql
+    # `mysql` npm package needs mysql_native_password (disabled by default since 8.4)
+    command: ["--mysql-native-password=ON"]
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: flase
+      MYSQL_PASSWORD: flase
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/db/mysql/mysql-native-auth.sql:/docker-entrypoint-initdb.d/01-mysql-native-auth.sql:ro
+      - ./docker/db/mysql/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  mariadb:
+    image: mariadb:11.4
+    container_name: flase_mariadb
+    environment:
+      MARIADB_ROOT_PASSWORD: root
+      MARIADB_USER: flase
+      MARIADB_PASSWORD: flase
+    ports:
+      - "3307:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./docker/db/mysql/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  postgres:
+    image: postgres:17
+    container_name: flase_postgres
+    environment:
+      POSTGRES_USER: flase
+      POSTGRES_PASSWORD: flase
+      POSTGRES_DB: shop
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/db/postgres/seed.sql:/docker-entrypoint-initdb.d/01-seed.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flase -d shop"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  mysql_data:
+  mariadb_data:
+  postgres_data:

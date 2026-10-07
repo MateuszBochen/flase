@@ -1,16 +1,19 @@
 import {Request, Response} from 'express';
 import ConnectionRequestInterface from './App/Connection/Interface/ConnectionRequestInterface';
-import DriverInterface from './App/Driver/DriverInterface';
 import EstablishConnection from './App/Connection/EstablishConnection';
 import EstablishConnectionResultInterface from './App/Connection/Interface/EstablishConnectionResultInterface';
 import EstablishedUser from './App/Connection/Interface/EstablishedUser';
 import WebsocketRequest from './App/Websocket/WebsocketRequest';
-import JWT from './App/JWT/JWT';
-import Settings from './App/Settings/Settings';
+import SessionStore from './App/Session/SessionStore';
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 
+/**
+ * websocket close code when session does not exist or token expired.
+ * Client must log in again, reconnecting would not help.
+ */
+const CLOSE_SESSION_NOT_FOUND = 4001;
 
 
 /** Server start here */
@@ -23,43 +26,8 @@ app.use(cors());
 app.use(bodyParser.json());
 
 
-
-
-/**
- * list of all connection
- * Is a key value list where key is a jwt token and value is driver interface - which is a db connection
- */
-const connections: {[key:string]: DriverInterface} = {};
-
-/** number of open websockets per token, database connections are released when it drops to 0 */
-const openWebsockets: {[key:string]: number} = {};
-const releaseTimers: {[key:string]: ReturnType<typeof setTimeout>} = {};
-
-const cancelRelease = (token: string) => {
-  clearTimeout(releaseTimers[token]);
-  delete releaseTimers[token];
-};
-
-/** close database connections when no websocket of this login is open for a while */
-const scheduleRelease = (token: string) => {
-  cancelRelease(token);
-  releaseTimers[token] = setTimeout(() => {
-    delete releaseTimers[token];
-    if (!openWebsockets[token]) {
-      connections[token]?.releaseConnections();
-    }
-  }, Settings.getIdleConnectionReleaseMs());
-};
-
-const closeConnection = (token: string) => {
-  cancelRelease(token);
-  delete openWebsockets[token];
-  if (connections[token]) {
-    connections[token].disconnect();
-    delete connections[token];
-  }
-};
-
+/** logged in database connections */
+const sessions = new SessionStore();
 
 
 /**
@@ -76,11 +44,8 @@ app.post('/api/login', (req:Request, res:Response) => {
   const data = req.body as ConnectionRequestInterface;
   const connector = new EstablishConnection();
   connector.connect(data).then((response: EstablishConnectionResultInterface) => {
-    if (response.driver && response.userData) {
-      connections[response.userData.token] = response.driver;
-      // released if client never opens websocket
-      scheduleRelease(response.userData.token);
-      res.send(response.userData);
+    if (response.driver && response.username !== null) {
+      res.send(sessions.create(response.driver, response.username));
     } else {
       console.log('login fail', response.error);
       res.status(401).send({error: response.error});
@@ -88,45 +53,42 @@ app.post('/api/login', (req:Request, res:Response) => {
   });
 });
 
+/** new token for the same session, client calls it before token expires */
+app.post('/api/refresh', (req:Request, res:Response) => {
+  const data = req.body as EstablishedUser;
+  const refreshed = typeof data?.token === 'string' ? sessions.refresh(data.token) : null;
+  if (!refreshed) {
+    res.status(401).send({error: 'Session expired or does not exist, log in again'});
+    return;
+  }
+  res.send(refreshed);
+});
+
 /** handle disconnect request */
 app.post('/api/disconnect', (req:Request, res:Response) => {
   const data = req.body as EstablishedUser;
   if (typeof data?.token === 'string') {
-    closeConnection(data.token);
+    sessions.closeByToken(data.token);
   }
   res.send('ok');
 });
 
 
 app.ws('/ws/:token', (ws:WebSocket, req: Request) => {
-  const token = req.params.token;
+  const found = sessions.findByToken(req.params.token);
 
-  if (!connections[token]) {
-    console.error('Connection not exist on server side. Close connection');
-    ws.close(1008, 'Connection not exist on server side. Close connection');
-    return;
-  }
-
-  if (!JWT.verify(token)) {
-    console.error('Token expired or invalid. Close connection');
-    closeConnection(token);
-    ws.close(1008, 'Token expired or invalid');
+  if (!found) {
+    // session itself is not closed - old token may be expired while session was refreshed with newer one
+    console.error('Session not found or token expired. Close connection');
+    ws.close(CLOSE_SESSION_NOT_FOUND, 'Session expired or does not exist, log in again');
     return;
   }
 
   console.info('New websocket connection');
-  cancelRelease(token);
-  openWebsockets[token] = (openWebsockets[token] || 0) + 1;
+  sessions.websocketOpened(found.sessionId);
+  ws.addEventListener('close', () => sessions.websocketClosed(found.sessionId));
 
-  // browser tab closed - keep login, but do not hold database connections
-  ws.addEventListener('close', () => {
-    openWebsockets[token] = Math.max(0, (openWebsockets[token] || 1) - 1);
-    if (openWebsockets[token] === 0 && connections[token]) {
-      scheduleRelease(token);
-    }
-  });
-
-  new WebsocketRequest(connections[token], ws).procedure();
+  new WebsocketRequest(found.session.driver, ws).procedure();
 });
 
 app.listen(3001, () => {
@@ -134,11 +96,7 @@ app.listen(3001, () => {
 });
 
 
-/** close database connections of expired tokens */
+/** close database connections of expired sessions */
 setInterval(() => {
-  Object.keys(connections)
-    .filter((token) => !JWT.verify(token))
-    .forEach((token) => closeConnection(token));
-
-  console.log(`Active connections: ${Object.keys(connections).length}`);
+  console.log(`Active sessions: ${sessions.removeExpired()}`);
 }, 1000 * 60);

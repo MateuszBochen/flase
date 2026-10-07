@@ -1,7 +1,6 @@
 import ConnectionRequestInterface from './Interface/ConnectionRequestInterface';
 import DriverFactory from '../Driver/DriverFactory';
 import EstablishConnectionResultInterface from './Interface/EstablishConnectionResultInterface';
-import JWT from '../JWT/JWT';
 import AbstractCommandHandler from '../Websocket/CommandHandler/AbstractCommandHandler';
 import DriverInterface from '../Driver/DriverInterface';
 
@@ -38,10 +37,7 @@ class EstablishConnection {
     return driver.connect().then(() => {
       return {
         driver: driver,
-        userData: {
-          token: JWT.getJwtToken({username: connectionData.userData.username}),
-          username: connectionData.userData.username,
-        },
+        username: connectionData.userData.username,
         error: null,
       };
     }).catch((e) => EstablishConnection.failed(e));
@@ -50,7 +46,7 @@ class EstablishConnection {
   private static failed(error: any): EstablishConnectionResultInterface {
     return {
       driver: null,
-      userData: null,
+      username: null,
       error: AbstractCommandHandler.errorToString(error),
     };
   }

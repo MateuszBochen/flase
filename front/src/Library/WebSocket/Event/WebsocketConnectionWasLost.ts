@@ -2,10 +2,10 @@ import EventInterface from '../../EventBus/EventInterface';
 import EstablishedConnectionInterface from '../../Connection/Interface/EstablishedConnectionInterface';
 
 /**
- * trigger when websocket was closed for good - session expired or does not exist, user must log in again
+ * trigger when websocket was disconnected unexpectedly, client is reconnecting
  * @author Mateusz Bochen
  */
-class WebsocketConnectionWasClosed implements EventInterface<EstablishedConnectionInterface> {
+class WebsocketConnectionWasLost implements EventInterface<EstablishedConnectionInterface> {
   private readonly data: EstablishedConnectionInterface;
 
   constructor(data: EstablishedConnectionInterface) {
@@ -17,5 +17,4 @@ class WebsocketConnectionWasClosed implements EventInterface<EstablishedConnecti
   }
 }
 
-
-export default WebsocketConnectionWasClosed;
+export default WebsocketConnectionWasLost;

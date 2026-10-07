@@ -18,6 +18,13 @@ import WebsocketReceivedAMessage from '../WebSocket/Event/WebsocketReceivedAMess
 import MessageInterface from '../WebSocket/Interface/MessageInterface';
 import MessageType from '../WebSocket/Enum/MessageType';
 import QueryErrorInterface from '../Record/Interface/QueryErrorInterface';
+import WebsocketConnectionWasLost from '../WebSocket/Event/WebsocketConnectionWasLost';
+import WebsocketConnectionWasRestored from '../WebSocket/Event/WebsocketConnectionWasRestored';
+import RefreshTokenRequest from '../API/Request/RefreshTokenRequest';
+import JwtExpiration from './JwtExpiration';
+
+/** next try when token refresh failed because of network */
+const REFRESH_RETRY_MS = 10 * 1000;
 
 
 /**
@@ -29,6 +36,8 @@ class ConnectionManager {
 
   private readonly listOfEstablishedConnections: {[key:string]: EstablishedConnectionInterface} = {};
   private readonly listOfApiConnections: {[key:string]: WebSocketApiClient} = {};
+  /** key is connection id */
+  private readonly refreshTimers: {[key:string]: ReturnType<typeof setTimeout>} = {};
 
   /** function get instance of connection manager */
   public static getInstance(): ConnectionManager {
@@ -51,6 +60,17 @@ class ConnectionManager {
     /** Event subscriber for handle event of connection of api was closed */
     EventBus.subscribe<EstablishedConnectionInterface>(WebsocketConnectionWasClosed.name, (event: EventInterface<EstablishedConnectionInterface>) => {
       this.disconnect(event.getData());
+    });
+
+    /** connection to server was lost, client reconnects automatically */
+    EventBus.subscribe<EstablishedConnectionInterface>(WebsocketConnectionWasLost.name, (event) => {
+      const connection = event.getData().connection;
+      toast.loading(`Connection to server lost (${connection.displayName}), reconnecting…`, {id: `ws-${connection.id}`});
+    });
+
+    EventBus.subscribe<EstablishedConnectionInterface>(WebsocketConnectionWasRestored.name, (event) => {
+      const connection = event.getData().connection;
+      toast.success(`Reconnected to server (${connection.displayName})`, {id: `ws-${connection.id}`});
     });
 
     /** every server side error is shown to the user, tab errors are displayed also in the grid */
@@ -93,21 +113,24 @@ class ConnectionManager {
     });
   }
 
-  /** disconnect function */
+  /** disconnect function - server session is closed, user must log in again */
   disconnect(establishedConnection: EstablishedConnectionInterface): void {
-    // remove from apis list
-    delete this.listOfApiConnections[establishedConnection.connection.id];
+    const id = establishedConnection.connection.id;
+
+    // close and remove from apis list
+    this.listOfApiConnections[id]?.close();
+    delete this.listOfApiConnections[id];
+    clearTimeout(this.refreshTimers[id]);
+    delete this.refreshTimers[id];
 
     // remove from list of EstablishedConnections
-    delete this.listOfEstablishedConnections[establishedConnection.connection.id];
+    delete this.listOfEstablishedConnections[id];
 
     ConnectionSettings.getInstance().saveNewListOfEstablishedConnection(this.listOfEstablishedConnections);
 
-    toast.error(`Connection for ${establishedConnection.connection.displayName} was closed`);
+    toast.error(`Connection ${establishedConnection.connection.displayName} was closed, log in again`, {id: `ws-${id}`});
 
-    new DisconnectRequest().disconnect(establishedConnection).then(() => {
-      toast.success(`Connection was clouded successfully`);
-    });
+    new DisconnectRequest().disconnect(establishedConnection);
   }
 
   /** checking if connection is still active */
@@ -131,10 +154,53 @@ class ConnectionManager {
   }
 
   private connectWithApi(connectionData: EstablishedConnectionInterface) {
+    const id = connectionData.connection.id;
+    // connecting again (new login) - old client must not keep reconnecting
+    this.listOfApiConnections[id]?.close();
     try {
-      this.listOfApiConnections[connectionData.connection.id] = new WebSocketApiClient(connectionData);
+      this.listOfApiConnections[id] = new WebSocketApiClient(connectionData);
     } catch (e) {
     }
+    this.scheduleTokenRefresh(connectionData);
+  }
+
+  /** token is refreshed before it expires, so session lives as long as application is open */
+  private scheduleTokenRefresh(connectionData: EstablishedConnectionInterface, delay?: number) {
+    const id = connectionData.connection.id;
+    clearTimeout(this.refreshTimers[id]);
+
+    const refreshAt = JwtExpiration.refreshAt(connectionData.user.token);
+    if (refreshAt === null) {
+      return;
+    }
+
+    this.refreshTimers[id] = setTimeout(() => this.refreshToken(connectionData), delay ?? Math.max(0, refreshAt - Date.now()));
+  }
+
+  private refreshToken(connectionData: EstablishedConnectionInterface) {
+    const id = connectionData.connection.id;
+    // connection was closed meanwhile
+    if (this.listOfEstablishedConnections[id] !== connectionData) {
+      return;
+    }
+
+    new RefreshTokenRequest().refresh(connectionData.user).then((user: EstablishedUser) => {
+      // the same object is used by websocket client and commands - mutate, do not replace
+      connectionData.user.token = user.token;
+      ConnectionSettings.getInstance().addNewEstablishedConnection(connectionData);
+      this.scheduleTokenRefresh(connectionData);
+    }).catch((e) => {
+      if (e?.response?.status === 401) {
+        // session expired or server was restarted
+        this.disconnect(connectionData);
+        return;
+      }
+      // server not reachable - try again while token is still valid
+      const times = JwtExpiration.read(connectionData.user.token);
+      if (times && times.expiresAt > Date.now()) {
+        this.scheduleTokenRefresh(connectionData, REFRESH_RETRY_MS);
+      }
+    });
   }
 }
 
