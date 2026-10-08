@@ -530,7 +530,7 @@
   cursor: pointer;
 }
 .cmp-value-editor .value-editor-toolbar button.active {
-  color: #ffffff;
+  color: var(--text-strong);
   border-color: #4b6eaf;
 }
 .cmp-value-editor .value-editor-toolbar button:disabled {
@@ -586,7 +586,7 @@
   cursor: pointer;
 }
 .cmp-records-view-pager-root .pager-export:hover {
-  color: #ffffff;
+  color: var(--text-strong);
   background-color: var(--tab-bg);
 }
 .cmp-records-view-pager-root .pager-loading .pager-cancel {

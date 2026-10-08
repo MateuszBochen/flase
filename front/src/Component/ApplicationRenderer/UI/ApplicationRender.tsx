@@ -9,7 +9,7 @@ import Box from '../../../UI/Box/Box';
 export default () => {
   const context = useContext(ApplicationRendererContext);
   return (
-    <Box className="application-render-root" maxPossibleHeight={true}>
+    <Box className="application-render-root">
       {context.tabs.map((tabItem, index) => {
         return (
           <Box className={`tab-wrapper ${index === context.currentTab ? 'active' : ''}`} key={tabItem.id}>

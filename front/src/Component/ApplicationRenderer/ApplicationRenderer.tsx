@@ -175,7 +175,7 @@ export default (props: ApplicationRendererPropsInterface) => {
 
   return (
     <ApplicationRendererContext.Provider value={value}>
-      <Box maxPossibleHeight={true}>
+      <Box className="application-renderer-root">
         <TabRender/>
         <ApplicationRender/>
       </Box>

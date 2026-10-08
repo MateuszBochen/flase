@@ -4,7 +4,9 @@ import './style.css';
 export default () => {
   return (
     <div className="workspace-menu-logo">
-      JAMU Data Base Manager
+      <span className="logo-mark">F</span>
+      <span className="logo-name">Flase</span>
+      <span className="logo-tagline">database manager</span>
     </div>
   );
 }

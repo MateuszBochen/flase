@@ -70,6 +70,9 @@ export default (props: EditorPropsInterface) => {
         options={{
 
           suggestOnTriggerCharacters: true,
+          fontFamily: "'JetBrains Mono', Menlo, Consolas, monospace",
+          fontSize: 13,
+          fontLigatures: true,
           quickSuggestions: true,
           minimap: { enabled: false },
           lineNumbers: props.isOneliner ? 'off' : 'on',

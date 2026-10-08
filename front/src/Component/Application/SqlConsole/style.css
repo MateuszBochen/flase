@@ -32,7 +32,7 @@
 }
 
 .cmp-sql-console .console-toolbar button:hover:not(:disabled) {
-  color: #ffffff;
+  color: var(--text-strong);
   background-color: var(--tab-bg);
 }
 
@@ -106,7 +106,7 @@
 }
 
 .cmp-sql-console .console-result-tabs button.active {
-  color: #ffffff;
+  color: var(--text-strong);
   border-bottom-color: #4b6eaf;
 }
 
@@ -118,6 +118,7 @@
 
 
 .cmp-sql-console .console-messages {
+  box-sizing: border-box;
   height: 100%;
   overflow: auto;
   padding: 4px 0;
@@ -207,7 +208,7 @@
 }
 
 .cmp-query-library .library-tabs button.active {
-  color: #ffffff;
+  color: var(--text-strong);
   border-bottom-color: #4b6eaf;
 }
 
@@ -276,7 +277,7 @@
 }
 
 .cmp-query-library .library-meta button:hover {
-  color: #ffffff;
+  color: var(--text-strong);
 }
 
 .cmp-query-library .library-empty {

@@ -1,6 +1,6 @@
 
 .vertical-slider-root .vertical-slider-item:has(button.is-connect) {
-  color: #7ac8f3;
+  color: var(--primary);
 }
 
 .vertical-slider-root .vertical-slider-item .vertical-slider-root {

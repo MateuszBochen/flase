@@ -7,7 +7,7 @@ export const  whatsNew:TabInterface<undefined> = {
   component: WhatsNew,
   props: undefined,
   isActive: true,
-  tabName: 'Whats New?'
+  tabName: 'Welcome'
 }
 
 

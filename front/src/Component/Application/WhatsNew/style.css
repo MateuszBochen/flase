@@ -1,10 +1,149 @@
-.bug {
-    color: crimson;
-}
-.feature {
-    color: #b1dc14;
+.cmp-welcome {
+  box-sizing: border-box;
+  height: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 48px 40px;
+  overflow-y: auto;
+  color: var(--text);
 }
 
-.done {
-    mix-blend-mode: soft-light;
+.cmp-welcome .welcome-hero {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 32px;
+}
+
+.cmp-welcome .welcome-mark {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  color: #ffffff;
+  background: linear-gradient(135deg, #3574f0 0%, #7b5cf5 100%);
+  font-size: 28px;
+  font-weight: 700;
+  box-shadow: 0 8px 24px rgba(53, 116, 240, 0.35);
+}
+
+.cmp-welcome h1 {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.cmp-welcome .welcome-hero p {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: 15px;
+}
+
+.cmp-welcome .welcome-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  margin-bottom: 40px;
+}
+
+.cmp-welcome .welcome-action {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border: solid 1px var(--border);
+  border-radius: 10px;
+  color: var(--text-strong);
+  background-color: var(--panel);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+}
+
+.cmp-welcome .welcome-action:hover {
+  border-color: var(--primary);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+}
+
+.cmp-welcome .welcome-action svg {
+  width: 18px;
+  height: 18px;
+  color: var(--primary);
+}
+
+.cmp-welcome .welcome-action.primary {
+  border-color: transparent;
+  color: #ffffff;
+  background: linear-gradient(135deg, #3574f0 0%, #4f6ff2 100%);
+}
+
+.cmp-welcome .welcome-action.primary svg {
+  color: #ffffff;
+}
+
+.cmp-welcome .welcome-action span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cmp-welcome .welcome-action small {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.cmp-welcome .welcome-action.primary small {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.cmp-welcome h2 {
+  margin: 0 0 14px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cmp-welcome .welcome-features {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 12px;
+}
+
+.cmp-welcome .welcome-feature {
+  padding: 16px;
+  border: solid 1px var(--border);
+  border-radius: 10px;
+  background-color: var(--panel);
+}
+
+.cmp-welcome .welcome-feature-icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  color: var(--primary);
+  background-color: rgba(53, 116, 240, 0.12);
+}
+
+.cmp-welcome .welcome-feature h3 {
+  margin: 0 0 4px;
+  color: var(--text-strong);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.cmp-welcome .welcome-feature p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.45;
 }

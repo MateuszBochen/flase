@@ -8,6 +8,8 @@ import {whatsNew} from './Component/Application/applications';
 import ConnectionList from './Component/ConnectionList/ConnectionList';
 import ConnectionManager from './Library/Connection/ConnectionManager';
 import ResizableColumns from './UI/ResizableColumns/ResizableColumns';
+// last - overrides styles of components
+import './polish.css';
 
 const styleOfMainLeftMenu = {
   background: 'var(--panel)',
