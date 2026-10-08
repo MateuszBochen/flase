@@ -5,6 +5,12 @@ import EstablishConnectionResultInterface from './App/Connection/Interface/Estab
 import EstablishedUser from './App/Connection/Interface/EstablishedUser';
 import WebsocketRequest from './App/Websocket/WebsocketRequest';
 import SessionStore from './App/Session/SessionStore';
+import TransferRegistry from './App/Transfer/TransferRegistry';
+import {importCsv, importSql} from './App/Transfer/Importers';
+import MessageType from './App/Websocket/Enum/MessageType';
+import AbstractCommandHandler from './App/Websocket/CommandHandler/AbstractCommandHandler';
+import {Readable} from 'stream';
+const zlib = require('zlib');
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
@@ -73,6 +79,81 @@ app.post('/api/disconnect', (req:Request, res:Response) => {
   res.send('ok');
 });
 
+
+/** SQL dump download - ticket was created by websocket command */
+app.get('/api/transfer/:ticket', async (req: Request, res: Response) => {
+  const ticket = TransferRegistry.take(req.params.ticket);
+  if (!ticket || ticket.request.kind !== 'dump') {
+    res.status(404).send('Download link expired or is invalid');
+    return;
+  }
+  const {options, gzip} = ticket.request;
+  const stamp = new Date().toISOString().slice(0, 16).replace(/[-:]/g, '').replace('T', '-');
+  const name = `${options.database}${options.tables.length === 1 ? `-${options.tables[0]}` : ''}-${stamp}.sql${gzip ? '.gz' : ''}`;
+  res.setHeader('Content-Type', gzip ? 'application/gzip' : 'application/sql; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${name.replace(/[^\w.-]/g, '_')}"`);
+
+  const output = gzip ? zlib.createGzip() : res;
+  if (gzip) output.pipe(res);
+  let bytes = 0;
+  let aborted = false;
+  // browser cancelled download - dump must stop, not wait for drain forever
+  res.on('close', () => {
+    if (!res.writableFinished) {
+      aborted = true;
+      output.emit('drain');
+    }
+  });
+  const write = (text: string) => new Promise<void>((resolve, reject) => {
+    if (aborted) return reject(new Error('Download was cancelled'));
+    bytes += Buffer.byteLength(text);
+    if (output.write(text)) return resolve();
+    output.once('drain', () => aborted ? reject(new Error('Download was cancelled')) : resolve());
+  });
+
+  try {
+    const summary = await ticket.driver.dump(options, write);
+    ticket.notify(MessageType.DUMP_FINISHED, {...summary, bytes});
+  } catch (e) {
+    const error = AbstractCommandHandler.errorToString(e);
+    if (!aborted) {
+      output.write(`\n-- ERROR: dump is not complete: ${error}\n`);
+    }
+    ticket.notify(MessageType.DUMP_FINISHED, {tables: 0, rows: 0, bytes, error});
+  } finally {
+    output.end();
+  }
+});
+
+/** import upload (SQL / CSV file as request body) - ticket was created by websocket command */
+app.post('/api/transfer/:ticket', async (req: Request, res: Response) => {
+  const ticket = TransferRegistry.take(req.params.ticket);
+  if (!ticket || ticket.request.kind === 'dump') {
+    res.status(404).send({error: 'Upload link expired or is invalid'});
+    return;
+  }
+  const request = ticket.request;
+  let input: Readable = req;
+  if (request.gzip) {
+    const gunzip = zlib.createGunzip();
+    req.pipe(gunzip);
+    input = gunzip;
+  }
+  const onProgress = (progress: any) => ticket.notify(MessageType.IMPORT_PROGRESS, progress);
+
+  try {
+    const finished = request.kind === 'import-sql'
+      ? await importSql(ticket.driver, request.database, ticket.tabId, request.stopOnError, input, onProgress)
+      : await importCsv(ticket.driver, request.options, ticket.tabId, input, onProgress);
+    ticket.notify(MessageType.IMPORT_FINISHED, finished);
+    res.send(finished);
+  } catch (e) {
+    const error = AbstractCommandHandler.errorToString(e);
+    ticket.notify(MessageType.IMPORT_FINISHED, {bytes: 0, statements: 0, rows: 0, errors: [{statement: '', error}], cancelled: false, failed: true, durationMs: 0});
+    req.resume();
+    res.status(500).send({error});
+  }
+});
 
 app.ws('/ws/:token', (ws:WebSocket, req: Request) => {
   const found = sessions.findByToken(req.params.token);

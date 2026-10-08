@@ -42,6 +42,11 @@ export default (props: ApplicationRendererPropsInterface) => {
     const newTabComponentWasSelectedSubscriber = EventBus.subscribe<TabInterface<any>>(NewTabComponentWasSelected.name, (tab: EventInterface<TabInterface<any>>) => {
       const newContext = {...context};
       newContext.tabs.push({ ...tab.getData(), id: uuidv4()});
+      // tab opened by explicit action is shown at once, links opened "in new tab" stay in background
+      if (tab.getData().activate) {
+        newContext.lastOpenTab = context.currentTab;
+        newContext.currentTab = newContext.tabs.length - 1;
+      }
       setContext(newContext);
     });
 

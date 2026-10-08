@@ -47,6 +47,9 @@ interface DriverSessionInterface {
     maxRows: number,
   ): Promise<StatementResultType>;
 
+  /** cancel was requested for the session - long running work (import) stops before next statement */
+  isCancelled(): boolean;
+
   /**
    * Return connection back to the pool
    */

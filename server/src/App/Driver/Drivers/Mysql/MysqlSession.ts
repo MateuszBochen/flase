@@ -18,6 +18,7 @@ class MysqlSession implements DriverSessionInterface {
   private readonly connection: PoolConnection;
   private readonly parser: typeof Parser;
   private released = false;
+  private cancelled = false;
   private readonly onRelease?: () => void;
 
   constructor(connection: PoolConnection, parser: typeof Parser, onRelease?: () => void) {
@@ -173,6 +174,15 @@ class MysqlSession implements DriverSessionInterface {
           }
         });
     });
+  }
+
+  /** called by adapter before KILL QUERY */
+  markCancelled(): void {
+    this.cancelled = true;
+  }
+
+  isCancelled(): boolean {
+    return this.cancelled;
   }
 
   release(): void {

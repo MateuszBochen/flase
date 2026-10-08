@@ -1,6 +1,6 @@
 import React, {useCallback, useEffect, useState} from 'react';
 import IconButton from '../../../../UI/Button/IconButton';
-import {faCopy, faEraser, faMagnifyingGlassChart, faPenToSquare, faRotateRight, faTable, faTableColumns, faTrashCan} from '@fortawesome/free-solid-svg-icons';
+import {faCopy, faEraser, faMagnifyingGlassChart, faPenToSquare, faRightLeft, faRotateRight, faTable, faTableColumns, faTrashCan} from '@fortawesome/free-solid-svg-icons';
 import Editor from '../../../../UI/Editor/Editor';
 import defaultMysqlKeyWords from '../../../../Library/Database/Driver/Adapter/MySql/DefaultAutocompleteKeywords';
 import QueryPlacePropsInterface from '../Interface/QueryPlacePropsInterface';
@@ -198,6 +198,12 @@ export default (props: QueryPlacePropsInterface) => {
           tooltip="Explain query"
           disabled={props.view !== 'data' || props.tableOperationsDisabled}
           onClick={props.onExplain}
+        />
+        <IconButton
+          icon={faRightLeft}
+          tooltip="Import / export table…"
+          disabled={props.tableOperationsDisabled}
+          onClick={props.onTransfer}
         />
         <span className="speed-dial-separator" />
         <IconButton icon={faPenToSquare} tooltip="Rename table…" disabled={props.tableOperationsDisabled} onClick={() => props.onTableOperation('rename')} />

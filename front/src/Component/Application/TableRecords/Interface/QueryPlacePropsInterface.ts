@@ -22,6 +22,8 @@ interface QueryPlacePropsInterface {
   onTableOperation: (operation: TableOperationType) => void;
   /** EXPLAIN of current query */
   onExplain: () => void;
+  /** dump / CSV import of the table */
+  onTransfer: () => void;
   /** table was renamed / dropped */
   tableOperationsDisabled: boolean;
 }

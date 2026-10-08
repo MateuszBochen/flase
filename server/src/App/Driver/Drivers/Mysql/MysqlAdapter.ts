@@ -14,6 +14,8 @@ import DriverSessionInterface from '../../DriverSessionInterface';
 import MysqlSession from './MysqlSession';
 import MysqlDdlBuilder from './MysqlDdlBuilder';
 import ProcessInterface from '../../Interface/Data/ProcessInterface';
+import MysqlDumper from './MysqlDumper';
+import {DumpOptionsInterface} from '../../Interface/Data/TransferInterface';
 import {StructureChangeType} from '../../Interface/Data/StructureChangeInterface';
 import {DatabaseSearchResultInterface, SearchModeType} from '../../Interface/Data/DatabaseSearchInterface';
 import TableInterface from '../../Interface/Data/TableInterface';
@@ -132,21 +134,27 @@ class MysqlAdapter implements DriverInterface {
           resolve(createSession());
         };
 
-        if (database) {
+        // pooled connection keeps database, SET variables (sql_mode, FOREIGN_KEY_CHECKS, @x) and temporary tables
+        // of previous session - every session starts with clean connection
+        connection.changeUser({}, (resetErr) => {
+          if (resetErr || !database) {
+            done(resetErr);
+            return;
+          }
           connection.query('USE ??', [database], done);
-        } else {
-          // pooled connection keeps database and variables of previous session - reset it
-          connection.changeUser({}, done);
-        }
+        });
       });
     });
   }
 
   async cancel(tabId: string): Promise<boolean> {
-    const threadId = this.runningSessions.get(tabId)?.threadId;
-    if (!threadId) {
+    const session = this.runningSessions.get(tabId);
+    const threadId = session?.threadId;
+    if (!session || !threadId) {
       return false;
     }
+    // import checks it between statements, KILL stops the running one
+    session.markCancelled();
     // must run on other connection - the session connection is busy with the query
     await this.queryRows('KILL QUERY ?', [threadId]);
     return true;
@@ -166,6 +174,14 @@ class MysqlAdapter implements DriverInterface {
       info: row.Info,
       own: ownThreads.has(Number(row.Id)),
     }));
+  }
+
+  dump(options: DumpOptionsInterface, write: (text: string) => Promise<void>): Promise<{tables: number, rows: number}> {
+    return new MysqlDumper(this.getPool(), options).dump(write);
+  }
+
+  buildInsertStatement(database: string, table: string, columns: string[], rows: (string | null)[][]): string {
+    return mysql.format('INSERT INTO ??.?? (??) VALUES ?', [database, table, columns, rows]);
   }
 
   async killProcess(id: number, connection: boolean): Promise<void> {

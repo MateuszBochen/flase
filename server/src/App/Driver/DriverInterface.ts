@@ -9,6 +9,7 @@ import RowChangeInterface from './Interface/Data/RowChangeInterface';
 import RowChangeStatementInterface from './Interface/Data/RowChangeStatementInterface';
 import TableStructureInterface from './Interface/Data/TableStructureInterface';
 import ProcessInterface from './Interface/Data/ProcessInterface';
+import {DumpOptionsInterface} from './Interface/Data/TransferInterface';
 import {StructureChangeType} from './Interface/Data/StructureChangeInterface';
 import {DatabaseSearchResultInterface, SearchModeType} from './Interface/Data/DatabaseSearchInterface';
 
@@ -48,6 +49,16 @@ interface DriverInterface {
    * KILL QUERY (stop statement) or KILL (close connection) of thread
    */
   killProcess(id: number, connection: boolean): Promise<void>;
+
+  /**
+   * SQL dump written as stream, write resolves when output can take more data
+   */
+  dump(options: DumpOptionsInterface, write: (text: string) => Promise<void>): Promise<{tables: number, rows: number}>;
+
+  /**
+   * INSERT of rows (values in order of columns)
+   */
+  buildInsertStatement(database: string, table: string, columns: string[], rows: (string | null)[][]): string;
 
   /**
    * Return Database object on ech new result getting from database

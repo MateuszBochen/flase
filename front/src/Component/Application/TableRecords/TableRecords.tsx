@@ -15,6 +15,8 @@ import {StructureChangeType} from '../../../Library/Table/Interface/StructureCha
 import QueryRefreshWasRequested from './Event/QueryRefreshWasRequested';
 import openTableTab from './openTableTab';
 import ExplainPopup from './UI/ExplainPopup';
+import NewTabComponentWasSelected from '../../ApplicationRenderer/Event/NewTabComponentWasSelected';
+import TransferTab, {TransferTabPropsInterface} from '../Transfer/TransferTab';
 import QueryInterface from '../../../Library/Database/Interface/QueryInterface';
 
 /** TableRecords */
@@ -83,6 +85,13 @@ const TableRecords = (props: TableRecordsPropsInterface) => {
         onTableOperation={(operation: TableOperationType) => operationsRef.current?.start(operation)}
         tableOperationsDisabled={!!gone}
         onExplain={() => queryRef.current && setExplainQuery(queryRef.current.query)}
+        onTransfer={() => EventBus.emit(new NewTabComponentWasSelected<TransferTabPropsInterface>({
+          component: TransferTab,
+          props: {connection: props.connection, database: table.databaseName, table: table.name},
+          tabName: `Import / export: ${table.databaseName}.${table.name}`,
+          isActive: false,
+          activate: true,
+        }))}
       />
       <div className="table-records-body">
         {/* both views stay mounted - query, history and pending changes survive switching */}

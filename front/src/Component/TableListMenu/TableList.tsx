@@ -6,7 +6,8 @@ import TableItem from './TableItem';
 import TabOpener from '../TabOpener/TabOpener';
 import DatabaseSearch, {DatabaseSearchPropsInterface} from '../Application/DatabaseSearch/DatabaseSearch';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
-import {faMagnifyingGlass, faTerminal} from '@fortawesome/free-solid-svg-icons';
+import {faMagnifyingGlass, faRightLeft, faTerminal} from '@fortawesome/free-solid-svg-icons';
+import TransferTab, {TransferTabPropsInterface} from '../Application/Transfer/TransferTab';
 import SqlConsole, {SqlConsolePropsInterface} from '../Application/SqlConsole/SqlConsole';
 
 /** TableList */
@@ -66,6 +67,17 @@ export default (props: TableListPropsInterface) => {
             }}
           >
             <FontAwesomeIcon icon={faTerminal} />
+          </TabOpener>
+          <TabOpener<TransferTabPropsInterface>
+            tooltip={`Import / export ${props.database.name}`}
+            tab={{
+              component: TransferTab,
+              props: {connection: props.connection, database: props.database.name},
+              tabName: `Import / export: ${props.database.name}`,
+              isActive: false,
+            }}
+          >
+            <FontAwesomeIcon icon={faRightLeft} />
           </TabOpener>
         </div>
         <ul>
