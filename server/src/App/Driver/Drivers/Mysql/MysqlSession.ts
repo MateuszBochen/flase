@@ -58,7 +58,7 @@ class MysqlSession implements DriverSessionInterface {
         })
         .on('result', (row: {[table: string]: RecordType}) => {
           const flatRow: RecordType = {};
-          resultFields.forEach((field) => flatRow[field.key] = row[field.table]?.[field.name]);
+          resultFields.forEach((field) => flatRow[field.key] = MysqlSession.serializeValue(row[field.table]?.[field.name]));
           observer.next(new RowDto(flatRow));
         })
         // 'end' is emitted also after error - complete is then ignored by rxjs
@@ -114,6 +114,27 @@ class MysqlSession implements DriverSessionInterface {
     this.released = true;
     this.connection.release();
   }
+
+  /** binary values (BLOB, BINARY) would be sent as huge array of bytes - client gets size, hex preview and text */
+  private static serializeValue(value: any): any {
+    if (!Buffer.isBuffer(value)) {
+      return value;
+    }
+    const previewBytes = value.subarray(0, MysqlSession.BINARY_PREVIEW_BYTES);
+    const text = value.length <= MysqlSession.BINARY_TEXT_BYTES ? value.toString('utf8') : null;
+    // replacement character = not valid utf8, control characters = not text
+    const isText = text !== null && !text.includes('\uFFFD') && !/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/.test(text);
+    return {
+      binary: true,
+      size: value.length,
+      hex: previewBytes.toString('hex'),
+      truncated: value.length > previewBytes.length,
+      text: isText ? text : null,
+    };
+  }
+
+  private static readonly BINARY_PREVIEW_BYTES = 4096;
+  private static readonly BINARY_TEXT_BYTES = 64 * 1024;
 
   /** key is column name, `table.name` when name repeats in result */
   private static toResultFields(fields: FieldInfo[]): ResultFieldInterface[] {

@@ -9,12 +9,12 @@ import StructureView, {StructureViewRefInterface} from './Structure/StructureVie
 import TableInterface from '../../../Library/Table/Interface/TableInterface';
 import TableManager from '../../../Library/Table/TableManager';
 import EventBus from '../../../Library/EventBus/EventBus';
-import NewTabComponentWasSelected from '../../ApplicationRenderer/Event/NewTabComponentWasSelected';
-import TableInformationInterface from '../../../Library/Table/Interface/TableInformationInterface';
 import {TableViewType} from './Interface/QueryPlacePropsInterface';
 import TableOperations, {TableOperationsRefInterface, TableOperationType} from './Structure/TableOperations';
 import {StructureChangeType} from '../../../Library/Table/Interface/StructureChangeInterface';
 import QueryRefreshWasRequested from './Event/QueryRefreshWasRequested';
+import openTableTab from './openTableTab';
+import QueryInterface from '../../../Library/Database/Interface/QueryInterface';
 
 /** TableRecords */
 const TableRecords = (props: TableRecordsPropsInterface) => {
@@ -23,30 +23,15 @@ const TableRecords = (props: TableRecordsPropsInterface) => {
   const [gone, setGone] = useState<string | null>(null);
   const structureRef = useRef<StructureViewRefInterface | null>(null);
   const operationsRef = useRef<TableOperationsRefInterface | null>(null);
+  /** current query of data view - written by query place, read by grid */
+  const queryRef = useRef<QueryInterface | null>(null);
 
   const tabId = props.tabId || '';
   const table: TableInterface = {databaseName: props.database.name, name: props.table.tableName};
 
   /** open other table (e.g. from foreign key, copy, rename) in new tab */
   const onOpenTable = useCallback((target: TableInterface) => {
-    const known = TableManager.getInstance()
-      .getTablesListForDatabase(props.connection, {name: target.databaseName})
-      .find((tableItem) => tableItem.tableName === target.name);
-    const tableInformation: TableInformationInterface = known || {
-      tableName: target.name,
-      dataBaseName: target.databaseName,
-      preload: false,
-      columns: [],
-      primaryColumns: [],
-      uniqueColumns: [],
-    };
-
-    EventBus.emit(new NewTabComponentWasSelected({
-      component: TableRecords,
-      props: {connection: props.connection, database: {name: target.databaseName}, table: tableInformation},
-      tabName: `${target.databaseName}/${target.name}`,
-      isActive: false,
-    }));
+    openTableTab(props.connection, target, {newTab: true});
   }, [props.connection]);
 
   const onReload = () => {
@@ -87,6 +72,8 @@ const TableRecords = (props: TableRecordsPropsInterface) => {
         connection={props.connection}
         table={props.table}
         tabId={tabId}
+        initialQuery={props.initialQuery}
+        queryRef={queryRef}
         view={view}
         onViewChange={setView}
         onReload={onReload}
@@ -101,6 +88,7 @@ const TableRecords = (props: TableRecordsPropsInterface) => {
             connection={props.connection}
             table={props.table}
             tabId={tabId}
+            queryRef={queryRef}
           />
         </div>
         <div className="table-records-view" style={{display: view === 'structure' ? undefined : 'none'}}>

@@ -1,5 +1,5 @@
 import ColumnInterface from '../../../Library/Table/Interface/ColumnInterface';
-import {SingleRowType} from './RecordsViewPropsInterface';
+import {CellValueType, SingleRowType} from './RecordsViewPropsInterface';
 import {MutableRefObject} from 'react';
 import GridEditInterface from './GridEditInterface';
 import {RowState} from '../Edit/PendingChanges';
@@ -17,6 +17,7 @@ interface RowPropsInterface {
   /** values changed in this row, keyed by column name */
   changedValues?: SingleRowType;
   edit?: GridEditInterface;
+  onOpenReference?: (column: ColumnInterface, value: CellValueType, newTab: boolean) => void;
 }
 
 export default RowPropsInterface;

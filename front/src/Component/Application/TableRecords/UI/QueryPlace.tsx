@@ -22,11 +22,17 @@ import SortDirectionDataInterface from '../Interface/SortDirectionDataInterface'
 import OrderDirectionWasChanged from '../Event/OrderDirectionWasChanged';
 import SortTableItemInterface from '../../../Table/Interface/SortTableItemInterface';
 import QueryRefreshWasRequested from '../Event/QueryRefreshWasRequested';
+import {CompletionTableType} from '../../../../UI/Editor/SqlCompletion';
+import FilterWasRequested, {FilterRequestType} from '../Event/FilterWasRequested';
+import toast from 'react-hot-toast';
 
 /** QueryPlace */
 export default (props: QueryPlacePropsInterface) => {
 
-  const [currentQuery, setCurrentQuery] = useState<QueryInterface>(DriverFactory.getDriver(props.connection).getDefaultQuery(props.table));
+  const [currentQuery, setCurrentQuery] = useState<QueryInterface>(() => {
+    const defaultQuery = DriverFactory.getDriver(props.connection).getDefaultQuery(props.table);
+    return props.initialQuery ? defaultQuery.changeQuery(props.initialQuery) : defaultQuery;
+  });
   const [hints, setHints] = useState<string[]>([]);
   const tableManager = TableManager.getInstance();
 
@@ -73,10 +79,24 @@ export default (props: QueryPlacePropsInterface) => {
       }
     });
 
+    /** quick filter from grid - condition is added with AND */
+    const eventFilterId = EventBus.subscribe<FilterRequestType>(FilterWasRequested.name, (event) => {
+      const data = event.getData();
+      if (data.tabId !== props.tabId) {
+        return;
+      }
+      setCurrentQuery((previousQuery) => {
+        const current = previousQuery.getWhere();
+        const where = data.condition === null ? '' : current ? `(${current}) AND ${data.condition}` : data.condition;
+        return applyWhere(previousQuery, where);
+      });
+    });
+
     return () => {
       EventBus.unSub(eventPaginationEventId);
       EventBus.unSub(eventOrderId);
       EventBus.unSub(eventRefreshId);
+      EventBus.unSub(eventFilterId);
     };
 
 
@@ -108,7 +128,30 @@ export default (props: QueryPlacePropsInterface) => {
     });
   }, [currentQuery]);
 
+  /** tables of current database with columns known from table list */
+  const getCompletionTables = (): CompletionTableType[] => tableManager
+    .getTablesListForDatabase(props.connection, props.database)
+    .map((table) => ({
+      name: table.tableName,
+      columns: table.columns.map((column) => ({name: column.name, type: column.type})),
+    }));
+
+  /** new query with given WHERE, invalid condition keeps current query */
+  const applyWhere = (previousQuery: QueryInterface, where: string): QueryInterface => {
+    try {
+      const newQueryModel = previousQuery.changeWhere(where);
+      changeQueryHandler(newQueryModel);
+      return newQueryModel;
+    } catch (e: any) {
+      toast.error(`Invalid filter: ${(e?.message || String(e)).slice(0, 120)}`);
+      return previousQuery;
+    }
+  };
+
   const changeQueryHandler = useCallback((query: QueryInterface) => {
+    if (props.queryRef) {
+      props.queryRef.current = query;
+    }
     console.log('new Query', query.query);
 
     const queryRequest: QueryRequestDataInterface = {
@@ -167,6 +210,7 @@ export default (props: QueryPlacePropsInterface) => {
             syntax={"sql"}
             hints={hints}
             customKeyWords={defaultMysqlKeyWords}
+            getCompletionTables={getCompletionTables}
             isOneliner={true}
             onSearch={onSearchHandler}
            /* }

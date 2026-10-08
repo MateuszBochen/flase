@@ -31,3 +31,16 @@
 .table-list-menu-root li:last-child button {
   padding-bottom: 0;
 }
+
+.table-list-filter {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.table-list-filter .form-control {
+  flex: 1;
+  min-width: 0;
+}
+.table-list-filter .invisible-button-root {
+  padding: 0 4px;
+}

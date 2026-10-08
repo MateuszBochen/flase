@@ -4,11 +4,17 @@ import * as monaco from 'monaco-editor';
 
 import './style.css';
 import EditorPropsInterface from './Interface/EditorPropsInterface';
+import {registerSqlCompletion} from './SqlCompletion';
 
 
 /** Editor */
 export default (props: EditorPropsInterface) => {
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor|null>(null);
+  const propsRef = useRef<EditorPropsInterface>(props);
+  propsRef.current = props;
+  const unregisterCompletion = useRef<(() => void) | null>(null);
+
+  useEffect(() => () => unregisterCompletion.current?.(), []);
 
   useEffect(() => {
     if(editorRef.current) {
@@ -38,38 +44,14 @@ export default (props: EditorPropsInterface) => {
       });
     }
 
-    monacoInstance.languages.registerCompletionItemProvider('sql', {
-      provideCompletionItems: (model, position) => {
-
-        const wordInfo = model.getWordUntilPosition(position);
-        const range = new monaco.Range(
-          position.lineNumber,
-          wordInfo.startColumn,
-          position.lineNumber,
-          wordInfo.endColumn
-        );
-
-        const tableSuggestions: monaco.languages.CompletionItem[] = [{
-          label: 'Label',
-          kind: monaco.languages.CompletionItemKind.Class,
-          insertText: 'Insert text',
-          range: range,
-        }];
-
-        props.customKeyWords?.forEach((sqlHint) => {
-          tableSuggestions.push({
-            label: sqlHint,
-            kind: monaco.languages.CompletionItemKind.Class,
-            insertText: sqlHint,
-            range: range,
-          });
-        });
-
-        return {
-          suggestions: [...tableSuggestions]
-        };
-      }
-    });
+    const model = editor.getModel();
+    if (model) {
+      // latest props are read through ref - provider lives as long as editor
+      unregisterCompletion.current = registerSqlCompletion(monacoInstance as any, model, () => ({
+        keywords: propsRef.current.customKeyWords || [],
+        tables: propsRef.current.getCompletionTables?.() || [],
+      }));
+    }
   }, [props.hints, props.isOneliner]);
 
   return (

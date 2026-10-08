@@ -342,7 +342,7 @@
 
 /**   ROW STATES   */
 .data-table-content .data-table-row.selected .data-table-cell .data-table-cell-content {
-  background-color: rgba(75, 110, 175, 0.45);
+  background-color: rgba(75, 110, 175, 0.2);
 }
 .data-table-content .data-table-row .data-table-cell.changed .data-table-cell-content {
   background-color: rgba(224, 196, 108, 0.35);
@@ -466,4 +466,125 @@
   white-space: pre-wrap;
   word-break: break-all;
   user-select: text;
+}
+
+/**   EMPTY STRING / FOREIGN KEY   */
+.data-table-content .data-table-row .data-table-cell .dtc-content .dtc-empty {
+  color: #6f6f6f;
+}
+.data-table-content .data-table-row .data-table-cell .dtc-content.is-reference {
+  color: #8fb3e8;
+}
+.data-table-content .data-table-row .data-table-cell .dtc-content .dtc-reference {
+  float: right;
+  margin-left: 4px;
+  padding: 0 2px;
+  border: none;
+  color: #589df6;
+  background: none;
+  font-size: 0.7rem;
+  line-height: 17px;
+  cursor: pointer;
+  opacity: 0.6;
+}
+.data-table-content .data-table-row .data-table-cell .dtc-content .dtc-reference:hover {
+  opacity: 1;
+}
+
+/**   CELL SELECTION   */
+.cmp-records-view:focus {
+  outline: none;
+}
+.data-table-content {
+  user-select: none;
+}
+.data-table-content .data-table-row .data-table-cell.cell-selected .data-table-cell-content {
+  background-color: rgba(75, 110, 175, 0.7);
+  color: #ffffff;
+}
+.data-table-content .data-table-row .data-table-cell .dtc-content .dtc-binary {
+  color: #9876aa;
+}
+
+/**   VALUE EDITOR   */
+.cmp-value-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 70vw;
+  max-width: 1100px;
+}
+.cmp-value-editor .value-editor-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.cmp-value-editor .value-editor-toolbar button {
+  padding: 1px 8px;
+  border: solid 1px #555;
+  border-radius: 3px;
+  color: #bbbbbb;
+  background-color: #3c3f41;
+  font: inherit;
+  cursor: pointer;
+}
+.cmp-value-editor .value-editor-toolbar button.active {
+  color: #ffffff;
+  border-color: #4b6eaf;
+}
+.cmp-value-editor .value-editor-toolbar button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.cmp-value-editor .value-editor-info {
+  margin-right: auto;
+  color: #808080;
+}
+.cmp-value-editor .value-editor-error {
+  color: #ff6b68;
+}
+.cmp-value-editor .value-editor-check {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #bbbbbb;
+}
+.cmp-value-editor .value-editor-text {
+  height: 55vh;
+  margin: 0;
+  padding: 8px;
+  overflow: auto;
+  border: solid 1px #555;
+  color: #a9b7c6;
+  background-color: #1e1e1e;
+  font-family: monospace;
+  font-size: 0.85rem;
+  white-space: pre;
+  resize: none;
+}
+.cmp-value-editor textarea.value-editor-text.wrap {
+  white-space: pre-wrap;
+}
+.cmp-value-editor .value-editor-text.binary {
+  user-select: text;
+}
+.cmp-value-editor .value-editor-hint {
+  color: #808080;
+  font-size: 0.85rem;
+}
+
+/**   EXPORT   */
+.cmp-records-view-pager-root .pager-export {
+  margin-right: 10px;
+  padding: 1px 8px;
+  border: solid 1px #555;
+  border-radius: 3px;
+  color: #bbbbbb;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+.cmp-records-view-pager-root .pager-export:hover {
+  color: #ffffff;
+  background-color: #4c5052;
 }

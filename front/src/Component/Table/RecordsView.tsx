@@ -1,8 +1,8 @@
-import RecordsViewPropsInterface, {CellValueType, SingleRowType} from './Interface/RecordsViewPropsInterface';
+import RecordsViewPropsInterface, {CellValueType, QuickFilterOperatorType, SingleRowType} from './Interface/RecordsViewPropsInterface';
 import './style.css';
 import TableFooter from './UI/TableFooter';
 import HeaderColumns from './UI/HeaderColumns';
-import React, {forwardRef, MouseEvent, useCallback, useImperativeHandle, useMemo, useRef, useState} from 'react';
+import React, {forwardRef, KeyboardEvent, MouseEvent, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState} from 'react';
 import RecordsViewRefInterface from './Interface/RecordsViewRefInterface';
 import HeaderColumnsRefInterface from './Interface/HeaderColumnsRefInterface';
 import ColumnInterface from '../../Library/Table/Interface/ColumnInterface';
@@ -10,7 +10,16 @@ import DataGrid from './UI/DataGrid';
 import DataGridRefInterface from './Interface/DataGridRefInterface';
 import TableFooterRefInterface from '../Application/TableRecords/Interface/TableFooterRefInterface';
 import EditableResultInterface from '../../Library/Record/Interface/EditableResultInterface';
-import GridEditInterface, {EditingCellType} from './Interface/GridEditInterface';
+import GridEditInterface, {
+  CellPositionType,
+  EditingCellType,
+  isInSelection,
+  SelectionType,
+  SelectModeType,
+  selectedRowsAndColumns,
+} from './Interface/GridEditInterface';
+import {COPY_FORMATS, CopyFormatType, EXPORT_FILE, formatCopy} from './Copy/CopyFormats';
+import downloadText from '../../Library/File/downloadText';
 import {
   buildRowChanges,
   countChanges,
@@ -26,6 +35,8 @@ import {
 import PendingChangesBar from './UI/PendingChangesBar';
 import ContextMenu, {ContextMenuItem} from '../../UI/ContextMenu/ContextMenu';
 import RowForm from './Edit/RowForm';
+import ValueEditor from './Edit/ValueEditor';
+import {isBinaryValue} from '../../Library/Record/BinaryValue';
 import toast from 'react-hot-toast';
 
 type QueryStatus = {
@@ -63,6 +74,12 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
   const [editingCell, setEditingCell] = useState<EditingCellType | null>(null);
   const [rowForm, setRowForm] = useState<RowFormState>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState>(null);
+  const [valueEditor, setValueEditor] = useState<{rowIndex: number, column: ColumnInterface} | null>(null);
+  const [exportMenu, setExportMenu] = useState<{x: number, y: number} | null>(null);
+  const [selection, setSelection] = useState<SelectionType | null>(null);
+  /** mouse button is held on cell - moving over cells extends selection */
+  const selecting = useRef<boolean>(false);
+  const rootRef = useRef<HTMLDivElement | null>(null);
 
   const totalRows = useRef<number>(0);
   const dataGridRef = useRef<HTMLDivElement|null>(null);
@@ -85,7 +102,31 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
     setEditingCell(null);
     setRowForm(null);
     setContextMenu(null);
+    setSelection(null);
   };
+
+  useEffect(() => {
+    const stopSelecting = () => selecting.current = false;
+    document.addEventListener('mouseup', stopSelecting);
+    return () => document.removeEventListener('mouseup', stopSelecting);
+  }, []);
+
+  /** click outside of rows (empty part of grid, other parts of page) clears selection */
+  useEffect(() => {
+    const onMouseDown = (event: globalThis.MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target?.closest) return;
+      // rows of this grid select themselves, menus and dialogs work with current selection
+      const onOwnRow = !!target.closest('.data-table-row') && !!rootRef.current?.contains(target);
+      if (onOwnRow || target.closest('.ui-context-menu, .popup-root, [role="status"]')) {
+        return;
+      }
+      setSelection(null);
+      setSelectedRow(null);
+    };
+    document.addEventListener('mousedown', onMouseDown);
+    return () => document.removeEventListener('mousedown', onMouseDown);
+  }, []);
 
   useImperativeHandle(ref, () => ({
     addRow: (rowItem: SingleRowType) => {
@@ -147,19 +188,63 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
     setEditingCell(null);
   }, []);
 
+  const onCellMouseDown = useCallback((rowIndex: number, columnIndex: number, mode: SelectModeType) => {
+    selecting.current = true;
+    // keyboard shortcuts (Ctrl+C, Ctrl+A) go to the grid
+    rootRef.current?.focus({preventScroll: true});
+    const cell: CellPositionType = {rowIndex, columnIndex};
+    setSelection((previous) => {
+      if (mode === 'extend' && previous?.length) {
+        return [...previous.slice(0, -1), {anchor: previous[previous.length - 1].anchor, focus: cell}];
+      }
+      if (mode === 'add' && previous?.length) {
+        // ctrl+click on selected single cell unselects it
+        const single = previous.findIndex(({anchor, focus}) => anchor.rowIndex === rowIndex && anchor.columnIndex === columnIndex
+          && focus.rowIndex === rowIndex && focus.columnIndex === columnIndex);
+        if (single >= 0) {
+          selecting.current = false;
+          const rest = previous.filter((range, index) => index !== single);
+          return rest.length ? rest : null;
+        }
+        return [...previous, {anchor: cell, focus: cell}];
+      }
+      return [{anchor: cell, focus: cell}];
+    });
+  }, []);
+
+  /** dragging changes the last range */
+  const onCellMouseEnter = useCallback((rowIndex: number, columnIndex: number) => {
+    if (selecting.current) {
+      setSelection((previous) => previous?.length
+        ? [...previous.slice(0, -1), {anchor: previous[previous.length - 1].anchor, focus: {rowIndex, columnIndex}}]
+        : previous);
+    }
+  }, []);
+
   const onContextMenu = useCallback((event: MouseEvent, rowIndex: number | null, column: ColumnInterface | null) => {
     if (rowIndex !== null) {
       setSelectedRow(rowIndex);
+      // right click outside of selection selects the clicked cell
+      const columnIndex = column ? columnsRef.current.findIndex((item) => item.key === column.key) : -1;
+      setSelection((previous) => columnIndex >= 0 && !isInSelection(previous, rowIndex, columnIndex)
+        ? [{anchor: {rowIndex, columnIndex}, focus: {rowIndex, columnIndex}}]
+        : previous);
     }
     setEditingCell(null);
     setContextMenu({x: event.clientX, y: event.clientY, rowIndex, column});
   }, []);
+
+  const columnsRef = useRef<ColumnInterface[]>([]);
+  columnsRef.current = columns;
 
   const edit: GridEditInterface = useMemo(() => ({
     changes,
     selectedRow,
     editingCell,
     canEdit,
+    selection,
+    onCellMouseDown,
+    onCellMouseEnter,
     onSelectRow: setSelectedRow,
     onStartEdit: (rowIndex: number, column: ColumnInterface) => {
       setSelectedRow(rowIndex);
@@ -168,7 +253,77 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
     onCommitEdit,
     onCancelEdit: () => setEditingCell(null),
     onContextMenu,
-  }), [changes, selectedRow, editingCell, canEdit, onCommitEdit, onContextMenu]);
+  }), [changes, selectedRow, editingCell, canEdit, selection, onCellMouseDown, onCellMouseEnter, onCommitEdit, onContextMenu]);
+
+  /** rows and columns as text in given format */
+  const formatRows = (format: CopyFormatType, rowIndexes: number[], columnIndexes: number[]): string => {
+    const records = getRecords();
+    return formatCopy(
+      format,
+      columnIndexes.map((index) => columns[index]),
+      rowIndexes.map((rowIndex) => getDisplayedRow(changes, records, rowIndex)),
+      editable?.table.name,
+    );
+  };
+
+  /**
+   * selected cells as text in given format.
+   * Ctrl selection does not have to be rectangle - rows and columns with any selected cell are copied.
+   */
+  const copySelection = (format: CopyFormatType) => {
+    if (!selection) return;
+    const rowsCount = getRecords().length + changes.inserted.length;
+    const {rows, columns: columnIndexes} = selectedRowsAndColumns(selection, rowsCount);
+    const text = formatRows(format, rows, columnIndexes);
+    const cells = rows.length * columnIndexes.length;
+    navigator.clipboard?.writeText(text)
+      .then(() => toast.success(cells === 1 ? 'Copied' : `Copied ${rows.length} × ${columnIndexes.length} cells`))
+      .catch(() => toast.error('Unable to copy'));
+  };
+
+  /** rows loaded in grid (current page, with pending changes) as file */
+  const exportPage = (format: CopyFormatType) => {
+    const rowsCount = getRecords().length + changes.inserted.length;
+    const rowIndexes = Array.from({length: rowsCount}, (value, index) => index);
+    const text = formatRows(format, rowIndexes, columns.map((column, index) => index));
+    const file = EXPORT_FILE[format];
+    downloadText(`${props.exportName || 'export'}.${file.extension}`, text, file.mimeType);
+    toast.success(`Exported ${rowsCount} row(s)`);
+  };
+
+  const exportMenuItems = (): ContextMenuItem[] => {
+    const formats = (onClick: (format: CopyFormatType) => void): ContextMenuItem[] => COPY_FORMATS
+      .filter(({format}) => format !== 'tsv')
+      .map(({format, label}) => ({label: label === 'TSV with header' ? 'TSV' : label, onClick: () => onClick(format)}));
+    const items: ContextMenuItem[] = [
+      {label: 'Current page as', disabled: !columns.length, children: formats(exportPage)},
+    ];
+    if (props.onExportAll) {
+      items.push({
+        label: 'All rows as',
+        disabled: !columns.length,
+        children: formats((format) => props.onExportAll!(format, props.exportName || 'export')),
+      });
+    }
+    return items;
+  };
+
+  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const ctrl = event.ctrlKey || event.metaKey;
+    if (ctrl && event.key.toLowerCase() === 'c' && selection) {
+      event.preventDefault();
+      copySelection('tsv');
+    } else if (ctrl && event.key.toLowerCase() === 'a') {
+      event.preventDefault();
+      const rowsCount = getRecords().length + changes.inserted.length;
+      if (rowsCount && columns.length) {
+        setSelection([{anchor: {rowIndex: 0, columnIndex: 0}, focus: {rowIndex: rowsCount - 1, columnIndex: columns.length - 1}}]);
+      }
+    } else if (event.key === 'Escape') {
+      setSelection(null);
+      setSelectedRow(null);
+    }
+  };
 
   /** row actions */
   const onAddRow = () => setRowForm({title: 'New row', values: valuesForNewRow(columns)});
@@ -220,7 +375,39 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
 
     if (rowIndex !== null && column) {
       const value = getDisplayedRow(changes, records, rowIndex)[column.key];
-      items.push({label: 'Copy value', onClick: () => copyToClipboard(value)});
+      items.push({label: 'Open value editor…', onClick: () => setValueEditor({rowIndex, column})});
+      items.push({label: 'Copy value', onClick: () => copyToClipboard(isBinaryValue(value) ? (value.text ?? `0x${value.hex}`) as any : value)});
+      items.push({
+        label: 'Copy selection as',
+        children: COPY_FORMATS.map(({format, label}) => ({label, hint: format === 'tsv' ? 'Ctrl+C' : undefined, onClick: () => copySelection(format)})),
+      });
+      if (column.reference && props.onOpenReference && value !== null && value !== undefined && !isBinaryValue(value) && rowState !== 'inserted') {
+        items.push(
+          {label: `Open ${column.reference.table.name} row`, onClick: () => props.onOpenReference!(column, value, false)},
+          {label: `Open ${column.reference.table.name} row in new tab`, onClick: () => props.onOpenReference!(column, value, true)},
+        );
+      }
+    }
+
+    // expressions (no table column) cannot be used in WHERE by their alias
+    const filterValue = rowIndex !== null && column ? getDisplayedRow(changes, records, rowIndex)[column.key] : undefined;
+    if (rowIndex !== null && column && column.orgName && props.onQuickFilter && !isBinaryValue(filterValue)) {
+      const value = filterValue;
+      const shown = value === null || value === undefined ? 'NULL' : String(value).length > 30 ? `${String(value).slice(0, 30)}…` : String(value);
+      const filter = (operator: QuickFilterOperatorType) => () => props.onQuickFilter!(column, value ?? null, operator);
+      items.push('separator');
+      if (value === null || value === undefined) {
+        items.push(
+          {label: `Filter: ${column.name} IS NULL`, onClick: filter('IS NULL')},
+          {label: `Filter: ${column.name} IS NOT NULL`, onClick: filter('IS NOT NULL')},
+        );
+      } else {
+        items.push(
+          {label: `Filter: ${column.name} = ${shown}`, onClick: filter('=')},
+          {label: `Filter: ${column.name} <> ${shown}`, onClick: filter('<>')},
+        );
+      }
+      items.push({label: 'Clear filter', onClick: filter('clear')});
     }
 
     if (!canEdit) {
@@ -269,6 +456,9 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
   return (
     <div
       className="cmp-records-view"
+      ref={rootRef}
+      tabIndex={-1}
+      onKeyDown={onKeyDown}
     >
       <div
         className="cmp-records-view-table-wrapper"
@@ -289,6 +479,7 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
            tabIndex={0}
            parentRef={dataGridRef}
            edit={edit}
+           onOpenReference={props.onOpenReference}
          />
        </div>
        {status.error && (
@@ -304,6 +495,17 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
           loading={status.loading}
           ref={footerRef}
         >
+          <button
+            type="button"
+            className="pager-export"
+            title="Export rows to file"
+            onClick={(event) => {
+              const rect = event.currentTarget.getBoundingClientRect();
+              setExportMenu({x: rect.left, y: rect.top - 4});
+            }}
+          >
+            Export
+          </button>
           <PendingChangesBar
             canEdit={canEdit}
             readOnlyReason={readOnlyReason}
@@ -324,6 +526,21 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
           onSave={onSaveRowForm}
           onCancel={() => setRowForm(null)}
         />
+      )}
+      {valueEditor && (
+        <ValueEditor
+          column={valueEditor.column}
+          value={getDisplayedRow(changes, getRecords(), valueEditor.rowIndex)[valueEditor.column.key]}
+          editable={canEdit && !!valueEditor.column.editable && getRowState(changes, getRecords(), valueEditor.rowIndex) !== 'deleted'}
+          onSave={(value) => {
+            onCommitEdit(valueEditor.rowIndex, valueEditor.column, value);
+            setValueEditor(null);
+          }}
+          onClose={() => setValueEditor(null)}
+        />
+      )}
+      {exportMenu && (
+        <ContextMenu x={exportMenu.x} y={exportMenu.y} items={exportMenuItems()} onClose={() => setExportMenu(null)} />
       )}
       {contextMenu && (
         <ContextMenu

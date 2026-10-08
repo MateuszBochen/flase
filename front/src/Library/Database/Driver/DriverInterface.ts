@@ -1,5 +1,8 @@
 import TableInformationInterface from '../../Table/Interface/TableInformationInterface';
 import QueryInterface from '../Interface/QueryInterface';
+import TableInterface from '../../Table/Interface/TableInterface';
+import {SearchModeType} from '../Interface/DatabaseSearchInterface';
+import {CellValueType} from '../../../Component/Table/Interface/RecordsViewPropsInterface';
 
 
 interface DriverInterface {
@@ -14,5 +17,15 @@ interface DriverInterface {
    *
    */
   getSelectStringFromQuery(query: QueryInterface): string;
+
+  /**
+   * SELECT of rows of table matching all conditions (column = value)
+   */
+  getRowsQuery(table: TableInterface, currentDatabase: string, conditions: {column: string, value: CellValueType}[]): string;
+
+  /**
+   * SELECT of rows containing (or equal to) term in any of given columns, same comparison as database search
+   */
+  getSearchQuery(table: TableInterface, currentDatabase: string, columns: {name: string, text: boolean}[], term: string, mode: SearchModeType): string;
 }
 export default DriverInterface;

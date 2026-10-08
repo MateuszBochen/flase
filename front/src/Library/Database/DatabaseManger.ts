@@ -9,7 +9,8 @@ import MessageInterface from '../WebSocket/Interface/MessageInterface';
 import MessageType from '../WebSocket/Enum/MessageType';
 import DatabaseWasReceived from './Event/DatabaseWasReceived';
 import LoopThrough from '../Loop/LoopThrough';
-import database from './Interface/Database';
+import ConnectionDataInterface from '../Connection/Interface/ConnectionDataInterface';
+import {DatabaseSearchRequestInterface} from './Interface/DatabaseSearchInterface';
 
 
 class DatabaseManger {
@@ -69,6 +70,20 @@ class DatabaseManger {
       this.connectionManager.getClientForConnection(connectionData).sendCommand(command);
     } catch (e) {
       console.error('Connection not found');
+    }
+  }
+
+  /** search in all tables - answers are DATABASE_SEARCH_RESULT messages and DATABASE_SEARCH_FINISHED for tabId */
+  searchDatabase(connection: ConnectionDataInterface, request: DatabaseSearchRequestInterface): void {
+    try {
+      const establishedConnection = this.connectionManager.getEstablishedConnection(connection);
+      this.connectionManager.getClientForConnection(establishedConnection).sendCommand({
+        connectionData: establishedConnection,
+        command: CommandType.SEARCH_DATABASE,
+        payload: request,
+      });
+    } catch (e) {
+      console.error('Connection not found', e);
     }
   }
 }

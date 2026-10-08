@@ -9,6 +9,7 @@ import RowChangeInterface from './Interface/Data/RowChangeInterface';
 import RowChangeStatementInterface from './Interface/Data/RowChangeStatementInterface';
 import TableStructureInterface from './Interface/Data/TableStructureInterface';
 import {StructureChangeType} from './Interface/Data/StructureChangeInterface';
+import {DatabaseSearchResultInterface, SearchModeType} from './Interface/Data/DatabaseSearchInterface';
 
 interface DriverInterface {
 
@@ -77,6 +78,17 @@ interface DriverInterface {
    * Execute DDL statements one by one (DDL is committed immediately, it cannot be rolled back)
    */
   executeStatements(statements: string[]): Promise<void>;
+
+  /**
+   * Search term in all searchable columns of all tables of database.
+   * onResult is called for every table with matches, resolves with number of tables and warnings.
+   */
+  searchDatabase(
+    database: string,
+    term: string,
+    mode: SearchModeType,
+    onResult: (result: DatabaseSearchResultInterface) => void,
+  ): Promise<{tables: number, warnings: string[]}>;
 }
 
 export default DriverInterface;

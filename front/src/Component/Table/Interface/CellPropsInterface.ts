@@ -16,6 +16,11 @@ interface CellPropsInterface {
   isEditing?: boolean;
   onDoubleClick?: () => void;
   onContextMenu?: (event: MouseEvent) => void;
+  selected?: boolean;
+  onMouseDown?: (event: MouseEvent) => void;
+  onMouseEnter?: () => void;
+  /** value is foreign key - open referenced row */
+  onOpenReference?: (newTab: boolean) => void;
   onCommit?: (value: CellValueType) => void;
   onCancel?: () => void;
 }

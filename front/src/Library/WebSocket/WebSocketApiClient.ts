@@ -18,7 +18,7 @@ const CLOSE_SESSION_NOT_FOUND = 4001;
 const RECONNECT_DELAYS_MS = [1000, 2000, 5000, 10000, 30000];
 
 /** commands with answer for a tab, client must tell the tab when the answer will never come */
-const TAB_COMMANDS = [CommandType.SEND_SELECT_QUERY, CommandType.APPLY_ROW_CHANGES, CommandType.GET_TABLE_STRUCTURE, CommandType.CHANGE_STRUCTURE];
+const TAB_COMMANDS = [CommandType.SEND_SELECT_QUERY, CommandType.APPLY_ROW_CHANGES, CommandType.GET_TABLE_STRUCTURE, CommandType.CHANGE_STRUCTURE, CommandType.SEARCH_DATABASE];
 
 /**
  * Websocket of one established connection.
@@ -154,6 +154,7 @@ class WebSocketApiClient {
       MessageType.TABLE_STRUCTURE,
       MessageType.STRUCTURE_CHANGE_PREVIEW,
       MessageType.STRUCTURE_CHANGE_APPLIED,
+      MessageType.DATABASE_SEARCH_FINISHED,
     ].includes(message.message);
   }
 }

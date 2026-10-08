@@ -14,6 +14,7 @@ import DriverSessionInterface from '../../DriverSessionInterface';
 import MysqlSession from './MysqlSession';
 import MysqlDdlBuilder from './MysqlDdlBuilder';
 import {StructureChangeType} from '../../Interface/Data/StructureChangeInterface';
+import {DatabaseSearchResultInterface, SearchModeType} from '../../Interface/Data/DatabaseSearchInterface';
 import TableInterface from '../../Interface/Data/TableInterface';
 import RowChangeInterface, {RowValuesType} from '../../Interface/Data/RowChangeInterface';
 import RowChangeStatementInterface from '../../Interface/Data/RowChangeStatementInterface';
@@ -350,6 +351,65 @@ class MysqlAdapter implements DriverInterface {
     return MysqlDdlBuilder.build(table, change, copyColumns);
   }
 
+  async searchDatabase(
+    database: string,
+    term: string,
+    mode: SearchModeType,
+    onResult: (result: DatabaseSearchResultInterface) => void,
+  ): Promise<{tables: number, warnings: string[]}> {
+    // binary and spatial columns are not searched as text
+    const columns = await this.queryRows(
+      `SELECT c.\`TABLE_NAME\`, c.\`COLUMN_NAME\`, c.\`DATA_TYPE\`
+       FROM \`information_schema\`.\`COLUMNS\` c
+       JOIN \`information_schema\`.\`TABLES\` t ON t.\`TABLE_SCHEMA\` = c.\`TABLE_SCHEMA\` AND t.\`TABLE_NAME\` = c.\`TABLE_NAME\`
+       WHERE c.\`TABLE_SCHEMA\` = ? AND t.\`TABLE_TYPE\` = 'BASE TABLE'
+         AND c.\`DATA_TYPE\` NOT IN ('blob', 'tinyblob', 'mediumblob', 'longblob', 'binary', 'varbinary', 'bit',
+           'geometry', 'point', 'linestring', 'polygon', 'multipoint', 'multilinestring', 'multipolygon', 'geometrycollection')
+       ORDER BY c.\`TABLE_NAME\`, c.\`ORDINAL_POSITION\``,
+      [database],
+    );
+
+    const tables = new Map<string, {name: string, isText: boolean}[]>();
+    columns.forEach((row) => {
+      if (!tables.has(row.TABLE_NAME)) tables.set(row.TABLE_NAME, []);
+      tables.get(row.TABLE_NAME)!.push({
+        name: row.COLUMN_NAME,
+        isText: /char|text|enum|set|json/i.test(row.DATA_TYPE),
+      });
+    });
+    // numbers and dates are compared as text - otherwise 'abc' = 0 matches and invalid date fails the query
+    const searched = (column: {name: string, isText: boolean}) => column.isText
+      ? mysql.escapeId(column.name)
+      : `CAST(${mysql.escapeId(column.name)} AS CHAR)`;
+
+    // LIKE wildcards in term are searched literally
+    const pattern = mode === 'exact' ? term : `%${term.replace(/[\\%_]/g, (char) => `\\${char}`)}%`;
+    const operator = mode === 'exact' ? '=' : 'LIKE';
+    const warnings: string[] = [];
+
+    for (const [table, tableColumns] of Array.from(tables.entries())) {
+      const counts = tableColumns.map((column, index) => mysql.format(`SUM(${searched(column)} ${operator} ?) AS ??`, [pattern, `c${index}`])).join(', ');
+      const where = tableColumns.map((column) => mysql.format(`${searched(column)} ${operator} ?`, [pattern])).join(' OR ');
+      try {
+        const [row] = await this.queryRows(`SELECT COUNT(*) AS \`total\`, ${counts} FROM ??.?? WHERE ${where}`, [database, table]);
+        const rows = Number(row.total);
+        if (rows > 0) {
+          onResult({
+            table,
+            rows,
+            columns: tableColumns
+              .map((column, index) => ({name: column.name, rows: Number(row[`c${index}`]), text: column.isText}))
+              .filter((column) => column.rows > 0),
+          });
+        }
+      } catch (e: any) {
+        warnings.push(`${table}: ${e?.sqlMessage || e?.message || e}`);
+      }
+    }
+
+    return {tables: tables.size, warnings};
+  }
+
   async executeStatements(statements: string[]): Promise<void> {
     for (let index = 0; index < statements.length; index++) {
       try {
@@ -598,6 +658,7 @@ class MysqlAdapter implements DriverInterface {
   private getReferencesColumns(databaseName:string, tableName:string):Promise<ReferenceTableInterface[]> {
     const sql = `SELECT
           \`COLUMN_NAME\`,
+          \`REFERENCED_TABLE_SCHEMA\`,
           \`REFERENCED_TABLE_NAME\`,
           \`REFERENCED_COLUMN_NAME\`
       FROM \`INFORMATION_SCHEMA\`.\`KEY_COLUMN_USAGE\`
@@ -619,7 +680,8 @@ class MysqlAdapter implements DriverInterface {
             columnName: result.REFERENCED_COLUMN_NAME,
             originColumnName: result.COLUMN_NAME,
             table: {
-              databaseName,
+              // foreign key can point to other database
+              databaseName: result.REFERENCED_TABLE_SCHEMA || databaseName,
               name: result.REFERENCED_TABLE_NAME
             }
           }

@@ -149,12 +149,13 @@ export default forwardRef<DataGridRefInterface|null, DataGridPropsInterface>((pr
         rowState={changes ? getRowState(changes, records, index) : 'normal'}
         changedValues={changes?.updated[index]}
         edit={props.edit}
+        onOpenReference={props.onOpenReference}
         columns={columns}
         key={index}
         gridRef={props.parentRef}
       />
     );
-  }, [columns, records, rowsCount, props.edit]);
+  }, [columns, records, rowsCount, props.edit, props.onOpenReference]);
 
 
   const renderElements = useCallback(() => {

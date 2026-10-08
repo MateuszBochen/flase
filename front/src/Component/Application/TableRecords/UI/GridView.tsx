@@ -28,6 +28,14 @@ import QueryRefreshWasRequested from '../Event/QueryRefreshWasRequested';
 import Popup from '../../../../UI/Popup/Popup';
 import Button from '../../../../UI/Button/Button';
 import toast from 'react-hot-toast';
+import {CellValueType, QuickFilterOperatorType} from '../../../Table/Interface/RecordsViewPropsInterface';
+import SqlLiteral from '../../../../Library/Database/Driver/Adapter/MySql/SqlLiteral';
+import FilterWasRequested from '../Event/FilterWasRequested';
+import DriverFactory from '../../../../Library/Database/Driver/DriverFactory';
+import openTableTab from '../openTableTab';
+import {CopyFormatType, EXPORT_FILE, formatCopy} from '../../../Table/Copy/CopyFormats';
+import downloadText from '../../../../Library/File/downloadText';
+import {SingleRowType} from '../../../Table/Interface/RecordsViewPropsInterface';
 
 type PendingSubmitType = {
   editable: EditableResultInterface;
@@ -43,6 +51,7 @@ export default (props: GridViewPropsInterface) => {
   const recordsRef = useRef<RecordsViewRefInterface|null>(null);
 
   const columnsRef = useRef<string>('*');
+  const exportCounter = useRef<number>(0);
 
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [sqlPreview, setSqlPreview] = useState<SqlPreviewType | null>(null);
@@ -218,6 +227,90 @@ export default (props: GridViewPropsInterface) => {
     }
   }, [sendRowChanges]);
 
+  /** quick filter from cell - condition is added to WHERE of query */
+  const onQuickFilter = useCallback((column: ColumnInterface, value: CellValueType, operator: QuickFilterOperatorType) => {
+    if (operator === 'clear') {
+      EventBus.emit(new FilterWasRequested({tabId: props.tabId, condition: null}));
+      return;
+    }
+    // expressions have no table column - filter by expression alias is not possible in WHERE
+    const name = column.orgName || column.name;
+    // name repeated in result (JOIN) must be qualified by table alias
+    const identifier = column.key !== column.name && column.alias
+      ? `${SqlLiteral.identifier(column.alias)}.${SqlLiteral.identifier(name)}`
+      : SqlLiteral.identifier(name);
+    const condition = operator === 'IS NULL' || operator === 'IS NOT NULL'
+      ? `${identifier} ${operator}`
+      : `${identifier} ${operator} ${SqlLiteral.value(value)}`;
+    EventBus.emit(new FilterWasRequested({tabId: props.tabId, condition}));
+  }, [props.tabId]);
+
+  /**
+   * all rows of current query as file - the query is run again without LIMIT,
+   * rows are collected by own tabId so the grid is not touched
+   */
+  const onExportAll = useCallback((format: CopyFormatType, fileName: string) => {
+    const currentQuery = props.queryRef?.current;
+    if (!currentQuery) {
+      toast.error('Query is not loaded yet');
+      return;
+    }
+    const exportTabId = `${props.tabId}:export:${++exportCounter.current}`;
+    const toastId = `export-${exportTabId}`;
+    let columns: ColumnInterface[] = [];
+    let table: string | undefined;
+    const rows: SingleRowType[] = [];
+
+    toast.loading('Exporting…', {id: toastId});
+    const eventId = EventBus.subscribe<MessageInterface<any>>(WebsocketReceivedAMessage.name, (event) => {
+      const message = event.getData();
+      if (message.payload?.tabId !== exportTabId) {
+        return;
+      }
+      switch (message.message) {
+        case MessageType.SINGLE_SELECT_COLUMN:
+          columns = message.payload.columns;
+          table = message.payload.editable?.table.name;
+          break;
+        case MessageType.SINGLE_SELECT_RECORD:
+          rows.push(message.payload.rowDataValue);
+          if (rows.length % 5000 === 0) {
+            toast.loading(`Exporting… ${rows.length.toLocaleString()} rows`, {id: toastId});
+          }
+          break;
+        case MessageType.QUERY_FINISHED: {
+          EventBus.unSub(eventId);
+          const file = EXPORT_FILE[format];
+          downloadText(`${fileName}.${file.extension}`, formatCopy(format, columns, rows, table), file.mimeType);
+          toast.success(`Exported ${rows.length.toLocaleString()} row(s)`, {id: toastId});
+          break;
+        }
+        case MessageType.QUERY_ERROR:
+          EventBus.unSub(eventId);
+          toast.error(`Export failed: ${message.payload.error}`, {id: toastId});
+          break;
+      }
+    });
+
+    RecordManager.getInstance().sendQuery(props.connection, {
+      query: currentQuery.withoutLimit(),
+      database: props.database,
+      tabId: exportTabId,
+    });
+  }, [props.connection, props.database, props.tabId, props.queryRef]);
+
+  /** foreign key value - open referenced row */
+  const onOpenReference = useCallback((column: ColumnInterface, value: CellValueType, newTab: boolean) => {
+    const reference = column.reference;
+    if (!reference) return;
+    const query = DriverFactory.getDriver(props.connection).getRowsQuery(
+      reference.table,
+      reference.table.databaseName,
+      [{column: reference.columnName, value}],
+    );
+    openTableTab(props.connection, reference.table, {query, newTab});
+  }, [props.connection]);
+
   /**
    * Handle page change
    */
@@ -247,6 +340,10 @@ export default (props: GridViewPropsInterface) => {
         cellRender={undefined}
         onPreviewChanges={onPreviewChanges}
         onSubmitChanges={onSubmitChanges}
+        onOpenReference={onOpenReference}
+        onQuickFilter={onQuickFilter}
+        onExportAll={onExportAll}
+        exportName={props.table.tableName}
         submitting={submitting}
       />
       {sqlPreview && (

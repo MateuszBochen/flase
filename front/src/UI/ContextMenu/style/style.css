@@ -58,3 +58,24 @@
   margin: 4px 0;
   background-color: #555;
 }
+
+.ui-context-menu .ui-context-menu-submenu {
+  position: relative;
+}
+
+.ui-context-menu .ui-context-menu-nested {
+  position: absolute;
+  top: -5px;
+  left: 100%;
+  min-width: 160px;
+}
+
+.ui-context-menu .ui-context-menu-submenu.open > .ui-context-menu-item {
+  color: #ffffff;
+  background-color: #4b6eaf;
+}
+
+.ui-context-menu.nested-left .ui-context-menu-nested {
+  left: auto;
+  right: 100%;
+}

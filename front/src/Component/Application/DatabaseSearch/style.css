@@ -1,0 +1,116 @@
+.cmp-database-search {
+  height: 100%;
+  overflow: auto;
+  padding: 10px;
+  color: #a9b7c6;
+  background-color: #2b2b2b;
+}
+
+.cmp-database-search .search-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cmp-database-search .search-database {
+  color: #cc7832;
+}
+
+.cmp-database-search .search-term {
+  flex: 1;
+  max-width: 600px;
+}
+
+.cmp-database-search input,
+.cmp-database-search select,
+.cmp-database-search .search-form button {
+  padding: 3px 8px;
+  border: solid 1px #555;
+  border-radius: 3px;
+  color: #a9b7c6;
+  background-color: #1e1e1e;
+  font: inherit;
+}
+
+.cmp-database-search .search-form button {
+  color: #ffffff;
+  background-color: #4b6eaf;
+  cursor: pointer;
+}
+
+.cmp-database-search .search-form button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.cmp-database-search .search-summary {
+  min-height: 20px;
+  margin: 10px 0 6px;
+  color: #808080;
+}
+
+.cmp-database-search .search-warning {
+  margin-bottom: 8px;
+  padding: 6px 10px;
+  color: #e0c46c;
+  border-left: solid 3px #e0c46c;
+  font-family: monospace;
+}
+
+.cmp-database-search .search-results {
+  border-collapse: collapse;
+  min-width: 60%;
+}
+
+.cmp-database-search .search-results th,
+.cmp-database-search .search-results td {
+  padding: 3px 12px 3px 4px;
+  border-bottom: solid 1px #3c3f41;
+  text-align: left;
+  vertical-align: top;
+}
+
+.cmp-database-search .search-results th {
+  color: #808080;
+  font-weight: normal;
+}
+
+.cmp-database-search .search-results td.rows {
+  text-align: right;
+}
+
+.cmp-database-search .search-link {
+  padding: 0;
+  border: none;
+  color: #589df6;
+  background: none;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.cmp-database-search .search-column {
+  margin: 0 6px 2px 0;
+  padding: 0 6px;
+  border: solid 1px #555;
+  border-radius: 10px;
+  color: #bbbbbb;
+  background: #3c3f41;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.cmp-database-search .search-column span {
+  color: #808080;
+}
+
+.cmp-database-search .search-column:hover {
+  color: #ffffff;
+  border-color: #4b6eaf;
+}
+
+.cmp-database-search .search-empty {
+  color: #808080;
+  font-style: italic;
+}

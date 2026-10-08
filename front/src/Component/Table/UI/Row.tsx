@@ -1,5 +1,6 @@
 import RowPropsInterface from '../Interface/RowPropsInterface';
 import Cell from './Cell';
+import {isInSelection} from '../Interface/GridEditInterface';
 
 /** Row */
 export default (props: RowPropsInterface) => {
@@ -31,6 +32,13 @@ export default (props: RowPropsInterface) => {
             changed={props.rowState === 'inserted' || (!!props.changedValues && column.key in props.changedValues)}
             isEditing={isEditing}
             onDoubleClick={canEditCell ? () => edit!.onStartEdit(props.rowIndex, column) : undefined}
+            selected={isInSelection(edit?.selection || null, props.rowIndex, index)}
+            onMouseDown={edit ? (event) => {
+              if (event.button === 0 && !isEditing) {
+                edit.onCellMouseDown(props.rowIndex, index, event.shiftKey ? 'extend' : event.ctrlKey || event.metaKey ? 'add' : 'replace');
+              }
+            } : undefined}
+            onMouseEnter={edit ? () => edit.onCellMouseEnter(props.rowIndex, index) : undefined}
             onContextMenu={edit ? (event) => {
               event.preventDefault();
               event.stopPropagation();
@@ -38,6 +46,10 @@ export default (props: RowPropsInterface) => {
             } : undefined}
             onCommit={(value) => edit!.onCommitEdit(props.rowIndex, column, value)}
             onCancel={() => edit!.onCancelEdit()}
+            onOpenReference={props.onOpenReference && column.reference && props.rowState !== 'inserted'
+              && props.rowItem[column.key] !== null && props.rowItem[column.key] !== undefined
+              ? (newTab) => props.onOpenReference!(column, props.rowItem[column.key], newTab)
+              : undefined}
           />
         );
       })}

@@ -90,6 +90,50 @@ class QueryModel implements QueryInterface {
 
     return this.changeQuery(this.parser.sqlify(localParsed));
   }
+
+  getWhere(): string {
+    const select = this.singleSelect();
+    if (!select?.where) {
+      return '';
+    }
+    const where = this.parser.exprToSQL(select.where as any);
+    // default query of table uses WHERE 1
+    return where === '1' ? '' : where;
+  }
+
+  changeWhere(where: string): QueryInterface {
+    const select = this.singleSelect();
+    if (!select) {
+      throw new Error('Filter works only for single SELECT query');
+    }
+    // parsed AST is shared with history, work on a copy
+    const ast = JSON.parse(JSON.stringify(select));
+    const condition = where.trim();
+    ast.where = condition ? (this.parser.astify(`SELECT 1 FROM t WHERE ${condition}`) as Select).where : null;
+
+    if (ast.limit?.seperator === ',') {
+      ast.limit.value[0].value = 0;
+    } else if (ast.limit?.seperator === 'offset') {
+      ast.limit.value[1].value = 0;
+    }
+
+    return new QueryModel(this.parser.sqlify(ast), this.parser);
+  }
+
+  withoutLimit(): QueryInterface {
+    const select = this.singleSelect();
+    if (!select?.limit) {
+      return this;
+    }
+    const ast = JSON.parse(JSON.stringify(select));
+    ast.limit = null;
+    return new QueryModel(this.parser.sqlify(ast), this.parser);
+  }
+
+  private singleSelect(): Select | null {
+    const statement = Array.isArray(this.parsed) ? (this.parsed.length === 1 ? this.parsed[0] : null) : this.parsed;
+    return statement && statement.type === 'select' ? statement as Select : null;
+  }
 }
 
 export default QueryModel;

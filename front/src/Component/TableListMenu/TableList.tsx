@@ -3,6 +3,10 @@ import TableListPropsInterface from './Interface/TableListPropsInterface';
 import {useCallback, useEffect, useState} from 'react';
 import TableInformationInterface from '../../Library/Table/Interface/TableInformationInterface';
 import TableItem from './TableItem';
+import TabOpener from '../TabOpener/TabOpener';
+import DatabaseSearch, {DatabaseSearchPropsInterface} from '../Application/DatabaseSearch/DatabaseSearch';
+import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
+import {faMagnifyingGlass} from '@fortawesome/free-solid-svg-icons';
 
 /** TableList */
 export default (props: TableListPropsInterface) => {
@@ -13,6 +17,7 @@ export default (props: TableListPropsInterface) => {
     setState(props.tables);
   }, [props.tables]);
 
+  /** comma separates alternatives: "ord, cust" */
   const compare = useCallback((input: string, filter: string):boolean => {
     const splitFilter = filter.split(',');
     for (const key in splitFilter) {
@@ -31,13 +36,25 @@ export default (props: TableListPropsInterface) => {
           e.preventDefault()
         }}
       >
-        <div>
+        <div className="table-list-filter">
           <input
             type="text"
             className="form-control"
             value={filter}
+            placeholder="Filter tables…"
             onChange={(e) => setFilter(e.target.value.toLowerCase())}
           />
+          <TabOpener<DatabaseSearchPropsInterface>
+            tooltip={`Search in data of ${props.database.name}`}
+            tab={{
+              component: DatabaseSearch,
+              props: {connection: props.connection, database: props.database},
+              tabName: `Search: ${props.database.name}`,
+              isActive: false,
+            }}
+          >
+            <FontAwesomeIcon icon={faMagnifyingGlass} />
+          </TabOpener>
         </div>
         <ul>
           {state.filter((tableItem) => compare(tableItem.tableName, filter)).map((filteredItem) =>(

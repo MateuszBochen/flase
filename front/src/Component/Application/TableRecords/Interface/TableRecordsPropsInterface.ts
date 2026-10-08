@@ -7,6 +7,8 @@ interface TableRecordsPropsInterface extends ApplicationInterface {
   connection: ConnectionDataInterface;
   database: Database;
   table: TableInformationInterface;
+  /** query instead of default SELECT of table, e.g. row of foreign key */
+  initialQuery?: string;
 }
 
 export default TableRecordsPropsInterface;
