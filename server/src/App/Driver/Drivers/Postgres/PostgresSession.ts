@@ -156,6 +156,10 @@ class PostgresSession implements DriverSessionInterface {
     await this.client.query(`SET search_path TO ${path}`);
   }
 
+  async setReadOnly(): Promise<void> {
+    await this.client.query('SET default_transaction_read_only = on');
+  }
+
   /** called by adapter before pg_cancel_backend */
   markCancelled(): void {
     this.cancelled = true;

@@ -30,7 +30,7 @@
 
 ::-webkit-scrollbar-track
 {
-  border: 6px solid rgba(255, 255, 255, 0.1);
+  border: 6px solid var(--hover-strong);
   /*// border color does not support transparent on scrollbar*/
   /*// border-color: transparent;*/
   background-color: var(--light-scrollbar-track-color);
@@ -60,8 +60,8 @@ body {
   font-family: 'Sofia Sans', sans-serif;
   width: 100vw;
   height: 100vh;
-  background-color: #2b2b2b;
-  color: #bcc7cd;
+  background-color: var(--bg);
+  color: var(--text-strong);
 }
 #root {
   width: 100vw;

@@ -13,6 +13,7 @@ export default  (props: TabLabelListPropsInterface) => {
           return (
             <TabItem
               label={label}
+              color={props.colors?.[index]}
               isActive={index === props.activeIndex}
               onClick={props.onLabelClick}
               onClose={props.onLabelClose}

@@ -10,7 +10,7 @@ import ConnectionManager from './Library/Connection/ConnectionManager';
 import ResizableColumns from './UI/ResizableColumns/ResizableColumns';
 
 const styleOfMainLeftMenu = {
-  background: '#3c3f41',
+  background: 'var(--panel)',
   height: '100%',
 }
 

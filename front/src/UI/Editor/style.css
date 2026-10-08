@@ -16,7 +16,7 @@
     font-weight: 400;
     font-size: 14px;
     width: 100%;
-    caret-color: #91989c;
+    caret-color: var(--text-muted);
     padding: 11px 7px 7px 8px;
 }
 

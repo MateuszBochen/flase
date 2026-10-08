@@ -1,0 +1,62 @@
+.cmp-connection-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 460px;
+}
+
+.cmp-connection-settings label:not(.checkbox) {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cmp-connection-settings label.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cmp-connection-settings input:not([type="checkbox"]) {
+  padding: 3px 6px;
+  border: solid 1px var(--border-strong);
+  border-radius: 3px;
+  color: inherit;
+  background-color: var(--input-bg);
+  font: inherit;
+}
+
+.cmp-connection-settings .readonly-field span,
+.cmp-connection-settings .color-field > span {
+  display: inline-block;
+  min-width: 50px;
+  color: var(--text-muted);
+}
+
+.cmp-connection-settings .color-field {
+  display: flex;
+  align-items: center;
+}
+
+.cmp-connection-settings .color-options {
+  display: flex;
+  gap: 6px;
+}
+
+.cmp-connection-settings .color-option {
+  width: 20px;
+  height: 20px;
+  border: solid 2px transparent;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.cmp-connection-settings .color-option.none {
+  background: linear-gradient(135deg, transparent 45%, #d9534f 45%, #d9534f 55%, transparent 55%);
+  border-color: var(--border-strong);
+}
+
+.cmp-connection-settings .color-option.selected {
+  border-color: var(--text, #ffffff);
+  box-shadow: 0 0 0 1px #000;
+}

@@ -1,4 +1,5 @@
 import AbstractCommandHandler from './AbstractCommandHandler';
+import ReadOnlyGuard from '../../Driver/Query/ReadOnlyGuard';
 import WsMessage from '../Dto/WsMessage';
 import MessageType from '../Enum/MessageType';
 import DriverSessionInterface from '../../Driver/DriverSessionInterface';
@@ -34,6 +35,12 @@ class ExecuteStatementsCommandHandler extends AbstractCommandHandler<ExecuteStat
     let session: DriverSessionInterface;
     try {
       session = await this.driver.openSession(data.database || null, data.tabId);
+      if (ReadOnlyGuard.isReadOnly(this.command)) {
+        await session.setReadOnly().catch((e) => {
+          session.release();
+          throw e;
+        });
+      }
     } catch (e) {
       this.sendError(e, data.tabId);
       return;

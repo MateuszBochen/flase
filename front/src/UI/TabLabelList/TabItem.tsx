@@ -24,7 +24,8 @@ export default (props: TabItemPropsInterface) => {
 
   return (
     <li
-      className={`tab-label-list-item ${props.isActive ? 'active' : ''}`}
+      className={`tab-label-list-item ${props.isActive ? 'active' : ''} ${props.color ? 'colored' : ''}`}
+      style={props.color ? {borderTopColor: props.color} : undefined}
       onMouseDown={onMousedownHandler}
     >
       {props.label}

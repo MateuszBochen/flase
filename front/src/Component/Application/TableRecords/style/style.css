@@ -1,5 +1,5 @@
 .table-records-root {
-    background-color: #4e5052;
+    background-color: var(--tab-bg);
     height: 100%;
     max-height: 100%;
 }
@@ -24,7 +24,7 @@
 }
 .cmp-table-data-navbar .cmp-table-data-navbar-buttons {
     display: flex;
-    background-color: #1e1e1e;
+    background-color: var(--input-bg);
 }
 .cmp-table-data-navbar .cmp-table-data-navbar-editor-wrapper {
     width: 100%;
@@ -75,7 +75,7 @@
 }
 
 .speed-dial-buttons {
-    /*border-bottom: solid 1px #84868b;*/
+    /*border-bottom: solid 1px var(--text-muted);*/
 }
 
 
@@ -131,8 +131,8 @@
 .cmp-explain .explain-query {
     margin: 0;
     padding: 6px 8px;
-    color: #a9b7c6;
-    background-color: #1e1e1e;
+    color: var(--text);
+    background-color: var(--input-bg);
     white-space: pre-wrap;
     word-break: break-all;
     font-size: 0.85rem;
@@ -141,9 +141,9 @@
     height: 260px;
 }
 .cmp-explain .explain-error {
-    color: #ff6b68;
+    color: var(--danger-text);
     font-family: monospace;
 }
 .cmp-explain .explain-loading {
-    color: #808080;
+    color: var(--text-muted);
 }

@@ -1,0 +1,25 @@
+.cmp-shortcut-help {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 6px 24px;
+  min-width: 640px;
+}
+
+.cmp-shortcut-help h4 {
+  margin: 6px 0;
+  color: var(--title);
+  font-weight: normal;
+}
+
+.cmp-shortcut-help .shortcut {
+  display: flex;
+  gap: 10px;
+  padding: 2px 0;
+}
+
+.cmp-shortcut-help kbd {
+  min-width: 170px;
+  color: var(--accent);
+  font-family: monospace;
+  font-size: 0.85rem;
+}

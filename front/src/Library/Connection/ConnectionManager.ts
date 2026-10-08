@@ -1,3 +1,4 @@
+import ConnectionWasUpdated from './Event/ConnectionWasUpdated';
 import EventBus from '../EventBus/EventBus';
 import ConnectionFormWasSubmitted from '../../Component/ConnectionForm/Event/ConnectionFormWasSubmitted';
 import EventInterface from '../EventBus/EventInterface';
@@ -51,6 +52,14 @@ class ConnectionManager {
   /** private constructor - do not allow for create second new object */
   private constructor() {
     this.listOfEstablishedConnections = ConnectionSettings.getInstance().getEstablishedConnection();
+
+    /** commands carry connection of login - it must have current settings (read only) */
+    EventBus.subscribe(ConnectionWasUpdated.name, (event: EventInterface<ConnectionDataInterface>) => {
+      const established = this.listOfEstablishedConnections[event.getData().id];
+      if (established && established.connection !== event.getData()) {
+        Object.assign(established.connection, event.getData());
+      }
+    });
 
     /** Event subscriber for handle event of connection form submit */
     EventBus.subscribe(ConnectionFormWasSubmitted.name, (event: EventInterface<ConnectionRequestInterface>) => {

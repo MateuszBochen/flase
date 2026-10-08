@@ -18,9 +18,11 @@ import ExplainPopup from './UI/ExplainPopup';
 import NewTabComponentWasSelected from '../../ApplicationRenderer/Event/NewTabComponentWasSelected';
 import TransferTab, {TransferTabPropsInterface} from '../Transfer/TransferTab';
 import QueryInterface from '../../../Library/Database/Interface/QueryInterface';
+import useConnectionSettings from '../../../Library/Connection/useConnectionSettings';
 
 /** TableRecords */
 const TableRecords = (props: TableRecordsPropsInterface) => {
+  const connection = useConnectionSettings(props.connection);
   const [view, setView] = useState<TableViewType>('data');
   /** table does not exist under this name anymore */
   const [gone, setGone] = useState<string | null>(null);
@@ -84,6 +86,7 @@ const TableRecords = (props: TableRecordsPropsInterface) => {
         onReload={onReload}
         onTableOperation={(operation: TableOperationType) => operationsRef.current?.start(operation)}
         tableOperationsDisabled={!!gone}
+        readOnly={!!connection.readOnly}
         onExplain={() => queryRef.current && setExplainQuery(queryRef.current.query)}
         onTransfer={() => EventBus.emit(new NewTabComponentWasSelected<TransferTabPropsInterface>({
           component: TransferTab,

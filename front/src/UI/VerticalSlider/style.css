@@ -1,5 +1,5 @@
 .vertical-slider-root {
-  background: #00000036;
+  background: var(--inset);
   margin: 3px;
   border-radius: 10px;
   padding: 3px;
@@ -20,7 +20,7 @@
 
 .vertical-slider-root ul .vertical-slider-item {
   padding: 3px;
-  border-bottom: solid 1px #3c3f41;
+  border-bottom: solid 1px var(--panel);
   cursor: pointer;
 }
 .vertical-slider-root ul .vertical-slider-item:last-child {
@@ -33,7 +33,7 @@
 }
 .vertical-slider-root ul .vertical-slider-item.active > .vertical-slider-item-component {
   display: block;
-  background: #00000036;
+  background: var(--inset);
   margin-left: 4px;
   padding: 4px;
   border-radius: 4px;
@@ -41,4 +41,15 @@
   max-height: 100%;
   height: auto;
   overflow: auto;
+}
+
+.vertical-slider-root ul .vertical-slider-item.colored {
+  border-left: solid 3px;
+  padding-left: 5px;
+}
+
+.vertical-slider-root ul .vertical-slider-item .connection-read-only {
+  margin-left: 6px;
+  color: #e8913a;
+  font-size: 0.8em;
 }

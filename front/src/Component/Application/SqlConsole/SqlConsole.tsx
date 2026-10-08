@@ -18,6 +18,7 @@ import QueryStore from '../../../Library/Console/QueryStore';
 import ConsoleResult from './ConsoleResult';
 import QueryLibrary from './QueryLibrary';
 import './style.css';
+import useConnectionSettings from '../../../Library/Connection/useConnectionSettings';
 
 export interface SqlConsolePropsInterface extends ApplicationInterface {
   connection: ConnectionDataInterface;
@@ -60,6 +61,7 @@ export default (props: SqlConsolePropsInterface) => {
   const editorRef = useRef<any>(null);
   const store = QueryStore.getInstance();
   const driver = DriverFactory.getDriver(props.connection);
+  const connection = useConnectionSettings(props.connection);
 
   const runner = useStatementRunner(props.connection, `${props.tabId}:console`, (statement, statementDatabase) => {
     store.addHistory(props.connection.id, {
@@ -211,6 +213,7 @@ export default (props: SqlConsolePropsInterface) => {
   return (
     <div className="cmp-sql-console">
       <div className="console-toolbar">
+        {connection.readOnly && <span className="console-read-only" title="Statements changing data or structure fail">READ ONLY</span>}
         <select
           className="console-database"
           value={database || ''}

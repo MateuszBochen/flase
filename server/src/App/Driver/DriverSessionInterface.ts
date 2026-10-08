@@ -47,6 +47,9 @@ interface DriverSessionInterface {
     maxRows: number,
   ): Promise<StatementResultType>;
 
+  /** statements of session cannot change data or structure (read only connection) */
+  setReadOnly(): Promise<void>;
+
   /** cancel was requested for the session - long running work (import) stops before next statement */
   isCancelled(): boolean;
 

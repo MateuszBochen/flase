@@ -24,6 +24,8 @@ import PostgresSession, {PgFieldInterface} from './PostgresSession';
 import PostgresCatalog, {CatalogColumnInterface} from './PostgresCatalog';
 import PostgresDdlBuilder from './PostgresDdlBuilder';
 import PostgresDumper from './PostgresDumper';
+import PostgresUsers from './PostgresUsers';
+import {UserManagerInterface} from '../../Interface/Data/UserInterface';
 const { Parser } = require('node-sql-parser');
 
 /** types without = operator - rows are identified by text form of value */
@@ -63,6 +65,10 @@ class PostgresAdapter implements DriverInterface {
     this.pool = pool;
     this.connected = true;
     return this;
+  }
+
+  users(): UserManagerInterface {
+    return new PostgresUsers((sql, params) => this.queryRows(sql, params));
   }
 
   disconnect(): void {

@@ -19,7 +19,8 @@ const RECONNECT_DELAYS_MS = [1000, 2000, 5000, 10000, 30000];
 
 /** commands with answer for a tab, client must tell the tab when the answer will never come */
 const TAB_COMMANDS = [CommandType.SEND_SELECT_QUERY, CommandType.APPLY_ROW_CHANGES, CommandType.GET_TABLE_STRUCTURE, CommandType.CHANGE_STRUCTURE, CommandType.SEARCH_DATABASE,
-  CommandType.EXECUTE_STATEMENTS, CommandType.GET_PROCESSLIST, CommandType.KILL_PROCESS, CommandType.CREATE_TRANSFER];
+  CommandType.EXECUTE_STATEMENTS, CommandType.GET_PROCESSLIST, CommandType.KILL_PROCESS, CommandType.CREATE_TRANSFER,
+  CommandType.GET_USERS, CommandType.GET_USER_GRANTS, CommandType.CHANGE_USER];
 
 /**
  * Websocket of one established connection.
@@ -160,6 +161,10 @@ class WebSocketApiClient {
       MessageType.PROCESSLIST,
       MessageType.PROCESS_KILLED,
       MessageType.TRANSFER_TICKET,
+      MessageType.USERS,
+      MessageType.USER_GRANTS,
+      MessageType.USER_CHANGE_PREVIEW,
+      MessageType.USER_CHANGE_APPLIED,
     ].includes(message.message);
   }
 }

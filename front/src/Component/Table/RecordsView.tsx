@@ -311,7 +311,13 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const ctrl = event.ctrlKey || event.metaKey;
-    if (ctrl && event.key.toLowerCase() === 'c' && selection) {
+    if (ctrl && event.key.toLowerCase() === 's') {
+      // browser would save the page
+      event.preventDefault();
+      if (canEdit && pendingCount > 0 && !props.submitting) {
+        onSubmit();
+      }
+    } else if (ctrl && event.key.toLowerCase() === 'c' && selection) {
       event.preventDefault();
       copySelection('tsv');
     } else if (ctrl && event.key.toLowerCase() === 'a') {

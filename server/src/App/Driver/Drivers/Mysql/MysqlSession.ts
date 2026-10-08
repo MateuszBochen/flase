@@ -177,6 +177,10 @@ class MysqlSession implements DriverSessionInterface {
     });
   }
 
+  async setReadOnly(): Promise<void> {
+    await this.query('SET SESSION TRANSACTION READ ONLY');
+  }
+
   /** called by adapter before KILL QUERY */
   markCancelled(): void {
     this.cancelled = true;

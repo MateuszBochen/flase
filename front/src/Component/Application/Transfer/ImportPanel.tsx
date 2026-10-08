@@ -13,6 +13,7 @@ import ConsoleApi from '../../../Library/Console/ConsoleApi';
 import CsvParser from '../../../Library/Transfer/CsvParser';
 import {CsvImportOptionsInterface, ImportFinishedInterface, ImportProgressInterface} from '../../../Library/Transfer/TransferInterface';
 import {formatBytes} from '../../../Library/Record/BinaryValue';
+import useConnectionSettings from '../../../Library/Connection/useConnectionSettings';
 
 interface ImportPanelPropsInterface {
   connection: ConnectionDataInterface;
@@ -35,6 +36,7 @@ const detectDelimiter = (text: string): string => {
 /** ImportPanel - SQL script (also .gz) or CSV into existing table */
 export default (props: ImportPanelPropsInterface) => {
   const tableManager = TableManager.getInstance();
+  const connection = useConnectionSettings(props.connection);
   const [file, setFile] = useState<File | null>(null);
   const [tables, setTables] = useState(tableManager.getTablesListForDatabase(props.connection, {name: props.database}));
   const [stopOnError, setStopOnError] = useState<boolean>(true);
@@ -140,11 +142,12 @@ export default (props: ImportPanelPropsInterface) => {
 
   const current = finished || progress;
   const percent = uploaded.total ? Math.round(uploaded.sent / uploaded.total * 100) : 0;
-  const canStart = !!file && !running && (!isCsv || (!!table && mapping.some((column) => !!column)));
+  const canStart = !connection.readOnly && !!file && !running && (!isCsv || (!!table && mapping.some((column) => !!column)));
 
   return (
     <section className="transfer-panel">
       <h3>Import</h3>
+      {connection.readOnly && <div className="transfer-error">Connection is read only - import is not allowed.</div>}
       <div className="import-file">
         <input
           type="file"

@@ -2,8 +2,8 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  color: #a9b7c6;
-  background-color: #2b2b2b;
+  color: var(--text);
+  background-color: var(--bg);
 }
 
 .cmp-sql-console button {
@@ -16,24 +16,24 @@
   gap: 4px;
   height: 30px;
   padding: 0 6px;
-  background-color: #3c3f41;
-  border-bottom: solid 1px #2b2b2b;
+  background-color: var(--panel);
+  border-bottom: solid 1px var(--bg);
 }
 
 .cmp-sql-console .console-toolbar button,
 .cmp-sql-console .console-toolbar select {
   height: 22px;
   padding: 0 8px;
-  border: solid 1px #555;
+  border: solid 1px var(--border-strong);
   border-radius: 3px;
-  color: #bbbbbb;
-  background-color: #2b2b2b;
+  color: var(--text-strong);
+  background-color: var(--bg);
   cursor: pointer;
 }
 
 .cmp-sql-console .console-toolbar button:hover:not(:disabled) {
   color: #ffffff;
-  background-color: #4c5052;
+  background-color: var(--tab-bg);
 }
 
 .cmp-sql-console .console-toolbar button:disabled {
@@ -47,13 +47,13 @@
 }
 
 .cmp-sql-console .console-toolbar button.danger {
-  color: #ff8a87;
+  color: var(--danger-text-soft);
   border-color: #a8413e;
 }
 
 .cmp-sql-console .console-toolbar .console-database {
   min-width: 160px;
-  color: #cc7832;
+  color: var(--accent);
 }
 
 .cmp-sql-console .console-spacer {
@@ -74,7 +74,7 @@
 .cmp-sql-console .console-resize {
   flex: none;
   height: 5px;
-  background-color: #3c3f41;
+  background-color: var(--panel);
   cursor: row-resize;
 }
 
@@ -93,14 +93,14 @@
   display: flex;
   flex: none;
   height: 24px;
-  background-color: #3c3f41;
+  background-color: var(--panel);
 }
 
 .cmp-sql-console .console-result-tabs button {
   padding: 0 12px;
   border: none;
   border-bottom: solid 2px transparent;
-  color: #9a9a9a;
+  color: var(--text-muted);
   background: transparent;
   cursor: pointer;
 }
@@ -127,14 +127,14 @@
 
 .cmp-sql-console .console-hint {
   padding: 6px 10px;
-  color: #808080;
+  color: var(--text-muted);
 }
 
 .cmp-sql-console .console-log {
   display: flex;
   gap: 10px;
   padding: 2px 10px;
-  border-bottom: solid 1px #333;
+  border-bottom: solid 1px var(--border);
 }
 
 .cmp-sql-console .console-log.clickable {
@@ -142,7 +142,7 @@
 }
 
 .cmp-sql-console .console-log.clickable:hover {
-  background-color: rgba(255, 255, 255, 0.04);
+  background-color: var(--hover);
 }
 
 .cmp-sql-console .console-log .log-status {
@@ -150,17 +150,17 @@
 }
 
 .cmp-sql-console .console-log.done .log-status {
-  color: #6a8759;
+  color: var(--success-text);
 }
 
 .cmp-sql-console .console-log.error .log-status,
 .cmp-sql-console .console-log.error .log-result {
-  color: #ff6b68;
+  color: var(--danger-text);
 }
 
 .cmp-sql-console .console-log.skipped,
 .cmp-sql-console .console-log.waiting {
-  color: #6f6f6f;
+  color: var(--text-muted);
 }
 
 .cmp-sql-console .console-log .log-sql {
@@ -179,7 +179,7 @@
 .cmp-sql-console .console-log .log-time {
   width: 70px;
   text-align: right;
-  color: #808080;
+  color: var(--text-muted);
 }
 
 /**   HISTORY / SAVED   */
@@ -188,8 +188,8 @@
   flex-direction: column;
   width: 280px;
   flex: none;
-  border-left: solid 1px #3c3f41;
-  background-color: #2b2b2b;
+  border-left: solid 1px var(--panel);
+  background-color: var(--bg);
 }
 
 .cmp-query-library .library-tabs {
@@ -201,8 +201,8 @@
   flex: 1;
   border: none;
   border-bottom: solid 2px transparent;
-  color: #9a9a9a;
-  background: #3c3f41;
+  color: var(--text-muted);
+  background: var(--panel);
   cursor: pointer;
 }
 
@@ -214,10 +214,10 @@
 .cmp-query-library .library-filter {
   margin: 4px;
   padding: 2px 6px;
-  border: solid 1px #555;
+  border: solid 1px var(--border-strong);
   border-radius: 3px;
-  color: #a9b7c6;
-  background-color: #1e1e1e;
+  color: var(--text);
+  background-color: var(--input-bg);
 }
 
 .cmp-query-library .library-list {
@@ -227,19 +227,19 @@
 
 .cmp-query-library .library-item {
   padding: 4px 6px;
-  border-bottom: solid 1px #333;
+  border-bottom: solid 1px var(--border);
 }
 
 .cmp-query-library .library-item:hover {
-  background-color: rgba(255, 255, 255, 0.04);
+  background-color: var(--hover);
 }
 
 .cmp-query-library .library-item.failed .library-sql {
-  color: #ff8a87;
+  color: var(--danger-text-soft);
 }
 
 .cmp-query-library .library-name {
-  color: #ffc66d;
+  color: var(--title);
   cursor: pointer;
 }
 
@@ -259,7 +259,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #6f6f6f;
+  color: var(--text-muted);
   font-size: 0.75rem;
 }
 
@@ -270,7 +270,7 @@
 .cmp-query-library .library-meta button {
   padding: 0 3px;
   border: none;
-  color: #808080;
+  color: var(--text-muted);
   background: none;
   cursor: pointer;
 }
@@ -281,16 +281,16 @@
 
 .cmp-query-library .library-empty {
   padding: 8px;
-  color: #6f6f6f;
+  color: var(--text-muted);
   font-style: italic;
 }
 
 .cmp-query-library .library-clear {
   margin: 6px;
   padding: 1px 8px;
-  border: solid 1px #555;
+  border: solid 1px var(--border-strong);
   border-radius: 3px;
-  color: #9a9a9a;
+  color: var(--text-muted);
   background: none;
   cursor: pointer;
 }
@@ -301,4 +301,24 @@
   font-family: monospace;
   font-size: 0.85rem;
   white-space: pre-wrap;
+}
+
+.cmp-sql-console .console-read-only {
+  padding: 1px 6px;
+  border-radius: 3px;
+  color: #ffffff;
+  background-color: #a8413e;
+  font-size: 0.75rem;
+  font-weight: bold;
+  letter-spacing: 0.05em;
+}
+
+.cmp-sql-console .console-read-only {
+  padding: 1px 6px;
+  border-radius: 3px;
+  color: #ffffff;
+  background-color: #a8413e;
+  font-size: 0.75rem;
+  font-weight: bold;
+  letter-spacing: 0.05em;
 }

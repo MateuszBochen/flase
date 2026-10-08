@@ -6,7 +6,8 @@ import TableItem from './TableItem';
 import TabOpener from '../TabOpener/TabOpener';
 import DatabaseSearch, {DatabaseSearchPropsInterface} from '../Application/DatabaseSearch/DatabaseSearch';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
-import {faMagnifyingGlass, faRightLeft, faTerminal} from '@fortawesome/free-solid-svg-icons';
+import {faDiagramProject, faMagnifyingGlass, faRightLeft, faTerminal} from '@fortawesome/free-solid-svg-icons';
+import ErDiagram, {ErDiagramPropsInterface} from '../Application/ErDiagram/ErDiagram';
 import TransferTab, {TransferTabPropsInterface} from '../Application/Transfer/TransferTab';
 import SqlConsole, {SqlConsolePropsInterface} from '../Application/SqlConsole/SqlConsole';
 
@@ -78,6 +79,17 @@ export default (props: TableListPropsInterface) => {
             }}
           >
             <FontAwesomeIcon icon={faRightLeft} />
+          </TabOpener>
+          <TabOpener<ErDiagramPropsInterface>
+            tooltip={`ER diagram of ${props.database.name}`}
+            tab={{
+              component: ErDiagram,
+              props: {connection: props.connection, database: props.database.name},
+              tabName: `ER: ${props.database.name}`,
+              isActive: false,
+            }}
+          >
+            <FontAwesomeIcon icon={faDiagramProject} />
           </TabOpener>
         </div>
         <ul>

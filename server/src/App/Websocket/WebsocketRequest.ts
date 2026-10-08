@@ -13,6 +13,8 @@ import ExecuteStatementsCommandHandler from './CommandHandler/ExecuteStatementsC
 import CreateTransferCommandHandler from './CommandHandler/CreateTransferCommandHandler';
 import {CancelQueryCommandHandler, GetProcessListCommandHandler, KillProcessCommandHandler} from './CommandHandler/ProcessCommandHandlers';
 import WsMessage from './Dto/WsMessage';
+import ReadOnlyGuard from '../Driver/Query/ReadOnlyGuard';
+import {ChangeUserCommandHandler, GetUserGrantsCommandHandler, GetUsersCommandHandler} from './CommandHandler/UserCommandHandlers';
 import MessageType from './Enum/MessageType';
 import QueryErrorInterface from '../Driver/Interface/Data/QueryErrorInterface';
 
@@ -64,6 +66,10 @@ class WebsocketRequest {
   }
 
   private resolveCommand(command:CommandInterface) : void {
+    const refused = ReadOnlyGuard.refuseCommand(command);
+    if (refused) {
+      throw new Error(refused);
+    }
     const clientWebsocket = new ClientWebSocket(this.clientWebsocket);
     switch (command.command) {
       case CommandType.RELOAD_DATABASE_LIST:
@@ -101,6 +107,15 @@ class WebsocketRequest {
         return;
       case CommandType.CREATE_TRANSFER:
         new CreateTransferCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
+        return;
+      case CommandType.GET_USERS:
+        new GetUsersCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
+        return;
+      case CommandType.GET_USER_GRANTS:
+        new GetUserGrantsCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
+        return;
+      case CommandType.CHANGE_USER:
+        new ChangeUserCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
         return;
       default:
         throw new Error(`Command ${command.command} not supported`);

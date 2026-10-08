@@ -1,7 +1,8 @@
 import DriverFactory from '../../../../Library/Database/Driver/DriverFactory';
 import React, {forwardRef, MouseEvent, useCallback, useEffect, useImperativeHandle, useState} from 'react';
 import {Prism as SyntaxHighlighter} from 'react-syntax-highlighter';
-import {darcula} from 'react-syntax-highlighter/dist/esm/styles/prism';
+import {darcula, prism} from 'react-syntax-highlighter/dist/esm/styles/prism';
+import {useTheme} from '../../../../Library/Theme/ThemeManager';
 import toast from 'react-hot-toast';
 import EventBus from '../../../../Library/EventBus/EventBus';
 import WebsocketReceivedAMessage from '../../../../Library/WebSocket/Event/WebsocketReceivedAMessage';
@@ -23,6 +24,7 @@ import IndexForm from './IndexForm';
 import useStructureChange from './useStructureChange';
 import SqlConfirmPopup from './SqlConfirmPopup';
 import './style.css';
+import useConnectionSettings from '../../../../Library/Connection/useConnectionSettings';
 
 interface StructureViewPropsInterface {
   connection: ConnectionDataInterface;
@@ -84,6 +86,8 @@ const Section = (props: {title: string, count?: number, action?: React.ReactNode
 
 /** StructureView - columns, indexes, keys, triggers and DDL of table, column / index changes with sql preview */
 export default forwardRef<StructureViewRefInterface, StructureViewPropsInterface>((props, ref) => {
+  const connection = useConnectionSettings(props.connection);
+  const theme = useTheme();
   const [structure, setStructure] = useState<TableStructureInterface | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -148,7 +152,7 @@ export default forwardRef<StructureViewRefInterface, StructureViewPropsInterface
   };
 
   const isTable = !!structure?.info && !/VIEW/i.test(structure.info.type);
-  const canChange = isTable && !props.gone;
+  const canChange = isTable && !props.gone && !connection.readOnly;
 
   const menuItems = (state: NonNullable<MenuState>): ContextMenuItem[] => {
     const copyName: ContextMenuItem = {
@@ -320,7 +324,7 @@ export default forwardRef<StructureViewRefInterface, StructureViewPropsInterface
           <Section title="DDL">
             <div className="structure-ddl">
               <button type="button" className="structure-action copy" onClick={copyDdl}>Copy</button>
-              <SyntaxHighlighter language="sql" style={darcula} customStyle={{margin: 0, background: '#1e1e1e', fontSize: '0.85rem'}}>
+              <SyntaxHighlighter language="sql" style={theme === 'light' ? prism : darcula} customStyle={{margin: 0, background: 'var(--input-bg)', fontSize: '0.85rem'}}>
                 {`${structure.ddl};`}
               </SyntaxHighlighter>
             </div>

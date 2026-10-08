@@ -2,23 +2,23 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  color: #a9b7c6;
-  background-color: #2b2b2b;
+  color: var(--text);
+  background-color: var(--bg);
 }
 
 .cmp-structure-view .structure-action {
   padding: 1px 8px;
-  border: solid 1px #555;
+  border: solid 1px var(--border-strong);
   border-radius: 3px;
-  color: #bbbbbb;
-  background-color: #3c3f41;
+  color: var(--text-strong);
+  background-color: var(--panel);
   font: inherit;
   cursor: pointer;
 }
 
 .cmp-structure-view .structure-action:hover:not(:disabled) {
   color: #ffffff;
-  background-color: #4c5052;
+  background-color: var(--tab-bg);
 }
 
 .cmp-structure-view .structure-action:disabled {
@@ -41,14 +41,14 @@
 }
 
 .cmp-structure-view .structure-error {
-  color: #ff6b68;
-  border-left: solid 3px #ff6b68;
+  color: var(--danger-text);
+  border-left: solid 3px var(--danger-text);
 }
 
 .cmp-structure-view .structure-warning {
   margin: 0 0 8px;
-  color: #e0c46c;
-  border-left: solid 3px #e0c46c;
+  color: var(--title-soft);
+  border-left: solid 3px var(--title-soft);
 }
 
 .cmp-structure-view .structure-info {
@@ -60,7 +60,7 @@
 
 .cmp-structure-view .structure-info > div span {
   margin-right: 6px;
-  color: #808080;
+  color: var(--text-muted);
 }
 
 .cmp-structure-view .structure-info > div.wide {
@@ -75,17 +75,17 @@
   margin: 0 0 4px;
   font-size: 0.95rem;
   font-weight: normal;
-  color: #cc7832;
+  color: var(--accent);
 }
 
 .cmp-structure-view .structure-count {
   margin-left: 6px;
-  color: #808080;
+  color: var(--text-muted);
   font-size: 0.8rem;
 }
 
 .cmp-structure-view .structure-empty {
-  color: #808080;
+  color: var(--text-muted);
   font-style: italic;
 }
 
@@ -97,23 +97,23 @@
 .cmp-structure-view .structure-table th,
 .cmp-structure-view .structure-table td {
   padding: 2px 10px 2px 4px;
-  border-bottom: solid 1px #3c3f41;
+  border-bottom: solid 1px var(--panel);
   text-align: left;
   vertical-align: top;
   white-space: nowrap;
 }
 
 .cmp-structure-view .structure-table th {
-  color: #808080;
+  color: var(--text-muted);
   font-weight: normal;
 }
 
 .cmp-structure-view .structure-table td.name {
-  color: #ffc66d;
+  color: var(--title);
 }
 
 .cmp-structure-view .structure-table td.type {
-  color: #6897bb;
+  color: var(--number);
 }
 
 .cmp-structure-view .structure-table td.code {
@@ -123,7 +123,7 @@
 
 .cmp-structure-view .structure-table .muted,
 .cmp-structure-view .structure-table td.muted {
-  color: #808080;
+  color: var(--text-muted);
 }
 
 .cmp-structure-view .structure-link {
@@ -148,7 +148,7 @@
 }
 
 .cmp-structure-view .structure-action.danger {
-  color: #ff8a87;
+  color: var(--danger-text-soft);
 }
 
 .cmp-structure-view .structure-action.danger:hover:not(:disabled) {
@@ -172,24 +172,24 @@
 }
 
 .cmp-structure-view .structure-row:hover td {
-  background-color: rgba(255, 255, 255, 0.04);
+  background-color: var(--hover);
 }
 
 .cmp-structure-view .structure-table td .expression {
-  color: #cc7832;
+  color: var(--accent);
 }
 
 .cmp-structure-view .structure-gone {
   margin: 8px 10px 0;
   padding: 6px 10px;
-  color: #e0c46c;
-  border-left: solid 3px #e0c46c;
+  color: var(--title-soft);
+  border-left: solid 3px var(--title-soft);
 }
 
 .structure-hint,
 .cmp-structure-form .hint {
   margin-top: 6px;
-  color: #808080;
+  color: var(--text-muted);
   font-size: 0.85rem;
 }
 
@@ -223,10 +223,10 @@
 .cmp-structure-form input:not([type="checkbox"]),
 .cmp-structure-form select {
   padding: 2px 6px;
-  border: solid 1px #555;
+  border: solid 1px var(--border-strong);
   border-radius: 3px;
-  color: #a9b7c6;
-  background-color: #1e1e1e;
+  color: var(--text);
+  background-color: var(--input-bg);
   font: inherit;
 }
 
@@ -254,7 +254,7 @@
 .cmp-structure-form .index-column .order {
   display: inline-block;
   width: 14px;
-  color: #e0c46c;
+  color: var(--title-soft);
 }
 
 .cmp-structure-form .index-column .length {
@@ -263,5 +263,5 @@
 
 .cmp-structure-view .structure-loading {
   margin: 8px 10px;
-  color: #808080;
+  color: var(--text-muted);
 }

@@ -11,6 +11,7 @@ import TableStructureInterface from './Interface/Data/TableStructureInterface';
 import ProcessInterface from './Interface/Data/ProcessInterface';
 import {DumpOptionsInterface} from './Interface/Data/TransferInterface';
 import SqlDialectType from './Query/SqlDialectType';
+import {UserManagerInterface} from './Interface/Data/UserInterface';
 import {StructureChangeType} from './Interface/Data/StructureChangeInterface';
 import {DatabaseSearchResultInterface, SearchModeType} from './Interface/Data/DatabaseSearchInterface';
 
@@ -22,6 +23,11 @@ interface DriverInterface {
    * Connect to the server and check credentials.
    */
   connect(): Promise<DriverInterface>;
+
+  /**
+   * User accounts and privileges
+   */
+  users(): UserManagerInterface;
 
   /**
    * Close all connections of driver

@@ -36,6 +36,7 @@ import {CopyFormatType, EXPORT_FILE, formatCopy} from '../../../Table/Copy/CopyF
 import downloadText from '../../../../Library/File/downloadText';
 import ConsoleApi from '../../../../Library/Console/ConsoleApi';
 import {SingleRowType} from '../../../Table/Interface/RecordsViewPropsInterface';
+import useConnectionSettings from '../../../../Library/Connection/useConnectionSettings';
 
 type PendingSubmitType = {
   editable: EditableResultInterface;
@@ -48,6 +49,7 @@ type SqlPreviewType = {
 
 /** GridView */
 export default (props: GridViewPropsInterface) => {
+  const connection = useConnectionSettings(props.connection);
   const recordsRef = useRef<RecordsViewRefInterface|null>(null);
 
   const columnsRef = useRef<string>('*');
@@ -341,7 +343,7 @@ export default (props: GridViewPropsInterface) => {
         queryLoading={false}
         cellRender={undefined}
         onPreviewChanges={onPreviewChanges}
-        onSubmitChanges={onSubmitChanges}
+        onSubmitChanges={connection.readOnly ? undefined : onSubmitChanges}
         onOpenReference={onOpenReference}
         onQuickFilter={onQuickFilter}
         onExportAll={onExportAll}

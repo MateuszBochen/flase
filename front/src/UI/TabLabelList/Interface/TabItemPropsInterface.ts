@@ -5,6 +5,7 @@
  */
 interface TabItemPropsInterface {
   label: string;
+  color?: string;
   isActive: boolean;
   index: number;
   onClick: (index: number) => void;

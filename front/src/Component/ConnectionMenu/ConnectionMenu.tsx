@@ -15,6 +15,8 @@ import TabOpener from '../TabOpener/TabOpener';
 import ProcessList, {ProcessListPropsInterface} from '../Application/ProcessList/ProcessList';
 import SqlConsole, {SqlConsolePropsInterface} from '../Application/SqlConsole/SqlConsole';
 import {faTerminal} from '@fortawesome/free-solid-svg-icons';
+import ConnectionSettingsPopup from '../ConnectionSettings/ConnectionSettingsPopup';
+import UserManager, {UserManagerPropsInterface} from '../Application/Users/UserManager';
 
 /** Connection manger */
 const connectionManger = ConnectionManager.getInstance();
@@ -22,6 +24,7 @@ const connectionManger = ConnectionManager.getInstance();
 
 /** ConnectionMenu */
 export default (props: ConnectionMenuPropsInterface) => {
+  const [settingsOpen, setSettingsOpen] = useState<boolean>(false);
   const handleLoadDatabaseList = useCallback(() => {
     try {
       DatabaseManger.getInstance().aksForDatabaseList(connectionManger.getEstablishedConnection(props.connectionData));
@@ -34,19 +37,18 @@ export default (props: ConnectionMenuPropsInterface) => {
     <Box maxPossibleHeight={true}>
       <HorizontalButtonList>
         <InvisibleButton
-          tooltip={"Connection details"}
-          onClickWheel={() => {}}
-          onClickLeft={() => {}}
+          tooltip={"Connection settings - name, color, read only"}
+          onClickWheel={() => setSettingsOpen(true)}
+          onClickLeft={() => setSettingsOpen(true)}
         >
           <FontAwesomeIcon icon={faInfoCircle} />
         </InvisibleButton>
-        <InvisibleButton
-          tooltip={"Users accounts"}
-          onClickWheel={() => {}}
-          onClickLeft={() => {}}
+        <TabOpener<UserManagerPropsInterface>
+          tooltip={"Users and privileges"}
+          tab={{component: UserManager, props: {connection: props.connectionData}, tabName: `Users: ${props.connectionData.displayName}`, isActive: false}}
         >
           <FontAwesomeIcon icon={faUsersRectangle} />
-        </InvisibleButton>
+        </TabOpener>
         <TabOpener<ProcessListPropsInterface>
           tooltip={"Processlist"}
           tab={{component: ProcessList, props: {connection: props.connectionData}, tabName: `Processes: ${props.connectionData.displayName}`, isActive: false}}
@@ -69,6 +71,7 @@ export default (props: ConnectionMenuPropsInterface) => {
         <ConnectionControlIcon connectionData={props.connectionData} />
       </HorizontalButtonList>
       <DatabaseListMenu connection={props.connectionData} />
+      {settingsOpen && <ConnectionSettingsPopup connection={props.connectionData} onClose={() => setSettingsOpen(false)} />}
     </Box>
   );
 }

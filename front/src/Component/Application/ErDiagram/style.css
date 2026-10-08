@@ -1,0 +1,134 @@
+.cmp-er-diagram {
+  --er-table-bg: var(--panel, #3c3f41);
+  --er-header-bg: var(--accent-bg, #4b6eaf);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  color: var(--text);
+  background-color: var(--bg);
+}
+
+.cmp-er-diagram .er-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  border-bottom: solid 1px var(--border);
+}
+
+.cmp-er-diagram .er-title-text {
+  color: var(--accent);
+}
+
+.cmp-er-diagram .er-count,
+.cmp-er-diagram .er-hint {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.cmp-er-diagram .er-hint {
+  margin-left: auto;
+}
+
+.cmp-er-diagram .er-toolbar input {
+  width: 200px;
+  padding: 2px 6px;
+  border: solid 1px var(--border-strong);
+  border-radius: 3px;
+  color: inherit;
+  background-color: var(--input-bg);
+}
+
+.cmp-er-diagram .er-toolbar button {
+  padding: 2px 8px;
+  border: solid 1px var(--border-strong);
+  border-radius: 3px;
+  color: inherit;
+  background-color: var(--button-bg);
+  cursor: pointer;
+}
+
+.cmp-er-diagram .er-canvas {
+  flex: 1;
+  width: 100%;
+  cursor: grab;
+  user-select: none;
+  background-image: radial-gradient(var(--grid-dot, #3a3a3a) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.cmp-er-diagram .er-canvas:active {
+  cursor: grabbing;
+}
+
+.cmp-er-diagram text {
+  font-family: monospace;
+  font-size: 12px;
+}
+
+.cmp-er-diagram .er-table {
+  cursor: pointer;
+}
+
+.cmp-er-diagram .er-table-bg {
+  fill: var(--er-table-bg);
+  stroke: var(--border-strong);
+}
+
+.cmp-er-diagram .er-table.hovered .er-table-bg {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.cmp-er-diagram .er-header {
+  fill: var(--er-header-bg);
+}
+
+.cmp-er-diagram .er-title {
+  fill: #ffffff;
+  font-weight: bold;
+}
+
+.cmp-er-diagram .er-column {
+  fill: var(--text);
+}
+
+.cmp-er-diagram .er-type {
+  fill: var(--text-muted);
+}
+
+.cmp-er-diagram .er-pk {
+  fill: var(--title);
+}
+
+.cmp-er-diagram .er-fk {
+  fill: var(--number);
+}
+
+.cmp-er-diagram .er-relation {
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 1.3;
+}
+
+.cmp-er-diagram .er-relation.highlight {
+  stroke: var(--accent);
+  stroke-width: 2.2;
+}
+
+.cmp-er-diagram .er-relation.dimmed {
+  opacity: 0.25;
+}
+
+.cmp-er-diagram .er-arrow {
+  fill: var(--text-muted);
+}
+
+.cmp-er-diagram .er-empty {
+  position: absolute;
+  top: 50%;
+  width: 100%;
+  text-align: center;
+  color: var(--text-muted);
+}

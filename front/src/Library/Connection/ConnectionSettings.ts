@@ -3,6 +3,7 @@ import SettingsAPI from '../Settings/SettingsAPI';
 import toast from 'react-hot-toast';
 import EventBus from '../EventBus/EventBus';
 import NewConnectionWasAdded from './Event/NewConnectionWasAdded';
+import ConnectionWasUpdated from './Event/ConnectionWasUpdated';
 import EstablishedConnectionInterface from './Interface/EstablishedConnectionInterface';
 
 
@@ -50,6 +51,35 @@ class ConnectionSettings {
     SettingsAPI.setSettings<ConnectionDataInterface[]>(this.SETTINGS_KEY_NAME, this.connections);
     toast.success('New connection was added');
     EventBus.emit(new NewConnectionWasAdded(data));
+  }
+
+  /**
+   * name, color, read only... of existing connection.
+   * Objects are changed in place - tabs keep reference to the same connection object and see new settings.
+   */
+  updateConnection = (id: string, changes: Partial<ConnectionDataInterface>): boolean => {
+    const connection = this.connections.find((item) => item.id === id);
+    if (!connection) {
+      return false;
+    }
+    if (changes.displayName && this.connections.some((item) => item.id !== id && item.displayName === changes.displayName)) {
+      toast.error('Connection with same name already exist');
+      return false;
+    }
+    Object.assign(connection, changes);
+    SettingsAPI.setSettings<ConnectionDataInterface[]>(this.SETTINGS_KEY_NAME, this.connections);
+    // commands are sent with connection stored at login - server reads read only flag from it
+    const established = this.establishedConnections[id];
+    if (established) {
+      Object.assign(established.connection, changes);
+      SettingsAPI.setSettings<{[key:string]: EstablishedConnectionInterface}>(this.SETTINGS_KEY_ESTABLISHED_NAME, this.establishedConnections);
+    }
+    EventBus.emit(new ConnectionWasUpdated(connection));
+    return true;
+  }
+
+  getConnection = (id: string): ConnectionDataInterface | undefined => {
+    return this.connections.find((item) => item.id === id);
   }
 
   getConnections = ():ConnectionDataInterface[] => {

@@ -5,10 +5,12 @@ import * as monaco from 'monaco-editor';
 import './style.css';
 import EditorPropsInterface from './Interface/EditorPropsInterface';
 import {registerSqlCompletion} from './SqlCompletion';
+import {useTheme} from '../../Library/Theme/ThemeManager';
 
 
 /** Editor */
 export default (props: EditorPropsInterface) => {
+  const theme = useTheme();
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor|null>(null);
   const propsRef = useRef<EditorPropsInterface>(props);
   propsRef.current = props;
@@ -59,7 +61,7 @@ export default (props: EditorPropsInterface) => {
   return (
     <div className={`editor-syntax-highlighter-wrapper ${props.isOneliner ? 'is-oneliner' : ''}`}>
       <Editor
-        theme="vs-dark"
+        theme={theme === 'light' ? 'vs' : 'vs-dark'}
         height="100%"
         width={'100%'}
         defaultLanguage="sql"

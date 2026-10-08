@@ -205,10 +205,10 @@ export default (props: QueryPlacePropsInterface) => {
           onClick={props.onTransfer}
         />
         <span className="speed-dial-separator" />
-        <IconButton icon={faPenToSquare} tooltip="Rename table…" disabled={props.tableOperationsDisabled} onClick={() => props.onTableOperation('rename')} />
-        <IconButton icon={faCopy} tooltip="Copy table…" disabled={props.tableOperationsDisabled} onClick={() => props.onTableOperation('copy')} />
-        <IconButton icon={faEraser} tooltip="Truncate table…" danger disabled={props.tableOperationsDisabled} onClick={() => props.onTableOperation('truncate')} />
-        <IconButton icon={faTrashCan} tooltip="Drop table…" danger disabled={props.tableOperationsDisabled} onClick={() => props.onTableOperation('drop')} />
+        <IconButton icon={faPenToSquare} tooltip={props.readOnly ? 'Read only connection' : 'Rename table…'} disabled={props.tableOperationsDisabled || props.readOnly} onClick={() => props.onTableOperation('rename')} />
+        <IconButton icon={faCopy} tooltip={props.readOnly ? 'Read only connection' : 'Copy table…'} disabled={props.tableOperationsDisabled || props.readOnly} onClick={() => props.onTableOperation('copy')} />
+        <IconButton icon={faEraser} tooltip={props.readOnly ? 'Read only connection' : 'Truncate table…'} danger disabled={props.tableOperationsDisabled || props.readOnly} onClick={() => props.onTableOperation('truncate')} />
+        <IconButton icon={faTrashCan} tooltip={props.readOnly ? 'Read only connection' : 'Drop table…'} danger disabled={props.tableOperationsDisabled || props.readOnly} onClick={() => props.onTableOperation('drop')} />
       </div>
       <div className="cmp-table-data-navbar" style={{display: props.view === 'data' ? undefined : 'none'}}>
         <div className="cmp-table-data-navbar-buttons">

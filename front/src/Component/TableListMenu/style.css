@@ -1,16 +1,16 @@
 .table-list-menu-root input {
   width: 100%;
   box-sizing: border-box;
-  background-color: #ffffff0f;
+  background-color: var(--inset-soft);
   border: none;
-  color: #91989c;
+  color: var(--text-muted);
 }
 .table-list-menu-root input:focus-visible {
-  border-color: #4fffff1f;
+  border-color: var(--inset-border);
 }
 
 .table-list-menu-root li {
-  border-bottom: solid 1px #2b2b2b;
+  border-bottom: solid 1px var(--bg);
 }
 
 .table-list-menu-root li:last-child {
@@ -18,7 +18,7 @@
 }
 
 .table-list-menu-root li button {
-  color: #91989c;
+  color: var(--text-muted);
   width: 100%;
   text-align: left;
   line-height: 1.3rem;
@@ -26,7 +26,7 @@
   padding-right: 3px;
 }
 .table-list-menu-root li button:hover {
-  background: #ffffff0f;
+  background: var(--inset-soft);
 }
 .table-list-menu-root li:last-child button {
   padding-bottom: 0;

@@ -1,4 +1,5 @@
 import AbstractCommandHandler from './AbstractCommandHandler';
+import ReadOnlyGuard from '../../Driver/Query/ReadOnlyGuard';
 import WsMessage from '../Dto/WsMessage';
 import MessageType from '../Enum/MessageType';
 import QueryRequestDataInterface from '../../Connection/Interface/QueryRequestDataInterface';
@@ -24,6 +25,12 @@ class HandleSelectQueryRequestHandler extends AbstractCommandHandler<QueryReques
     try {
       // registered by tab - running query can be cancelled
       session = await this.driver.openSession(data.database.name, data.tabId);
+      if (ReadOnlyGuard.isReadOnly(this.command)) {
+        await session.setReadOnly().catch((e) => {
+          session.release();
+          throw e;
+        });
+      }
     } catch (e) {
       this.sendError(e, data.tabId);
       return;

@@ -22,6 +22,8 @@ interface QueryPlacePropsInterface {
   onTableOperation: (operation: TableOperationType) => void;
   /** EXPLAIN of current query */
   onExplain: () => void;
+  /** read only connection - table cannot be renamed, copied, truncated or dropped */
+  readOnly?: boolean;
   /** dump / CSV import of the table */
   onTransfer: () => void;
   /** table was renamed / dropped */

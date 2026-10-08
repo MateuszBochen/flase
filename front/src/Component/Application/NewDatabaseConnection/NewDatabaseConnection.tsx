@@ -34,6 +34,7 @@ export default () => {
           dsn: '',
           username: '',
           changeConfirmationRequired: false,
+          readOnly: false,
           displayName: '',
           id: uuidv4(),
         }}
@@ -49,6 +50,7 @@ export default () => {
               />
               <FormikText label="Username" name={'username'} />
               <FormikSwitch label="Change confiramtion required?" name={'changeConfirmationRequired'} />
+              <FormikSwitch label="Read only (e.g. production) - color is set in connection settings" name={'readOnly'} />
             </>
           );
         }}

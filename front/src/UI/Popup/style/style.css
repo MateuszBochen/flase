@@ -21,7 +21,7 @@
   padding: 10px;
   min-width: 40%;
 
-  background: #3c3f4197;
+  background: var(--popup-bg);
   border-radius: 10px;
 }
 

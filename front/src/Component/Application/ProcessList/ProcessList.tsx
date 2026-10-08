@@ -9,6 +9,7 @@ import MessageType from '../../../Library/WebSocket/Enum/MessageType';
 import ConsoleApi from '../../../Library/Console/ConsoleApi';
 import ProcessInterface from '../../../Library/Console/ProcessInterface';
 import './style.css';
+import useConnectionSettings from '../../../Library/Connection/useConnectionSettings';
 
 export interface ProcessListPropsInterface extends ApplicationInterface {
   connection: ConnectionDataInterface;
@@ -18,6 +19,7 @@ const REFRESH_MS = 2000;
 
 /** ProcessList - threads of database server, running queries can be stopped */
 export default (props: ProcessListPropsInterface) => {
+  const connection = useConnectionSettings(props.connection);
   const [processes, setProcesses] = useState<ProcessInterface[]>([]);
   const [autoRefresh, setAutoRefresh] = useState<boolean>(true);
   const [hideSleeping, setHideSleeping] = useState<boolean>(true);
@@ -105,9 +107,9 @@ export default (props: ProcessListPropsInterface) => {
                 <td className="query" title={process.info || ''}>{process.info}</td>
                 <td className="actions">
                   {process.command === 'Query' && (
-                    <button type="button" title="KILL QUERY - stop the statement" onClick={() => kill(process, false)}>Kill query</button>
+                    <button type="button" title="KILL QUERY - stop the statement" disabled={connection.readOnly} onClick={() => kill(process, false)}>Kill query</button>
                   )}
-                  <button type="button" className="danger" title="KILL - close the connection" onClick={() => kill(process, true)}>Kill</button>
+                  <button type="button" className="danger" title="KILL - close the connection" disabled={connection.readOnly} onClick={() => kill(process, true)}>Kill</button>
                 </td>
               </tr>
             ))}

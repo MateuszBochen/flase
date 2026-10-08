@@ -14,6 +14,9 @@ import NewTabComponentWasSelected from './Event/NewTabComponentWasSelected';
 import CurrentTabWasChanged from './Event/CurrentTabWasChanged';
 import {v4 as uuidv4} from 'uuid';
 import TabWasClosed from './Event/TabWasClosed';
+import ThemeManager from '../../Library/Theme/ThemeManager';
+import {SHORTCUT_HELP_EVENT} from '../../Library/Shortcuts/Shortcuts';
+import SqlConsole, {SqlConsolePropsInterface} from '../Application/SqlConsole/SqlConsole';
 
 /**
  * ApplicationRenderer
@@ -95,6 +98,56 @@ export default (props: ApplicationRendererPropsInterface) => {
 
   }, [context]);
 
+
+  /** global shortcuts - tabs, console, theme, help (list in Library/Shortcuts) */
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'F1') {
+        event.preventDefault();
+        window.dispatchEvent(new Event(SHORTCUT_HELP_EVENT));
+        return;
+      }
+      if (!event.altKey || event.ctrlKey || event.metaKey) {
+        return;
+      }
+      const count = context.tabs.length;
+      const key = event.key.toLowerCase();
+      let handled = true;
+      if (event.key === 'ArrowRight' && !event.shiftKey) {
+        EventBus.emit(new CurrentTabWasChanged((context.currentTab + 1) % count));
+      } else if (event.key === 'ArrowLeft' && !event.shiftKey) {
+        EventBus.emit(new CurrentTabWasChanged((context.currentTab - 1 + count) % count));
+      } else if (/^Digit[1-9]$/.test(event.code) && !event.shiftKey) {
+        const number = Number(event.code.slice(5));
+        EventBus.emit(new CurrentTabWasChanged(number === 9 ? count - 1 : Math.min(number - 1, count - 1)));
+      } else if (key === 'w' && !event.shiftKey) {
+        EventBus.emit(new TabWasClosed(context.currentTab));
+      } else if (key === 'd' && event.shiftKey) {
+        ThemeManager.toggle();
+      } else if (key === 't' && !event.shiftKey) {
+        const connection = (context.tabs[context.currentTab]?.props as any)?.connection;
+        const database = (context.tabs[context.currentTab]?.props as any)?.database;
+        if (connection) {
+          EventBus.emit(new NewTabComponentWasSelected<SqlConsolePropsInterface>({
+            component: SqlConsole,
+            props: {connection, database: typeof database === 'string' ? database : database?.name ?? null},
+            tabName: `Console: ${connection.displayName}`,
+            isActive: false,
+            activate: true,
+          }));
+        } else {
+          handled = false;
+        }
+      } else {
+        handled = false;
+      }
+      if (handled) {
+        event.preventDefault();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [context]);
 
   /** memo destructor */
   const value = useMemo(() => {

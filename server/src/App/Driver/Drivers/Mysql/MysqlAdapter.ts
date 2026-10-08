@@ -17,6 +17,8 @@ import ProcessInterface from '../../Interface/Data/ProcessInterface';
 import MysqlDumper from './MysqlDumper';
 import {DumpOptionsInterface} from '../../Interface/Data/TransferInterface';
 import SelectAnalyser from '../../Query/SelectAnalyser';
+import MysqlUsers from './MysqlUsers';
+import {UserManagerInterface} from '../../Interface/Data/UserInterface';
 import SqlDialectType from '../../Query/SqlDialectType';
 import {StructureChangeType} from '../../Interface/Data/StructureChangeInterface';
 import {DatabaseSearchResultInterface, SearchModeType} from '../../Interface/Data/DatabaseSearchInterface';
@@ -72,6 +74,10 @@ class MysqlAdapter implements DriverInterface {
         resolve(this);
       });
     });
+  }
+
+  users(): UserManagerInterface {
+    return new MysqlUsers((sql, params) => this.queryRows(sql, params));
   }
 
   disconnect(): void {

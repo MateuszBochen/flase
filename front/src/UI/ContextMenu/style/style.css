@@ -3,8 +3,8 @@
   z-index: 9960;
   min-width: 200px;
   padding: 4px 0;
-  background-color: #3c3f41;
-  border: solid 1px #555;
+  background-color: var(--panel);
+  border: solid 1px var(--border-strong);
   border-radius: 4px;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
   user-select: none;
@@ -16,7 +16,7 @@
   width: 100%;
   padding: 3px 14px;
   border: none;
-  color: #bbbbbb;
+  color: var(--text-strong);
   background: transparent;
   font: inherit;
   text-align: left;
@@ -29,12 +29,12 @@
 }
 
 .ui-context-menu .ui-context-menu-item:disabled {
-  color: #6f6f6f;
+  color: var(--text-muted);
   cursor: default;
 }
 
 .ui-context-menu .ui-context-menu-item.danger:not(:disabled) {
-  color: #ff8a87;
+  color: var(--danger-text-soft);
 }
 
 .ui-context-menu .ui-context-menu-item.danger:hover:not(:disabled) {
@@ -49,14 +49,14 @@
 
 .ui-context-menu .ui-context-menu-hint {
   margin-left: 24px;
-  color: #808080;
+  color: var(--text-muted);
   font-size: 0.8rem;
 }
 
 .ui-context-menu .ui-context-menu-separator {
   height: 1px;
   margin: 4px 0;
-  background-color: #555;
+  background-color: var(--border-strong);
 }
 
 .ui-context-menu .ui-context-menu-submenu {

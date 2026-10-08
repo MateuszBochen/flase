@@ -3,11 +3,16 @@ import './style.css';
 import TabOpener from '../TabOpener/TabOpener';
 import {newDatabaseConnection, testApp, whatsNew} from '../Application/applications';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
-import {faHome, faListOl, faNetworkWired} from '@fortawesome/free-solid-svg-icons';
+import {faHome, faKeyboard, faListOl, faMoon, faNetworkWired, faSun} from '@fortawesome/free-solid-svg-icons';
+import InvisibleButton from '../../UI/Button/InvisibleButton';
+import ThemeManager, {useTheme} from '../../Library/Theme/ThemeManager';
+import {SHORTCUT_HELP_EVENT} from '../../Library/Shortcuts/Shortcuts';
+import ShortcutHelp from '../Shortcuts/ShortcutHelp';
 import HorizontalButtonList from '../../UI/Button/HorizontalButtonList';
 
 
 export default () => {
+  const theme = useTheme();
 
 
   return (
@@ -32,7 +37,22 @@ export default () => {
           >
             <FontAwesomeIcon icon={faListOl} />
           </TabOpener>
+          <InvisibleButton
+            tooltip={theme === 'dark' ? 'Light theme (Alt+Shift+D)' : 'Dark theme (Alt+Shift+D)'}
+            onClickLeft={() => ThemeManager.toggle()}
+            onClickWheel={() => ThemeManager.toggle()}
+          >
+            <FontAwesomeIcon icon={theme === 'dark' ? faSun : faMoon} />
+          </InvisibleButton>
+          <InvisibleButton
+            tooltip="Keyboard shortcuts (F1)"
+            onClickLeft={() => window.dispatchEvent(new Event(SHORTCUT_HELP_EVENT))}
+            onClickWheel={() => window.dispatchEvent(new Event(SHORTCUT_HELP_EVENT))}
+          >
+            <FontAwesomeIcon icon={faKeyboard} />
+          </InvisibleButton>
         </HorizontalButtonList>
+        <ShortcutHelp />
 
         {/*<IconButton
                     icon={faHome}

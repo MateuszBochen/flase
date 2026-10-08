@@ -7,25 +7,35 @@ import NewConnectionWasAdded from '../../Library/Connection/Event/NewConnectionW
 import EventInterface from '../../Library/EventBus/EventInterface';
 import ConnectionDataInterface from '../../Library/Connection/Interface/ConnectionDataInterface';
 import ConnectionMenu from '../ConnectionMenu/ConnectionMenu';
+import ConnectionWasUpdated from '../../Library/Connection/Event/ConnectionWasUpdated';
+import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
+import {faLock} from '@fortawesome/free-solid-svg-icons';
 
 /** ConnectionList */
 export default () => {
   const connectionSettings = ConnectionSettings.getInstance();
 
-  const [state, setState] = useState<VerticalSliderItem[]>(connectionSettings.getConnections().map((connectionItem) => {
-    return {
-      label: connectionItem.displayName,
-      component: (<ConnectionMenu connectionData={connectionItem} />),
-    }
-  }));
+  const toItem = (connectionItem: ConnectionDataInterface): VerticalSliderItem => ({
+    label: connectionItem.displayName,
+    color: connectionItem.color,
+    suffix: connectionItem.readOnly
+      ? <span className="connection-read-only" title="Read only connection"><FontAwesomeIcon icon={faLock} /></span>
+      : null,
+    component: (<ConnectionMenu connectionData={connectionItem} />),
+  });
+
+  const [state, setState] = useState<VerticalSliderItem[]>(connectionSettings.getConnections().map(toItem));
+
+  // name, color and read only of connection changed - items are built again
+  useEffect(() => {
+    const eventId = EventBus.subscribe(ConnectionWasUpdated.name, () => setState(connectionSettings.getConnections().map(toItem)));
+    return () => EventBus.unSub(eventId);
+  }, []);
 
   useEffect(() => {
     const newConnectionWasAddedSubscriber = EventBus.subscribe(NewConnectionWasAdded.name, (newItemEvent: EventInterface<ConnectionDataInterface>) => {
       const newState = [...state];
-      newState.push({
-        label: newItemEvent.getData().displayName,
-        component: (<ConnectionMenu connectionData={newItemEvent.getData()} />),
-      });
+      newState.push(toItem(newItemEvent.getData()));
       setState(newState);
     });
 
