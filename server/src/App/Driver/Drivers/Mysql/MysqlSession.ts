@@ -8,7 +8,8 @@ import RecordType from '../../../../Driver/Type/Data/RecordType';
 import ResultFieldInterface from '../../Interface/Data/ResultFieldInterface';
 import RowChangeStatementInterface from '../../Interface/Data/RowChangeStatementInterface';
 import {StatementResultType} from '../../Interface/Data/StatementInterface';
-const { Parser } = require('node-sql-parser');
+import SelectAnalyser from '../../Query/SelectAnalyser';
+import {serializeBinaryValue} from '../BinaryValue';
 
 /**
  * Single pooled mysql connection with selected database
@@ -16,14 +17,14 @@ const { Parser } = require('node-sql-parser');
  */
 class MysqlSession implements DriverSessionInterface {
   private readonly connection: PoolConnection;
-  private readonly parser: typeof Parser;
+  private readonly analyser: SelectAnalyser;
   private released = false;
   private cancelled = false;
   private readonly onRelease?: () => void;
 
-  constructor(connection: PoolConnection, parser: typeof Parser, onRelease?: () => void) {
+  constructor(connection: PoolConnection, analyser: SelectAnalyser, onRelease?: () => void) {
     this.connection = connection;
-    this.parser = parser;
+    this.analyser = analyser;
     this.onRelease = onRelease;
   }
 
@@ -36,7 +37,7 @@ class MysqlSession implements DriverSessionInterface {
     return new Promise((resolve, reject) => {
       let countQuery: string;
       try {
-        countQuery = this.getAllCountRowsQuery(query);
+        countQuery = this.analyser.getCountQuery(query);
       } catch (e) {
         reject(e);
         return;
@@ -67,7 +68,7 @@ class MysqlSession implements DriverSessionInterface {
         })
         .on('result', (row: {[table: string]: RecordType}) => {
           const flatRow: RecordType = {};
-          resultFields.forEach((field) => flatRow[field.key] = MysqlSession.serializeValue(row[field.table]?.[field.name]));
+          resultFields.forEach((field) => flatRow[field.key] = serializeBinaryValue(row[field.table]?.[field.name]));
           observer.next(new RowDto(flatRow));
         })
         // 'end' is emitted also after error - complete is then ignored by rxjs
@@ -152,7 +153,7 @@ class MysqlSession implements DriverSessionInterface {
           // rest of rows is read but not sent - result without LIMIT must not flood client
           if (rows <= maxRows) {
             const flatRow: RecordType = {};
-            resultFields.forEach((field) => flatRow[field.key] = MysqlSession.serializeValue(row[field.table]?.[field.name]));
+            resultFields.forEach((field) => flatRow[field.key] = serializeBinaryValue(row[field.table]?.[field.name]));
             onRow(flatRow);
           }
         })
@@ -194,27 +195,6 @@ class MysqlSession implements DriverSessionInterface {
     this.connection.release();
   }
 
-  /** binary values (BLOB, BINARY) would be sent as huge array of bytes - client gets size, hex preview and text */
-  private static serializeValue(value: any): any {
-    if (!Buffer.isBuffer(value)) {
-      return value;
-    }
-    const previewBytes = value.subarray(0, MysqlSession.BINARY_PREVIEW_BYTES);
-    const text = value.length <= MysqlSession.BINARY_TEXT_BYTES ? value.toString('utf8') : null;
-    // replacement character = not valid utf8, control characters = not text
-    const isText = text !== null && !text.includes('\uFFFD') && !/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/.test(text);
-    return {
-      binary: true,
-      size: value.length,
-      hex: previewBytes.toString('hex'),
-      truncated: value.length > previewBytes.length,
-      text: isText ? text : null,
-    };
-  }
-
-  private static readonly BINARY_PREVIEW_BYTES = 4096;
-  private static readonly BINARY_TEXT_BYTES = 64 * 1024;
-
   /** key is column name, `table.name` when name repeats in result */
   private static toResultFields(fields: FieldInfo[]): ResultFieldInterface[] {
     const nameCount = new Map<string, number>();
@@ -243,44 +223,6 @@ class MysqlSession implements DriverSessionInterface {
     return new Promise((resolve, reject) => {
       this.connection.query(sql, (err: MysqlError | null, result: any) => err ? reject(err) : resolve(result));
     });
-  }
-
-  /**
-   * Function helping change select query into count query.
-   * Grouped / distinct queries are wrapped into sub select so groups are counted, not rows.
-   * Other queries just replace columns with COUNT(*) - sub select would fail on duplicated
-   * column names (SELECT * FROM a JOIN b).
-   */
-  private getAllCountRowsQuery(query: string): string {
-    const parsed = this.parser.astify(query);
-    const statements = Array.isArray(parsed) ? parsed : [parsed];
-
-    if (statements.length !== 1 || statements[0].type !== 'select') {
-      throw new Error('Only single SELECT query can be counted');
-    }
-
-    const ast = statements[0];
-    ast.limit = null;
-    ast.orderby = null;
-
-    const groupBy = Array.isArray(ast.groupby) ? ast.groupby : ast.groupby?.columns;
-    if (ast.distinct || groupBy?.length || ast.having) {
-      return `SELECT COUNT(*) AS total FROM (${this.parser.sqlify(ast)}) AS flase_count`;
-    }
-
-    ast.columns = [
-      {
-        expr: {
-          type: 'aggr_func',
-          name: 'COUNT',
-          args: {expr: {type: 'star', value: '*'}},
-          over: null,
-        },
-        as: 'total',
-      },
-    ];
-
-    return this.parser.sqlify(ast);
   }
 }
 

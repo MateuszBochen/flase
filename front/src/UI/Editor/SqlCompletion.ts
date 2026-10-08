@@ -5,6 +5,8 @@ export type CompletionTableType = {name: string, columns: {name: string, type?: 
 export type CompletionSourceType = {
   keywords: string[];
   tables: CompletionTableType[];
+  /** name as inserted - MySQL `quoting` when not given */
+  completionName?: (name: string) => string;
 };
 
 /** completion data of every editor, key is uri of its model */
@@ -12,16 +14,19 @@ const sources = new Map<string, () => CompletionSourceType>();
 /** monaco instance used by editors (the one loaded by @monaco-editor/react) */
 let api: typeof monaco | null = null;
 
-const unquote = (name: string) => name.replace(/`/g, '');
+const unquote = (name: string) => /^"(?:[^"]|"")*"$/.test(name) ? name.slice(1, -1).replace(/""/g, '"') : name.replace(/`/g, '');
+
+const mysqlName = (name: string) => /^\w+$/.test(name) ? name : `\`${name}\``;
 
 /** alias / table name -> table name, from FROM and JOIN parts of query */
 const tablesOfQuery = (text: string): Map<string, string> => {
   const aliases = new Map<string, string>();
   const keywords = /^(where|join|left|right|inner|outer|cross|on|using|group|order|limit|having|union|set|natural)$/i;
-  const pattern = /\b(?:from|join|update|into)\s+((?:`[^`]+`|\w+)(?:\.(?:`[^`]+`|\w+))?)(?:\s+(?:as\s+)?(`[^`]+`|\w+))?/gi;
+  const name = '(?:`[^`]+`|"(?:[^"]|"")+"|\\w+)';
+  const pattern = new RegExp(`\\b(?:from|join|update|into)\\s+(${name}(?:\\.${name})?)(?:\\s+(?:as\\s+)?(${name}))?`, 'gi');
   let match;
   while ((match = pattern.exec(text)) !== null) {
-    const table = unquote(match[1].split('.').pop()!);
+    const table = unquote(match[1].match(new RegExp(name, 'g'))!.pop()!);
     aliases.set(table.toLowerCase(), table);
     if (match[2] && !keywords.test(unquote(match[2]))) {
       aliases.set(unquote(match[2]).toLowerCase(), table);
@@ -36,6 +41,7 @@ const provideCompletionItems = (model: monaco.editor.ITextModel, position: monac
     return {suggestions: []};
   }
   const {keywords, tables} = source();
+  const quote = source().completionName || mysqlName;
   const word = model.getWordUntilPosition(position);
   const kind = api!.languages.CompletionItemKind;
   const range = {startLineNumber: position.lineNumber, startColumn: word.startColumn, endLineNumber: position.lineNumber, endColumn: word.endColumn};
@@ -46,13 +52,13 @@ const provideCompletionItems = (model: monaco.editor.ITextModel, position: monac
   const columnItems = (table: CompletionTableType, sortPrefix: string): monaco.languages.CompletionItem[] => table.columns.map((column) => ({
     label: {label: column.name, description: `${table.name}${column.type ? ` · ${column.type}` : ''}`},
     kind: kind.Field,
-    insertText: /^\w+$/.test(column.name) ? column.name : `\`${column.name}\``,
+    insertText: quote(column.name),
     sortText: `${sortPrefix}${column.name}`,
     range,
   }));
 
   // alias. or table. -> only columns of that table
-  const qualifier = /(`[^`]+`|\w+)\.$/.exec(textBefore);
+  const qualifier = /(`[^`]+`|"(?:[^"]|"")+"|\w+)\.$/.exec(textBefore);
   if (qualifier) {
     const tableName = aliases.get(unquote(qualifier[1]).toLowerCase()) || unquote(qualifier[1]);
     const table = tableByName.get(tableName.toLowerCase());
@@ -69,7 +75,7 @@ const provideCompletionItems = (model: monaco.editor.ITextModel, position: monac
       ...tables.map((table) => ({
         label: {label: table.name, description: 'table'},
         kind: kind.Struct,
-        insertText: /^\w+$/.test(table.name) ? table.name : `\`${table.name}\``,
+        insertText: quote(table.name),
         sortText: `2${table.name}`,
         range,
       })),

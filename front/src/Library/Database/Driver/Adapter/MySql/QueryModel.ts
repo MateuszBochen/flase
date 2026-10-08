@@ -11,16 +11,19 @@ class QueryModel implements QueryInterface {
   public parsed: AST[] | AST;
   public query: string;
   private readonly parser: Parser;
+  /** dialect of parser - mysql or postgresql */
+  private readonly options: {database: string};
 
-  constructor(defaultQuery: string, parser: Parser) {
+  constructor(defaultQuery: string, parser: Parser, options: {database: string} = {database: 'mysql'}) {
       this.query = defaultQuery;
-      this.parsed = parser.astify(defaultQuery);
+      this.options = options;
+      this.parsed = parser.astify(defaultQuery, options);
       this.parser = parser;
   }
 
   changeQuery(newQuery: string): QueryInterface {
     try {
-      return new QueryModel(newQuery, this.parser);
+      return new QueryModel(newQuery, this.parser, this.options);
     } catch (e) {
       toast.error('SQL syntax error');
       console.log(e);
@@ -76,7 +79,7 @@ class QueryModel implements QueryInterface {
       localParsed.limit.value[1].value = offset;
     }
 
-    return this.changeQuery(this.parser.sqlify(localParsed));
+    return this.changeQuery(this.parser.sqlify(localParsed, this.options));
   }
 
   changeOrder(sortOrder: SortTableItemInterface[]): QueryInterface {
@@ -88,7 +91,7 @@ class QueryModel implements QueryInterface {
       return { expr: { type: "column_ref", table, column: column.name }, type: sortTableOrder.direction }
     });
 
-    return this.changeQuery(this.parser.sqlify(localParsed));
+    return this.changeQuery(this.parser.sqlify(localParsed, this.options));
   }
 
   getWhere(): string {
@@ -96,9 +99,9 @@ class QueryModel implements QueryInterface {
     if (!select?.where) {
       return '';
     }
-    const where = this.parser.exprToSQL(select.where as any);
-    // default query of table uses WHERE 1
-    return where === '1' ? '' : where;
+    const where = this.parser.exprToSQL(select.where as any, this.options);
+    // default query of table uses WHERE 1 (MySQL)
+    return where === '1' || /^true$/i.test(where) ? '' : where;
   }
 
   changeWhere(where: string): QueryInterface {
@@ -109,7 +112,7 @@ class QueryModel implements QueryInterface {
     // parsed AST is shared with history, work on a copy
     const ast = JSON.parse(JSON.stringify(select));
     const condition = where.trim();
-    ast.where = condition ? (this.parser.astify(`SELECT 1 FROM t WHERE ${condition}`) as Select).where : null;
+    ast.where = condition ? (this.parser.astify(`SELECT 1 FROM t WHERE ${condition}`, this.options) as Select).where : null;
 
     if (ast.limit?.seperator === ',') {
       ast.limit.value[0].value = 0;
@@ -117,7 +120,7 @@ class QueryModel implements QueryInterface {
       ast.limit.value[1].value = 0;
     }
 
-    return new QueryModel(this.parser.sqlify(ast), this.parser);
+    return new QueryModel(this.parser.sqlify(ast, this.options), this.parser, this.options);
   }
 
   withoutLimit(): QueryInterface {
@@ -127,7 +130,7 @@ class QueryModel implements QueryInterface {
     }
     const ast = JSON.parse(JSON.stringify(select));
     ast.limit = null;
-    return new QueryModel(this.parser.sqlify(ast), this.parser);
+    return new QueryModel(this.parser.sqlify(ast, this.options), this.parser, this.options);
   }
 
   private singleSelect(): Select | null {

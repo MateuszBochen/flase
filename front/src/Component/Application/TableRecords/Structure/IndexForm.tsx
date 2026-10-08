@@ -1,4 +1,5 @@
 import React, {useState} from 'react';
+import DriverFeaturesInterface from '../../../../Library/Database/Driver/DriverFeaturesInterface';
 import Popup from '../../../../UI/Popup/Popup';
 import Button from '../../../../UI/Button/Button';
 import {StructureColumnInterface} from '../../../../Library/Table/Interface/TableStructureInterface';
@@ -7,6 +8,7 @@ import {IndexKindType} from '../../../../Library/Table/Interface/StructureChange
 type IndexColumnType = {name: string, length: number | null};
 
 interface IndexFormPropsInterface {
+  features: DriverFeaturesInterface;
   columns: StructureColumnInterface[];
   hasPrimaryKey: boolean;
   busy: boolean;
@@ -49,10 +51,11 @@ export default (props: IndexFormPropsInterface) => {
         <label>
           Kind
           <select value={kind} onChange={(e) => setKind(e.target.value as IndexKindType)}>
-            <option value="INDEX">INDEX</option>
-            <option value="UNIQUE">UNIQUE</option>
-            <option value="FULLTEXT">FULLTEXT</option>
-            <option value="PRIMARY" disabled={props.hasPrimaryKey}>PRIMARY KEY</option>
+            {props.features.indexKinds.map((indexKind) => (
+              <option key={indexKind} value={indexKind} disabled={indexKind === 'PRIMARY' && props.hasPrimaryKey}>
+                {indexKind === 'PRIMARY' ? 'PRIMARY KEY' : indexKind}
+              </option>
+            ))}
           </select>
         </label>
         {kind !== 'PRIMARY' && (
@@ -69,7 +72,7 @@ export default (props: IndexFormPropsInterface) => {
                   <span className="order">{position >= 0 ? position + 1 : ''}</span>
                   {column.name} <span className="hint">{column.type}</span>
                 </label>
-                {position >= 0 && (
+                {position >= 0 && props.features.indexLength && (
                   <input
                     className="length"
                     type="number"

@@ -5,15 +5,15 @@ import {faFloppyDisk, faForwardFast, faMagnifyingGlassChart, faPlay, faStop} fro
 import ApplicationInterface from '../ApplicationInterface';
 import ConnectionDataInterface from '../../../Library/Connection/Interface/ConnectionDataInterface';
 import Editor from '../../../UI/Editor/Editor';
-import defaultMysqlKeyWords from '../../../Library/Database/Driver/Adapter/MySql/DefaultAutocompleteKeywords';
 import {CompletionTableType} from '../../../UI/Editor/SqlCompletion';
 import TableManager from '../../../Library/Table/TableManager';
+import DriverFactory from '../../../Library/Database/Driver/DriverFactory';
 import DatabaseManger from '../../../Library/Database/DatabaseManger';
 import ConnectionManager from '../../../Library/Connection/ConnectionManager';
 import EventBus from '../../../Library/EventBus/EventBus';
 import DatabaseWasReceived from '../../../Library/Database/Event/DatabaseWasReceived';
 import useStatementRunner, {StatementLogType} from '../../../Library/Console/useStatementRunner';
-import {splitSql, statementAt} from '../../../Library/Console/SqlSplitter';
+import {selectedDatabaseOf, splitSql, statementAt} from '../../../Library/Console/SqlSplitter';
 import QueryStore from '../../../Library/Console/QueryStore';
 import ConsoleResult from './ConsoleResult';
 import QueryLibrary from './QueryLibrary';
@@ -26,6 +26,11 @@ export interface SqlConsolePropsInterface extends ApplicationInterface {
 }
 
 const MAX_ROWS = 1000;
+
+/** RAISE NOTICE / WARNING of PostgreSQL statement */
+const noticesOf = (log: StatementLogType): string[] => log.result?.kind === 'ok'
+  ? log.result.message.split('\n').filter((line) => /^(NOTICE|WARNING|INFO|LOG|DEBUG):/.test(line))
+  : [];
 
 const describeResult = (log: StatementLogType): string => {
   if (log.status === 'waiting') return 'waiting';
@@ -54,6 +59,7 @@ export default (props: SqlConsolePropsInterface) => {
   const [editorHeight, setEditorHeight] = useState<number>(220);
   const editorRef = useRef<any>(null);
   const store = QueryStore.getInstance();
+  const driver = DriverFactory.getDriver(props.connection);
 
   const runner = useStatementRunner(props.connection, `${props.tabId}:console`, (statement, statementDatabase) => {
     store.addHistory(props.connection.id, {
@@ -63,10 +69,10 @@ export default (props: SqlConsolePropsInterface) => {
       durationMs: statement.durationMs,
       error: statement.error,
     });
-    // USE in console changes selected database
-    const use = /^\s*use\s+`?([^`;\s]+)`?/i.exec(statement.sql);
-    if (use && !statement.error) {
-      setDatabase(use[1]);
+    // USE (SET search_path) in console changes selected database
+    const selected = selectedDatabaseOf(statement.sql);
+    if (selected && !statement.error) {
+      setDatabase(selected);
     }
   });
 
@@ -108,9 +114,9 @@ export default (props: SqlConsolePropsInterface) => {
     const selection = editor.getSelection();
     const selected = selection && !selection.isEmpty() ? model.getValueInRange(selection) : '';
     if (selected.trim()) {
-      return splitSql(selected).map((statement) => statement.sql);
+      return splitSql(selected, driver.dialect).map((statement) => statement.sql);
     }
-    const statement = statementAt(model.getValue(), model.getOffsetAt(editor.getPosition()));
+    const statement = statementAt(model.getValue(), model.getOffsetAt(editor.getPosition()), driver.dialect);
     return statement ? [statement.sql] : [];
   };
 
@@ -124,7 +130,7 @@ export default (props: SqlConsolePropsInterface) => {
   };
 
   const runCurrent = () => start(currentStatements());
-  const runAll = () => start(splitSql(editorText()).map((statement) => statement.sql));
+  const runAll = () => start(splitSql(editorText(), driver.dialect).map((statement) => statement.sql));
   const explain = () => {
     const [statement] = currentStatements();
     if (!statement) {
@@ -172,6 +178,13 @@ export default (props: SqlConsolePropsInterface) => {
     }
   };
 
+  // tables of selected database for completion - also database selected by USE, not opened in sidebar
+  useEffect(() => {
+    if (database && !TableManager.getInstance().getTablesListForDatabase(props.connection, {name: database}).length) {
+      TableManager.getInstance().askForTableList(props.connection, {name: database}, false);
+    }
+  }, [database, props.connection]);
+
   const getCompletionTables = (): CompletionTableType[] => database
     ? TableManager.getInstance().getTablesListForDatabase(props.connection, {name: database}).map((table) => ({
       name: table.tableName,
@@ -201,10 +214,10 @@ export default (props: SqlConsolePropsInterface) => {
         <select
           className="console-database"
           value={database || ''}
-          title="Database for statements without database name"
+          title={`${driver.features.databaseLabel} for statements without ${driver.features.databaseLabel.toLowerCase()} name`}
           onChange={(event) => setDatabase(event.target.value || null)}
         >
-          <option value="">— no database —</option>
+          <option value="">— no {driver.features.databaseLabel.toLowerCase()} —</option>
           {database && !databases.includes(database) && <option value={database}>{database}</option>}
           {databases.map((name) => <option key={name} value={name}>{name}</option>)}
         </select>
@@ -233,12 +246,13 @@ export default (props: SqlConsolePropsInterface) => {
           <Editor
             defaultText=""
             syntax="sql"
-            customKeyWords={defaultMysqlKeyWords}
+            customKeyWords={driver.keywords}
+            completionName={(name) => driver.sql.completionName(name)}
             getCompletionTables={getCompletionTables}
             onEditorMount={onEditorMount}
           />
         </div>
-        <QueryLibrary connection={props.connection} onInsert={insertText} onRun={(sql) => start(splitSql(sql).map((statement) => statement.sql))} />
+        <QueryLibrary connection={props.connection} onInsert={insertText} onRun={(sql) => start(splitSql(sql, driver.dialect).map((statement) => statement.sql))} />
       </div>
       <div className="console-resize" onMouseDown={startResize} title="Drag to resize" />
 
@@ -258,8 +272,8 @@ export default (props: SqlConsolePropsInterface) => {
             <div className="console-messages">
               {!runner.logs.length && <div className="console-hint">Ctrl+Enter executes selection or statement under cursor, Ctrl+Shift+Enter executes everything.</div>}
               {runner.logs.map((log) => (
+                <React.Fragment key={log.index}>
                 <div
-                  key={log.index}
                   className={`console-log ${log.status} ${rowsResults.includes(log.index) ? 'clickable' : ''}`}
                   onClick={() => rowsResults.includes(log.index) && setActiveResult(log.index)}
                 >
@@ -268,6 +282,8 @@ export default (props: SqlConsolePropsInterface) => {
                   <span className="log-result">{describeResult(log)}</span>
                   <span className="log-time">{log.durationMs !== undefined ? `${log.durationMs} ms` : ''}</span>
                 </div>
+                {noticesOf(log).map((notice, index) => <div key={index} className="console-log-notice">{notice}</div>)}
+                </React.Fragment>
               ))}
             </div>
           ) : (

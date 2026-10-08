@@ -33,7 +33,7 @@ abstract class AbstractCommandHandler<T> {
     ));
   }
 
-  /** mysql errors have sqlMessage, parser errors message, rejects may be plain strings */
+  /** mysql errors have sqlMessage, postgres errors detail and hint, parser errors message, rejects may be plain strings */
   public static errorToString(error: any): string {
     if (!error) {
       return 'Unknown error';
@@ -41,7 +41,11 @@ abstract class AbstractCommandHandler<T> {
     if (typeof error === 'string') {
       return error;
     }
-    return error.sqlMessage || error.message || String(error);
+    if (error.sqlMessage) {
+      return error.sqlMessage;
+    }
+    const message = error.message || String(error);
+    return [message, error.detail, error.hint && `Hint: ${error.hint}`].filter(Boolean).join('. ');
   }
 }
 

@@ -10,10 +10,13 @@ import RowChangeStatementInterface from './Interface/Data/RowChangeStatementInte
 import TableStructureInterface from './Interface/Data/TableStructureInterface';
 import ProcessInterface from './Interface/Data/ProcessInterface';
 import {DumpOptionsInterface} from './Interface/Data/TransferInterface';
+import SqlDialectType from './Query/SqlDialectType';
 import {StructureChangeType} from './Interface/Data/StructureChangeInterface';
 import {DatabaseSearchResultInterface, SearchModeType} from './Interface/Data/DatabaseSearchInterface';
 
 interface DriverInterface {
+  /** syntax of SQL - splitting of imported scripts, quoting */
+  readonly dialect: SqlDialectType;
 
   /**
    * Connect to the server and check credentials.

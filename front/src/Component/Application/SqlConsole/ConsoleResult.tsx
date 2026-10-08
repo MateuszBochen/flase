@@ -61,6 +61,7 @@ export default (props: ConsoleResultPropsInterface) => {
     <div className="console-result-grid">
       <RecordsView
         ref={recordsRef}
+        sqlLiteral={DriverFactory.getDriver(props.connection).sql}
         onPageChange={() => {}}
         onSort={() => {}}
         queryLoading={false}

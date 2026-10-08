@@ -29,7 +29,6 @@ import Popup from '../../../../UI/Popup/Popup';
 import Button from '../../../../UI/Button/Button';
 import toast from 'react-hot-toast';
 import {CellValueType, QuickFilterOperatorType} from '../../../Table/Interface/RecordsViewPropsInterface';
-import SqlLiteral from '../../../../Library/Database/Driver/Adapter/MySql/SqlLiteral';
 import FilterWasRequested from '../Event/FilterWasRequested';
 import DriverFactory from '../../../../Library/Database/Driver/DriverFactory';
 import openTableTab from '../openTableTab';
@@ -237,14 +236,15 @@ export default (props: GridViewPropsInterface) => {
     // expressions have no table column - filter by expression alias is not possible in WHERE
     const name = column.orgName || column.name;
     // name repeated in result (JOIN) must be qualified by table alias
+    const sql = DriverFactory.getDriver(props.connection).sql;
     const identifier = column.key !== column.name && column.alias
-      ? `${SqlLiteral.identifier(column.alias)}.${SqlLiteral.identifier(name)}`
-      : SqlLiteral.identifier(name);
+      ? `${sql.identifier(column.alias)}.${sql.identifier(name)}`
+      : sql.identifier(name);
     const condition = operator === 'IS NULL' || operator === 'IS NOT NULL'
       ? `${identifier} ${operator}`
-      : `${identifier} ${operator} ${SqlLiteral.value(value)}`;
+      : `${identifier} ${operator} ${sql.value(value)}`;
     EventBus.emit(new FilterWasRequested({tabId: props.tabId, condition}));
-  }, [props.tabId]);
+  }, [props.tabId, props.connection]);
 
   /**
    * all rows of current query as file - the query is run again without LIMIT,
@@ -282,7 +282,7 @@ export default (props: GridViewPropsInterface) => {
         case MessageType.QUERY_FINISHED: {
           EventBus.unSub(eventId);
           const file = EXPORT_FILE[format];
-          downloadText(`${fileName}.${file.extension}`, formatCopy(format, columns, rows, table), file.mimeType);
+          downloadText(`${fileName}.${file.extension}`, formatCopy(format, columns, rows, table, DriverFactory.getDriver(props.connection).sql), file.mimeType);
           toast.success(`Exported ${rows.length.toLocaleString()} row(s)`, {id: toastId});
           break;
         }
@@ -335,6 +335,7 @@ export default (props: GridViewPropsInterface) => {
     <div className="cmp-table-data-content">
       <RecordsView
         ref={recordsRef}
+        sqlLiteral={DriverFactory.getDriver(props.connection).sql}
         onPageChange={onPageChangeHandler}
         onSort={onSortHandler}
         queryLoading={false}

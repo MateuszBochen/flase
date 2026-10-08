@@ -1,5 +1,6 @@
 import ConnectionRequestInterface from '../Connection/Interface/ConnectionRequestInterface';
 import MysqlAdapter from './Drivers/Mysql/MysqlAdapter';
+import PostgresAdapter from './Drivers/Postgres/PostgresAdapter';
 import DriverInterface from './DriverInterface';
 import {parseDsnOrThrow} from '@soluble/dsn-parser';
 
@@ -16,8 +17,14 @@ class DriverFactory {
     const parsedDsn = parseDsnOrThrow(connectionData.connectionData.dsn);
 
     switch(parsedDsn.driver) {
+      // MariaDB speaks MySQL protocol, differences are detected by server version
       case 'mysql':
+      case 'mariadb':
         return new MysqlAdapter(connectionData, parsedDsn);
+      case 'postgresql':
+      case 'postgres':
+      case 'pgsql':
+        return new PostgresAdapter(connectionData, parsedDsn);
       default:
         throw new Error(`Given ${parsedDsn.driver} is not supported yet`);
     }

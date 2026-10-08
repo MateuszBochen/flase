@@ -50,6 +50,7 @@ export default (props: EditorPropsInterface) => {
       unregisterCompletion.current = registerSqlCompletion(monacoInstance as any, model, () => ({
         keywords: propsRef.current.customKeyWords || [],
         tables: propsRef.current.getCompletionTables?.() || [],
+        completionName: propsRef.current.completionName,
       }));
     }
     propsRef.current.onEditorMount?.(editor, monacoInstance);

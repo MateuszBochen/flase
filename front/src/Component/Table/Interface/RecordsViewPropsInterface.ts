@@ -1,3 +1,4 @@
+import SqlLiteralInterface from '../../../Library/Database/Driver/SqlLiteralInterface';
 import ColumnInterface from '../../../Library/Table/Interface/ColumnInterface';
 import {DirectionOrder} from '../Enum/DirectionOrder';
 import EditableResultInterface from '../../../Library/Record/Interface/EditableResultInterface';
@@ -9,6 +10,8 @@ export type QuickFilterOperatorType = '=' | '<>' | 'IS NULL' | 'IS NOT NULL' | '
 export type SingleRowType = {[key:string]: CellValueType};
 
 interface RecordsViewPropsInterface {
+  /** quoting for copy as INSERT - dialect of connection */
+  sqlLiteral?: SqlLiteralInterface;
   /*tabIndex: PropTypes.number,*/
   onPageChange: (page: number, perPage: number, maxPages: number) => void;
   onSort: (column: ColumnInterface, direction: DirectionOrder) => void;

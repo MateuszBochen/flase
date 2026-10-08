@@ -2,7 +2,6 @@ import React, {useCallback, useEffect, useState} from 'react';
 import IconButton from '../../../../UI/Button/IconButton';
 import {faCopy, faEraser, faMagnifyingGlassChart, faPenToSquare, faRightLeft, faRotateRight, faTable, faTableColumns, faTrashCan} from '@fortawesome/free-solid-svg-icons';
 import Editor from '../../../../UI/Editor/Editor';
-import defaultMysqlKeyWords from '../../../../Library/Database/Driver/Adapter/MySql/DefaultAutocompleteKeywords';
 import QueryPlacePropsInterface from '../Interface/QueryPlacePropsInterface';
 import DriverFactory from '../../../../Library/Database/Driver/DriverFactory';
 import QueryHistory from './QueryHistory';
@@ -223,7 +222,8 @@ export default (props: QueryPlacePropsInterface) => {
             defaultText={currentQuery.query}
             syntax={"sql"}
             hints={hints}
-            customKeyWords={defaultMysqlKeyWords}
+            customKeyWords={DriverFactory.getDriver(props.connection).keywords}
+            completionName={(name) => DriverFactory.getDriver(props.connection).sql.completionName(name)}
             getCompletionTables={getCompletionTables}
             isOneliner={true}
             onSearch={onSearchHandler}

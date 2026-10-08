@@ -1,3 +1,4 @@
+import DriverFactory from '../../../../Library/Database/Driver/DriverFactory';
 import React, {forwardRef, MouseEvent, useCallback, useEffect, useImperativeHandle, useState} from 'react';
 import {Prism as SyntaxHighlighter} from 'react-syntax-highlighter';
 import {darcula} from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -173,7 +174,9 @@ export default forwardRef<StructureViewRefInterface, StructureViewPropsInterface
         disabled: !!column.generationExpression,
         onClick: () => setForm({type: 'column', column}),
       },
-      {label: 'Add column after…', onClick: () => setForm({type: 'column', after: column.name})},
+      DriverFactory.getDriver(props.connection).features.columnPosition
+        ? {label: 'Add column after…', onClick: () => setForm({type: 'column', after: column.name})}
+        : {label: 'Add column…', onClick: () => setForm({type: 'column'})},
       {label: 'Add index on column…', onClick: () => setForm({type: 'index'})},
       'separator',
       {
@@ -216,7 +219,7 @@ export default forwardRef<StructureViewRefInterface, StructureViewPropsInterface
           {structure.info && (
             <div className="structure-info">
               <div><span>Type</span>{structure.info.type}</div>
-              {structure.info.engine && <div><span>Engine</span>{structure.info.engine}</div>}
+              {structure.info.engine && <div><span>{DriverFactory.getDriver(props.connection).dialect === 'postgresql' ? 'Access method' : 'Engine'}</span>{structure.info.engine}</div>}
               {structure.info.collation && <div><span>Collation</span>{structure.info.collation}</div>}
               {structure.info.rowFormat && <div><span>Row format</span>{structure.info.rowFormat}</div>}
               {structure.info.rows !== null && <div title="Approximate for InnoDB"><span>Rows</span>~{structure.info.rows.toLocaleString()}</div>}
@@ -329,6 +332,7 @@ export default forwardRef<StructureViewRefInterface, StructureViewPropsInterface
 
       {form?.type === 'column' && structure && (
         <ColumnForm
+          features={DriverFactory.getDriver(props.connection).features}
           column={form.column}
           after={form.after}
           columns={structure.columns}
@@ -345,6 +349,7 @@ export default forwardRef<StructureViewRefInterface, StructureViewPropsInterface
 
       {form?.type === 'index' && structure && (
         <IndexForm
+          features={DriverFactory.getDriver(props.connection).features}
           columns={structure.columns}
           hasPrimaryKey={structure.indexes.some((index) => index.primary)}
           busy={change.busy}

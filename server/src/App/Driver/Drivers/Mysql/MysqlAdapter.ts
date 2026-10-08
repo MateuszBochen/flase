@@ -16,6 +16,8 @@ import MysqlDdlBuilder from './MysqlDdlBuilder';
 import ProcessInterface from '../../Interface/Data/ProcessInterface';
 import MysqlDumper from './MysqlDumper';
 import {DumpOptionsInterface} from '../../Interface/Data/TransferInterface';
+import SelectAnalyser from '../../Query/SelectAnalyser';
+import SqlDialectType from '../../Query/SqlDialectType';
 import {StructureChangeType} from '../../Interface/Data/StructureChangeInterface';
 import {DatabaseSearchResultInterface, SearchModeType} from '../../Interface/Data/DatabaseSearchInterface';
 import TableInterface from '../../Interface/Data/TableInterface';
@@ -32,6 +34,7 @@ const mysql = require('mysql');
 const { Parser } = require('node-sql-parser');
 
 class MysqlAdapter implements DriverInterface {
+  readonly dialect: SqlDialectType = 'mysql';
   private consoleLog = true;
   private pool: Pool | null = null;
   /** credentials were verified and disconnect was not called */
@@ -39,11 +42,13 @@ class MysqlAdapter implements DriverInterface {
   private keepaliveIntervalId: NodeJS.Timeout | null = null;
   private connectionData: ConnectionRequestInterface;
   private parser: typeof Parser;
+  private analyser: SelectAnalyser;
   private dsnOptions: ParsedDsn;
 
   constructor(connectionData: ConnectionRequestInterface, dsnOptions: ParsedDsn) {
     this.connectionData = connectionData;
     this.parser = new Parser();
+    this.analyser = new SelectAnalyser(this.parser, this.dialect);
     this.dsnOptions = dsnOptions;
   }
 
@@ -114,7 +119,7 @@ class MysqlAdapter implements DriverInterface {
         }
 
         const createSession = () => {
-          const session = new MysqlSession(connection, this.parser, tabId ? () => {
+          const session = new MysqlSession(connection, this.analyser, tabId ? () => {
             if (this.runningSessions.get(tabId) === session) {
               this.runningSessions.delete(tabId);
             }
@@ -265,9 +270,7 @@ class MysqlAdapter implements DriverInterface {
 
   getSelectFromTypeFromQuery(query:string): SelectFromType[]
   {
-    const ast = this.parser.astify(query);
-    const statement = Array.isArray(ast) ? ast[0] : ast;
-    return statement?.from || [];
+    return this.analyser.getFrom(query);
   }
 
   getColumnsOfTable(databaseName: string, selectFromType:SelectFromType): Promise<ColumnInterface[]> {
@@ -295,7 +298,7 @@ class MysqlAdapter implements DriverInterface {
               orgName: column.Field,
               type,
               enumValues: MysqlAdapter.parseEnumValues(type),
-              editable: MysqlAdapter.isEditableType(type) && !/GENERATED/i.test(column.Extra || ''),
+              editable: MysqlAdapter.isEditableType(type) && !/\b(VIRTUAL|STORED) GENERATED\b/i.test(column.Extra || ''),
               nullable: column.Null === 'YES',
               primaryKey: column.Key === 'PRI',
               reference,
@@ -310,43 +313,7 @@ class MysqlAdapter implements DriverInterface {
   }
 
   getEditableTableOfQuery(query: string): {table: SelectFromType | null, reason?: string} {
-    let parsed;
-    try {
-      parsed = this.parser.astify(query);
-    } catch (e) {
-      return {table: null, reason: 'Query could not be analysed'};
-    }
-
-    const statements = Array.isArray(parsed) ? parsed : [parsed];
-    const ast = statements[0];
-    if (statements.length !== 1 || ast?.type !== 'select') {
-      return {table: null, reason: 'Only single SELECT result can be edited'};
-    }
-    if (ast._next || ast.union) {
-      return {table: null, reason: 'Result of UNION cannot be edited'};
-    }
-    if (ast.with) {
-      return {table: null, reason: 'Result of WITH query cannot be edited'};
-    }
-    if (!ast.from?.length) {
-      return {table: null, reason: 'Result does not come from a table'};
-    }
-    if (ast.from.length > 1) {
-      return {table: null, reason: 'Result comes from more tables (JOIN)'};
-    }
-    if (!ast.from[0].table || ast.from[0].expr) {
-      return {table: null, reason: 'Result comes from sub query'};
-    }
-    const groupBy = Array.isArray(ast.groupby) ? ast.groupby : ast.groupby?.columns;
-    if (ast.distinct || groupBy?.length || ast.having) {
-      return {table: null, reason: 'Grouped or DISTINCT result cannot be edited'};
-    }
-    const columns = Array.isArray(ast.columns) ? ast.columns : [];
-    if (columns.some((column: any) => column?.expr?.type === 'aggr_func')) {
-      return {table: null, reason: 'Aggregated result cannot be edited'};
-    }
-
-    return {table: ast.from[0]};
+    return this.analyser.getEditableTable(query);
   }
 
   buildRowChangeStatements(table: TableInterface, changes: RowChangeInterface[]): RowChangeStatementInterface[] {

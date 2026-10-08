@@ -8,6 +8,7 @@ import WebsocketReceivedAMessage from '../../../Library/WebSocket/Event/Websocke
 import MessageInterface from '../../../Library/WebSocket/Interface/MessageInterface';
 import MessageType from '../../../Library/WebSocket/Enum/MessageType';
 import TransferApi from '../../../Library/Transfer/TransferApi';
+import DriverFactory from '../../../Library/Database/Driver/DriverFactory';
 import ConsoleApi from '../../../Library/Console/ConsoleApi';
 import CsvParser from '../../../Library/Transfer/CsvParser';
 import {CsvImportOptionsInterface, ImportFinishedInterface, ImportProgressInterface} from '../../../Library/Transfer/TransferInterface';
@@ -51,6 +52,7 @@ export default (props: ImportPanelPropsInterface) => {
   const importTabId = useRef<string>('');
   const counter = useRef<number>(0);
 
+  const databaseLabel = DriverFactory.getDriver(props.connection).features.databaseLabel.toLowerCase();
   const isGzip = !!file && /\.gz$/i.test(file.name);
   const isCsv = !!file && /\.(csv|tsv|txt)(\.gz)?$/i.test(file.name);
 
@@ -155,7 +157,7 @@ export default (props: ImportPanelPropsInterface) => {
 
       {file && !isCsv && (
         <div className="transfer-options inline">
-          <span>into database <b>{props.database}</b> (USE in script can change it)</span>
+          <span>into {databaseLabel} <b>{props.database}</b> ({databaseLabel === 'schema' ? 'SET search_path' : 'USE'} in script can change it)</span>
           <label className="transfer-check"><input type="checkbox" checked={stopOnError} onChange={(e) => setStopOnError(e.target.checked)} />Stop on first error</label>
         </div>
       )}

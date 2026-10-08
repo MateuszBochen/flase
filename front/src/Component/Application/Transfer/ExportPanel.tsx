@@ -8,6 +8,7 @@ import WebsocketReceivedAMessage from '../../../Library/WebSocket/Event/Websocke
 import MessageInterface from '../../../Library/WebSocket/Interface/MessageInterface';
 import MessageType from '../../../Library/WebSocket/Enum/MessageType';
 import TransferApi from '../../../Library/Transfer/TransferApi';
+import DriverFactory from '../../../Library/Database/Driver/DriverFactory';
 import {DumpFinishedInterface} from '../../../Library/Transfer/TransferInterface';
 import {formatBytes} from '../../../Library/Record/BinaryValue';
 
@@ -35,6 +36,7 @@ export default (props: ExportPanelPropsInterface) => {
   const [running, setRunning] = useState<boolean>(false);
   const [result, setResult] = useState<DumpFinishedInterface | null>(null);
   const exportTabId = `${props.tabId}:export`;
+  const features = DriverFactory.getDriver(props.connection).features;
   /** user changed selection - reloaded table list must not change it */
   const touched = useRef<boolean>(!!props.table);
 
@@ -116,7 +118,7 @@ export default (props: ExportPanelPropsInterface) => {
           <label className="transfer-check"><input type="checkbox" checked={dropTables} disabled={!structure} onChange={(e) => setDropTables(e.target.checked)} />DROP before CREATE</label>
           <label className="transfer-check"><input type="checkbox" checked={views} disabled={!structure} onChange={(e) => setViews(e.target.checked)} />Views</label>
           <label className="transfer-check"><input type="checkbox" checked={triggers} disabled={!structure} onChange={(e) => setTriggers(e.target.checked)} />Triggers</label>
-          <label className="transfer-check"><input type="checkbox" checked={createDatabase} onChange={(e) => setCreateDatabase(e.target.checked)} />CREATE DATABASE + USE</label>
+          <label className="transfer-check"><input type="checkbox" checked={createDatabase} onChange={(e) => setCreateDatabase(e.target.checked)} />{features.dumpCreateDatabaseLabel}</label>
           <label className="transfer-check"><input type="checkbox" checked={gzip} onChange={(e) => setGzip(e.target.checked)} />Compress (.sql.gz)</label>
           <button
             type="button"
@@ -130,7 +132,7 @@ export default (props: ExportPanelPropsInterface) => {
             <div className="transfer-result">{result.tables} table(s), {result.rows.toLocaleString()} row(s), {formatBytes(result.bytes)}{gzip ? ' before compression' : ''}</div>
           )}
           {result?.error && <div className="transfer-error">{result.error}</div>}
-          <div className="transfer-hint">Data are read in one transaction (consistent snapshot of InnoDB tables). DEFINER of views and triggers is left out.</div>
+          <div className="transfer-hint">{features.dumpHint}</div>
         </div>
       </div>
     </section>

@@ -1,4 +1,5 @@
 import React, {useState} from 'react';
+import DriverFeaturesInterface from '../../../../Library/Database/Driver/DriverFeaturesInterface';
 import Popup from '../../../../UI/Popup/Popup';
 import Button from '../../../../UI/Button/Button';
 import {StructureColumnInterface} from '../../../../Library/Table/Interface/TableStructureInterface';
@@ -9,6 +10,7 @@ import {
 } from '../../../../Library/Table/Interface/StructureChangeInterface';
 
 interface ColumnFormPropsInterface {
+  features: DriverFeaturesInterface;
   /** undefined for new column */
   column?: StructureColumnInterface;
   /** new column is placed after this one */
@@ -18,12 +20,6 @@ interface ColumnFormPropsInterface {
   onPreview: (definition: ColumnDefinitionInterface, position: ColumnPositionType) => void;
   onCancel: () => void;
 }
-
-const COMMON_TYPES = [
-  'int', 'int unsigned', 'bigint', 'bigint unsigned', 'tinyint(1)', 'smallint', 'decimal(10,2)', 'float', 'double',
-  'varchar(255)', 'char(36)', 'text', 'mediumtext', 'longtext', 'json',
-  'date', 'datetime', 'timestamp', 'time', 'year', "enum('a','b')", 'blob',
-];
 
 type DefaultKind = ColumnDefaultType['kind'];
 
@@ -48,10 +44,12 @@ export default (props: ColumnFormPropsInterface) => {
   const [nullable, setNullable] = useState<boolean>(props.column ? props.column.nullable : true);
   const [defaultKind, setDefaultKind] = useState<DefaultKind>(initialDefault(props.column).kind);
   const [defaultValue, setDefaultValue] = useState<string>(initialDefault(props.column).value);
-  const [autoIncrement, setAutoIncrement] = useState<boolean>(/auto_increment/i.test(props.column?.extra || ''));
+  // MySQL auto_increment, PostgreSQL identity / serial
+  const [autoIncrement, setAutoIncrement] = useState<boolean>(/auto_increment|identity|serial/i.test(props.column?.extra || ''));
   const [onUpdate, setOnUpdate] = useState<boolean>(/on update/i.test(props.column?.extra || ''));
   const [comment, setComment] = useState<string>(props.column?.comment || '');
-  const [position, setPosition] = useState<string>(isNew ? (props.after ? `after:${props.after}` : 'end') : 'keep');
+  // database without column order (PostgreSQL) adds columns at the end
+  const [position, setPosition] = useState<string>(isNew ? (props.after && props.features.columnPosition ? `after:${props.after}` : 'end') : 'keep');
 
   const otherColumns = props.columns.filter((column) => column.name !== props.column?.name);
 
@@ -76,7 +74,7 @@ export default (props: ColumnFormPropsInterface) => {
       nullable,
       defaultValue: columnDefault,
       autoIncrement,
-      onUpdateCurrentTimestamp: onUpdate && isTimeType(type),
+      onUpdateCurrentTimestamp: props.features.onUpdateTimestamp && onUpdate && isTimeType(type),
       comment,
       // keep collation of string column - otherwise table default would be used
       collation: props.column?.collation || null,
@@ -98,7 +96,7 @@ export default (props: ColumnFormPropsInterface) => {
         <label>
           Type
           <input value={type} onChange={(e) => setType(e.target.value)} list="structure-column-types" />
-          <datalist id="structure-column-types">{COMMON_TYPES.map((item) => <option key={item} value={item} />)}</datalist>
+          <datalist id="structure-column-types">{props.features.columnTypes.map((item) => <option key={item} value={item} />)}</datalist>
         </label>
         <label className="checkbox"><input type="checkbox" checked={nullable} onChange={(e) => setNullable(e.target.checked)} />Nullable</label>
         <label>
@@ -120,11 +118,11 @@ export default (props: ColumnFormPropsInterface) => {
           </div>
         </label>
         <label className="checkbox"><input type="checkbox" checked={autoIncrement} onChange={(e) => setAutoIncrement(e.target.checked)} />Auto increment</label>
-        {isTimeType(type) && (
+        {props.features.onUpdateTimestamp && isTimeType(type) && (
           <label className="checkbox"><input type="checkbox" checked={onUpdate} onChange={(e) => setOnUpdate(e.target.checked)} />On update CURRENT_TIMESTAMP</label>
         )}
         <label>Comment<input value={comment} onChange={(e) => setComment(e.target.value)} /></label>
-        <label>
+        {props.features.columnPosition && <label>
           Position
           <select value={position} onChange={(e) => setPosition(e.target.value)}>
             {!isNew && <option value="keep">Keep position</option>}
@@ -132,7 +130,7 @@ export default (props: ColumnFormPropsInterface) => {
             <option value="first">First</option>
             {otherColumns.map((column) => <option key={column.name} value={`after:${column.name}`}>After {column.name}</option>)}
           </select>
-        </label>
+        </label>}
         {props.column?.collation && <div className="hint">Collation {props.column.collation} is kept.</div>}
       </div>
     </Popup>

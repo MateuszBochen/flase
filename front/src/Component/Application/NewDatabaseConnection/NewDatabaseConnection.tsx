@@ -11,7 +11,8 @@ import {v4 as uuidv4} from 'uuid';
 const yup = ValidationSchema.getBuilder();
 
 const schema = yup.object({
-  dsn: yup.string().required('DSN is required'),
+  dsn: yup.string().required('DSN is required')
+    .matches(/^(mysql|mariadb|postgresql|postgres|pgsql):\/\//i, 'Supported: mysql://, mariadb://, postgresql://'),
   displayName: yup.string().required('Name is required'),
 });
 
@@ -41,7 +42,11 @@ export default () => {
           return (
             <>
               <FormikText label="Conection name" name={'displayName'} />
-              <FormikText label="Server DSN" name={'dsn'} />
+              <FormikText
+                label="Server DSN"
+                name={'dsn'}
+                inputProps={{placeholder: 'mysql://host:3306 · mariadb://host:3306 · postgresql://host:5432/database'}}
+              />
               <FormikText label="Username" name={'username'} />
               <FormikSwitch label="Change confiramtion required?" name={'changeConfirmationRequired'} />
             </>

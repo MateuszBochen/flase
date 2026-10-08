@@ -294,3 +294,11 @@
   background: none;
   cursor: pointer;
 }
+
+.cmp-sql-console .console-log-notice {
+  padding: 1px 8px 3px 32px;
+  color: #bbb529;
+  font-family: monospace;
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+}

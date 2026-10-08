@@ -1,6 +1,7 @@
 import ColumnInterface from '../../../Library/Table/Interface/ColumnInterface';
 import {CellValueType, SingleRowType} from '../Interface/RecordsViewPropsInterface';
 import SqlLiteral from '../../../Library/Database/Driver/Adapter/MySql/SqlLiteral';
+import SqlLiteralInterface from '../../../Library/Database/Driver/SqlLiteralInterface';
 import {isBinaryValue} from '../../../Library/Record/BinaryValue';
 
 export type CopyFormatType = 'tsv' | 'tsv-header' | 'csv' | 'markdown' | 'insert' | 'json';
@@ -54,7 +55,8 @@ const markdownCell = (value: CellValueType): string => {
  * copy of selected rows and columns.
  * table - name used for INSERT (table of editable result or of first column)
  */
-export const formatCopy = (format: CopyFormatType, columns: ColumnInterface[], rows: SingleRowType[], table?: string): string => {
+/** sql - quoting of INSERT format, MySQL when not given */
+export const formatCopy = (format: CopyFormatType, columns: ColumnInterface[], rows: SingleRowType[], table?: string, sql: SqlLiteralInterface = new SqlLiteral()): string => {
   const values = rows.map((row) => columns.map((column) => plain(row[column.key])));
   const names = columns.map((column) => column.name);
 
@@ -72,9 +74,9 @@ export const formatCopy = (format: CopyFormatType, columns: ColumnInterface[], r
         ...values.map((row) => `| ${row.map(markdownCell).join(' | ')} |`),
       ].join('\n');
     case 'insert': {
-      const tableName = SqlLiteral.identifier(table || columns.find((column) => column.table?.name)?.table.name || 'table');
-      const columnList = columns.map((column) => SqlLiteral.identifier(column.orgName || column.name)).join(', ');
-      return `INSERT INTO ${tableName} (${columnList}) VALUES\n${values.map((row) => `  (${row.map((value) => SqlLiteral.value(value)).join(', ')})`).join(',\n')};`;
+      const tableName = sql.identifier(table || columns.find((column) => column.table?.name)?.table.name || 'table');
+      const columnList = columns.map((column) => sql.identifier(column.orgName || column.name)).join(', ');
+      return `INSERT INTO ${tableName} (${columnList}) VALUES\n${values.map((row) => `  (${row.map((value) => sql.value(value)).join(', ')})`).join(',\n')};`;
     }
     case 'json':
       // key is unique also when name repeats (JOIN)

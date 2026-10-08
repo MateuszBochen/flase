@@ -70,7 +70,7 @@ export const importSql = async (
 ): Promise<ImportFinishedInterface> => {
   const state = new ImportState(onProgress);
   const session: DriverSessionInterface = await driver.openSession(database, tabId);
-  const splitter = new StreamingSqlSplitter();
+  const splitter = new StreamingSqlSplitter(driver.dialect);
   let failed = false;
 
   const run = async (statements: string[]): Promise<boolean> => {

@@ -1,0 +1,9 @@
+{
+  "name": "flase-ui-tests",
+  "private": true,
+  "description": "Browser tests, run by tests/run.sh in playwright docker image",
+  "dependencies": {
+    "playwright": "1.49.1",
+    "ws": "^8.22.0"
+  }
+}

@@ -21,7 +21,7 @@ const FormikText = (props: TypeInputPros) => {
 
         return (
           <Input
-            inputProps={{...field}}
+            inputProps={{...props.inputProps, ...field}}
             label={props.label}
             type={props.type}
             onChange={handleOnChange}

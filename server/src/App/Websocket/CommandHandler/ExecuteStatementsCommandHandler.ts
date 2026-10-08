@@ -11,6 +11,7 @@ import {
 import ResultColumnsBuilder from '../Result/ResultColumnsBuilder';
 import SingleSelectColumnInterface from '../../Driver/Interface/Data/SingleSelectColumnInterface';
 import SingleSelectRecordInterface from '../../Driver/Interface/Data/SingleSelectRecordInterface';
+import {selectedDatabaseOf} from '../../Driver/Query/DatabaseSwitch';
 import QueryFinishedInterface from '../../Driver/Interface/Data/QueryFinishedInterface';
 
 const DEFAULT_MAX_ROWS = 1000;
@@ -63,11 +64,8 @@ class ExecuteStatementsCommandHandler extends AbstractCommandHandler<ExecuteStat
           if (result.kind === 'rows') {
             this.send<QueryFinishedInterface>(MessageType.QUERY_FINISHED, {tabId: resultTabId, rows: Math.min(result.rows, maxRows)});
           }
-          // following statements use database selected by USE
-          const use = /^\s*use\s+`?([^`;\s]+)`?/i.exec(sql);
-          if (use) {
-            database = use[1];
-          }
+          // following statements use database selected by USE (schema by SET search_path)
+          database = selectedDatabaseOf(sql) ?? database;
 
           this.send<StatementFinishedInterface>(MessageType.STATEMENT_FINISHED, {
             tabId: data.tabId, index, sql, durationMs: Date.now() - started, result,

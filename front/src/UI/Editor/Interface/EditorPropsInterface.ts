@@ -11,6 +11,8 @@ interface EditorPropsInterface {
   /** tables and their columns for autocompletion */
   getCompletionTables?: () => CompletionTableType[];
   customKeyWords?: string[];
+  /** name of table / column as inserted by completion - quoted by dialect when needed */
+  completionName?: (name: string) => string;
   isOneliner?: boolean;
   /** access to monaco editor, e.g. keyboard commands, selection */
   onEditorMount?: (editor: any, monaco: any) => void;

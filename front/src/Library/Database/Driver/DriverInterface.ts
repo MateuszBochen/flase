@@ -3,9 +3,22 @@ import QueryInterface from '../Interface/QueryInterface';
 import TableInterface from '../../Table/Interface/TableInterface';
 import {SearchModeType} from '../Interface/DatabaseSearchInterface';
 import {CellValueType} from '../../../Component/Table/Interface/RecordsViewPropsInterface';
+import SqlDialectType from './SqlDialectType';
+import SqlLiteralInterface from './SqlLiteralInterface';
+import DriverFeaturesInterface from './DriverFeaturesInterface';
 
 
 interface DriverInterface {
+  readonly dialect: SqlDialectType;
+
+  /** quoting of names and values */
+  readonly sql: SqlLiteralInterface;
+
+  /** keywords and functions for completion */
+  readonly keywords: string[];
+
+  readonly features: DriverFeaturesInterface;
+
   /**
    * Method for returning default sql
    */

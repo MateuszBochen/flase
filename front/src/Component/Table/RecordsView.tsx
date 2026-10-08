@@ -263,6 +263,7 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
       columnIndexes.map((index) => columns[index]),
       rowIndexes.map((rowIndex) => getDisplayedRow(changes, records, rowIndex)),
       editable?.table.name,
+      props.sqlLiteral,
     );
   };
 
