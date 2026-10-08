@@ -60,3 +60,12 @@
   border-color: var(--text, #ffffff);
   box-shadow: 0 0 0 1px #000;
 }
+
+.cmp-connection-settings input:disabled {
+  opacity: 0.6;
+}
+
+.cmp-connection-settings .hint {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}

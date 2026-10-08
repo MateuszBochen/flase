@@ -53,6 +53,33 @@ class TransferApi {
     link.remove();
   }
 
+  /**
+   * dump as text for showing in page - reading stops after maxBytes (browser would not show huge text),
+   * the rest of dump is cancelled on server
+   */
+  static async fetchText(ticket: string, maxBytes: number): Promise<{text: string, truncated: boolean}> {
+    const response = await fetch(`${BaseRequest.API_URL}/api/transfer/${ticket}`);
+    if (!response.ok || !response.body) {
+      throw new Error(await response.text() || `Export failed (${response.status})`);
+    }
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let text = '';
+    let bytes = 0;
+    for (;;) {
+      const {done, value} = await reader.read();
+      if (done) {
+        return {text: text + decoder.decode(), truncated: false};
+      }
+      bytes += value.length;
+      text += decoder.decode(value, {stream: true});
+      if (bytes >= maxBytes) {
+        await reader.cancel();
+        return {text, truncated: true};
+      }
+    }
+  }
+
   /** file is sent as request body, onUpload reports sent bytes (server progress comes over websocket) */
   static upload(ticket: string, file: Blob, onUpload: (sent: number, total: number) => void): Promise<ImportFinishedInterface> {
     return new Promise((resolve, reject) => {

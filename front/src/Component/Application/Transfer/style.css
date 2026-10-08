@@ -215,3 +215,75 @@
   word-break: break-all;
   font-size: 0.8rem;
 }
+
+.cmp-transfer .export-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.cmp-transfer .transfer-start.secondary {
+  color: var(--text);
+  background-color: var(--button-bg);
+  border: solid 1px var(--border-strong);
+}
+
+.cmp-transfer .export-output {
+  margin-top: 10px;
+}
+
+.cmp-transfer .export-output-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  color: var(--text-muted);
+}
+
+.cmp-transfer .export-output-bar button {
+  padding: 1px 8px;
+  border: solid 1px var(--border-strong);
+  border-radius: 3px;
+  color: var(--text);
+  background-color: var(--button-bg);
+  cursor: pointer;
+}
+
+.cmp-transfer .export-output textarea,
+.cmp-transfer .import-text textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 6px;
+  border: solid 1px var(--border-strong);
+  border-radius: 3px;
+  color: var(--text);
+  background-color: var(--input-bg);
+  font-family: monospace;
+  font-size: 0.85rem;
+  resize: vertical;
+}
+
+.cmp-transfer .export-output textarea {
+  height: 420px;
+  white-space: pre;
+}
+
+.cmp-transfer .import-source {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 6px;
+}
+
+.cmp-transfer .import-text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.cmp-transfer .import-text select {
+  align-self: flex-start;
+}
+
+.cmp-transfer .import-text textarea {
+  height: 180px;
+}

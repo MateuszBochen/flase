@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import EventBus from '../EventBus/EventBus';
 import NewConnectionWasAdded from './Event/NewConnectionWasAdded';
 import ConnectionWasUpdated from './Event/ConnectionWasUpdated';
+import ConnectionWasRemoved from './Event/ConnectionWasRemoved';
 import EstablishedConnectionInterface from './Interface/EstablishedConnectionInterface';
 
 
@@ -76,6 +77,27 @@ class ConnectionSettings {
     }
     EventBus.emit(new ConnectionWasUpdated(connection));
     return true;
+  }
+
+  /** saved connection is deleted (it must be disconnected before) */
+  removeConnection = (id: string): void => {
+    const index = this.connections.findIndex((item) => item.id === id);
+    if (index === -1) {
+      return;
+    }
+    const [removed] = this.connections.splice(index, 1);
+    SettingsAPI.setSettings<ConnectionDataInterface[]>(this.SETTINGS_KEY_NAME, this.connections);
+    if (this.establishedConnections[id]) {
+      delete this.establishedConnections[id];
+      SettingsAPI.setSettings<{[key:string]: EstablishedConnectionInterface}>(this.SETTINGS_KEY_ESTABLISHED_NAME, this.establishedConnections);
+    }
+    // remembered positions of ER diagrams
+    try {
+      Object.keys(localStorage).filter((key) => key.startsWith(`er_positions:${id}:`)).forEach((key) => localStorage.removeItem(key));
+    } catch (e) {
+      // storage is not available
+    }
+    EventBus.emit(new ConnectionWasRemoved(removed));
   }
 
   getConnection = (id: string): ConnectionDataInterface | undefined => {

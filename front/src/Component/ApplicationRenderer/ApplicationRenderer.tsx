@@ -15,6 +15,8 @@ import CurrentTabWasChanged from './Event/CurrentTabWasChanged';
 import {v4 as uuidv4} from 'uuid';
 import TabWasClosed from './Event/TabWasClosed';
 import ThemeManager from '../../Library/Theme/ThemeManager';
+import ConnectionWasRemoved from '../../Library/Connection/Event/ConnectionWasRemoved';
+import ConnectionDataInterface from '../../Library/Connection/Interface/ConnectionDataInterface';
 import {SHORTCUT_HELP_EVENT} from '../../Library/Shortcuts/Shortcuts';
 import SqlConsole, {SqlConsolePropsInterface} from '../Application/SqlConsole/SqlConsole';
 
@@ -89,7 +91,21 @@ export default (props: ApplicationRendererPropsInterface) => {
       }
     });
 
+    /** tabs of deleted connection are closed, at least one tab stays */
+    const connectionWasRemovedSubscriber = EventBus.subscribe(ConnectionWasRemoved.name, (event: EventInterface<ConnectionDataInterface>) => {
+      const removedId = event.getData().id;
+      const current = context.tabs[context.currentTab];
+      const tabs = context.tabs.filter((tabItem) => (tabItem.props as any)?.connection?.id !== removedId);
+      if (tabs.length === context.tabs.length) {
+        return;
+      }
+      const kept = tabs.length ? tabs : [{...props.defaultTab, id: uuidv4()}];
+      const currentIndex = kept.indexOf(current);
+      setContext({...context, tabs: kept, currentTab: currentIndex >= 0 ? currentIndex : 0, lastOpenTab: -1});
+    });
+
     return () => {
+      EventBus.unSub(connectionWasRemovedSubscriber);
       EventBus.unSub(currentTabComponentWasSelectedSubscriber);
       EventBus.unSub(newTabComponentWasSelectedSubscriber);
       EventBus.unSub(currentTabWasChangedSubscriber);

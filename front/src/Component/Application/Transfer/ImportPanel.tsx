@@ -51,10 +51,21 @@ export default (props: ImportPanelPropsInterface) => {
   const [uploaded, setUploaded] = useState<{sent: number, total: number}>({sent: 0, total: 0});
   const [progress, setProgress] = useState<ImportProgressInterface | null>(null);
   const [finished, setFinished] = useState<ImportFinishedInterface | null>(null);
+  /** source of import - file or pasted text */
+  const [source, setSource] = useState<'file' | 'text'>('file');
+  const [pasted, setPasted] = useState<string>('');
+  const [pastedFormat, setPastedFormat] = useState<'sql' | 'csv'>('sql');
   const importTabId = useRef<string>('');
   const counter = useRef<number>(0);
 
   const databaseLabel = DriverFactory.getDriver(props.connection).features.databaseLabel.toLowerCase();
+  /** pasted text works as file - preview, mapping and upload are the same */
+  const applyPasted = (text: string, format: 'sql' | 'csv') => {
+    setFinished(null);
+    setProgress(null);
+    setFile(text.trim() ? new File([text], format === 'sql' ? 'pasted.sql' : 'pasted.csv', {type: 'text/plain'}) : null);
+  };
+
   const isGzip = !!file && /\.gz$/i.test(file.name);
   const isCsv = !!file && /\.(csv|tsv|txt)(\.gz)?$/i.test(file.name);
 
@@ -148,7 +159,26 @@ export default (props: ImportPanelPropsInterface) => {
     <section className="transfer-panel">
       <h3>Import</h3>
       {connection.readOnly && <div className="transfer-error">Connection is read only - import is not allowed.</div>}
-      <div className="import-file">
+      <div className="import-source">
+        <label className="transfer-check"><input type="radio" checked={source === 'file'} disabled={running} onChange={() => { setSource('file'); setFile(null); }} />From file</label>
+        <label className="transfer-check"><input type="radio" checked={source === 'text'} disabled={running} onChange={() => { setSource('text'); applyPasted(pasted, pastedFormat); }} />Paste text</label>
+      </div>
+      {source === 'text' && (
+        <div className="import-text">
+          <select value={pastedFormat} disabled={running} onChange={(e) => { const format = e.target.value as 'sql' | 'csv'; setPastedFormat(format); applyPasted(pasted, format); }}>
+            <option value="sql">SQL statements</option>
+            <option value="csv">CSV / TSV data</option>
+          </select>
+          <textarea
+            value={pasted}
+            disabled={running}
+            spellCheck={false}
+            placeholder={pastedFormat === 'sql' ? 'INSERT INTO …;' : 'name,email\nAnna,anna@example.com'}
+            onChange={(e) => { setPasted(e.target.value); applyPasted(e.target.value, pastedFormat); }}
+          />
+        </div>
+      )}
+      <div className="import-file" style={source === 'text' ? {display: 'none'} : undefined}>
         <input
           type="file"
           accept=".sql,.gz,.csv,.tsv,.txt"

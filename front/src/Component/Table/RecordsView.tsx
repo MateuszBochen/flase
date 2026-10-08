@@ -30,6 +30,7 @@ import {
   PendingChanges,
   setRowValues,
   toggleDeleteRow,
+  deleteRows,
   valuesForNewRow,
 } from './Edit/PendingChanges';
 import PendingChangesBar from './UI/PendingChangesBar';
@@ -326,6 +327,14 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
       if (rowsCount && columns.length) {
         setSelection([{anchor: {rowIndex: 0, columnIndex: 0}, focus: {rowIndex: rowsCount - 1, columnIndex: columns.length - 1}}]);
       }
+    } else if (event.key === 'Delete' && canEdit && selection && !editingCell && !/^(INPUT|TEXTAREA|SELECT)$/.test((event.target as HTMLElement).tagName)) {
+      // rows of selected cells are marked for delete, submitted as other changes
+      event.preventDefault();
+      const records = getRecords();
+      const rows = selectedRowsAndColumns(selection, records.length + changes.inserted.length).rows;
+      setSelection(null);
+      setSelectedRow(null);
+      setChanges((previous) => deleteRows(previous, records, rows, false));
     } else if (event.key === 'Escape') {
       setSelection(null);
       setSelectedRow(null);
@@ -435,7 +444,23 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
       );
     }
 
-    if (rowIndex !== null) {
+    // right click on one of more selected rows - action for all of them
+    const selectedRows = rowIndex !== null && selection
+      ? selectedRowsAndColumns(selection, getRecords().length + changes.inserted.length).rows
+      : [];
+    if (rowIndex !== null && selectedRows.length > 1 && selectedRows.includes(rowIndex)) {
+      const records = getRecords();
+      const allDeleted = selectedRows.every((index) => getRowState(changes, records, index) === 'deleted');
+      items.push({
+        label: allDeleted ? `Undo delete of ${selectedRows.length} rows` : `Delete ${selectedRows.length} selected rows`,
+        danger: !allDeleted,
+        onClick: () => {
+          setSelectedRow(null);
+          setSelection(null);
+          setChanges((previous) => deleteRows(previous, records, selectedRows, allDeleted));
+        },
+      });
+    } else if (rowIndex !== null) {
       items.push({
         label: rowState === 'deleted' ? 'Undo delete' : rowState === 'inserted' ? 'Remove new row' : 'Delete row',
         danger: rowState !== 'deleted',

@@ -82,6 +82,22 @@ export const insertRow = (changes: PendingChanges, values: SingleRowType): Pendi
   return {...changes, inserted: [...changes.inserted, values]};
 };
 
+/**
+ * many rows at once - existing rows are marked for delete (or unmarked with undo), inserted rows are removed
+ */
+export const deleteRows = (changes: PendingChanges, records: SingleRowType[], rowIndexes: number[], undo: boolean): PendingChanges => {
+  const deleted = {...changes.deleted};
+  rowIndexes.filter((rowIndex) => rowIndex < records.length).forEach((rowIndex) => {
+    if (undo) {
+      delete deleted[rowIndex];
+    } else {
+      deleted[rowIndex] = true;
+    }
+  });
+  const removedInserted = new Set(undo ? [] : rowIndexes.filter((rowIndex) => rowIndex >= records.length).map((rowIndex) => rowIndex - records.length));
+  return {...changes, deleted, inserted: changes.inserted.filter((row, index) => !removedInserted.has(index))};
+};
+
 /** existing row is marked for delete (toggle), inserted row is removed */
 export const toggleDeleteRow = (changes: PendingChanges, records: SingleRowType[], rowIndex: number): PendingChanges => {
   if (rowIndex >= records.length) {

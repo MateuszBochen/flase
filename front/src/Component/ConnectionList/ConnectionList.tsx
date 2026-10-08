@@ -8,6 +8,7 @@ import EventInterface from '../../Library/EventBus/EventInterface';
 import ConnectionDataInterface from '../../Library/Connection/Interface/ConnectionDataInterface';
 import ConnectionMenu from '../ConnectionMenu/ConnectionMenu';
 import ConnectionWasUpdated from '../../Library/Connection/Event/ConnectionWasUpdated';
+import ConnectionWasRemoved from '../../Library/Connection/Event/ConnectionWasRemoved';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faLock} from '@fortawesome/free-solid-svg-icons';
 
@@ -28,8 +29,13 @@ export default () => {
 
   // name, color and read only of connection changed - items are built again
   useEffect(() => {
-    const eventId = EventBus.subscribe(ConnectionWasUpdated.name, () => setState(connectionSettings.getConnections().map(toItem)));
-    return () => EventBus.unSub(eventId);
+    const rebuild = () => setState(connectionSettings.getConnections().map(toItem));
+    const updatedId = EventBus.subscribe(ConnectionWasUpdated.name, rebuild);
+    const removedId = EventBus.subscribe(ConnectionWasRemoved.name, rebuild);
+    return () => {
+      EventBus.unSub(updatedId);
+      EventBus.unSub(removedId);
+    };
   }, []);
 
   useEffect(() => {

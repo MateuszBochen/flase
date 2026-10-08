@@ -12,6 +12,9 @@ import DriverFactory from '../../../Library/Database/Driver/DriverFactory';
 import {DumpFinishedInterface} from '../../../Library/Transfer/TransferInterface';
 import {formatBytes} from '../../../Library/Record/BinaryValue';
 
+/** text shown in page - bigger dump would make browser slow */
+const TEXT_LIMIT_BYTES = 5 * 1024 * 1024;
+
 interface ExportPanelPropsInterface {
   connection: ConnectionDataInterface;
   database: string;
@@ -37,6 +40,9 @@ export default (props: ExportPanelPropsInterface) => {
   const [result, setResult] = useState<DumpFinishedInterface | null>(null);
   const exportTabId = `${props.tabId}:export`;
   const features = DriverFactory.getDriver(props.connection).features;
+  /** dump shown in page instead of download */
+  const [output, setOutput] = useState<{text: string, truncated: boolean} | null>(null);
+  const textMode = useRef<boolean>(false);
   /** user changed selection - reloaded table list must not change it */
   const touched = useRef<boolean>(!!props.table);
 
@@ -59,6 +65,10 @@ export default (props: ExportPanelPropsInterface) => {
       const message = event.getData();
       if (message.payload?.tabId === exportTabId && message.message === MessageType.DUMP_FINISHED) {
         setRunning(false);
+        // shown text was cut on purpose - server reports cancelled download
+        if (textMode.current && message.payload.error) {
+          return;
+        }
         setResult(message.payload);
         message.payload.error
           ? toast.error(`Dump is not complete: ${message.payload.error}`)
@@ -77,22 +87,47 @@ export default (props: ExportPanelPropsInterface) => {
 
   const allSelected = tables.length > 0 && tables.every((name) => selected.has(name));
 
-  const start = async () => {
+  /** asText - dump is shown in page (like "view output as text" of phpMyAdmin), otherwise downloaded */
+  const start = async (asText: boolean) => {
     setRunning(true);
     setResult(null);
+    textMode.current = asText;
+    if (asText) setOutput(null);
     try {
       const chosen = tables.filter((name) => selected.has(name));
       const ticket = await TransferApi.requestTicket(props.connection, exportTabId, {
         kind: 'dump',
         // all tables - also tables created later than the list was loaded
         options: {database: props.database, tables: allSelected && !props.table ? [] : chosen, structure, data, dropTables, createDatabase, views, triggers},
-        gzip,
+        gzip: gzip && !asText,
       });
-      TransferApi.download(ticket);
+      if (asText) {
+        const shown = await TransferApi.fetchText(ticket, TEXT_LIMIT_BYTES);
+        setOutput(shown);
+        if (shown.truncated) {
+          setRunning(false);
+          toast(`Only first ${formatBytes(TEXT_LIMIT_BYTES)} are shown - download the dump for all data`);
+        }
+      } else {
+        TransferApi.download(ticket);
+      }
     } catch (e: any) {
       setRunning(false);
       toast.error(e?.message || String(e));
     }
+  };
+
+  const copyOutput = () => output && navigator.clipboard?.writeText(output.text)
+    .then(() => toast.success('Copied'))
+    .catch(() => toast.error('Unable to copy'));
+
+  const downloadOutput = () => {
+    if (!output) return;
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(new Blob([output.text], {type: 'application/sql'}));
+    link.download = `${props.database}${props.table ? `-${props.table}` : ''}.sql`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
   };
 
   return (
@@ -120,14 +155,25 @@ export default (props: ExportPanelPropsInterface) => {
           <label className="transfer-check"><input type="checkbox" checked={triggers} disabled={!structure} onChange={(e) => setTriggers(e.target.checked)} />Triggers</label>
           <label className="transfer-check"><input type="checkbox" checked={createDatabase} onChange={(e) => setCreateDatabase(e.target.checked)} />{features.dumpCreateDatabaseLabel}</label>
           <label className="transfer-check"><input type="checkbox" checked={gzip} onChange={(e) => setGzip(e.target.checked)} />Compress (.sql.gz)</label>
-          <button
-            type="button"
-            className="transfer-start"
-            disabled={running || !selected.size || (!structure && !data)}
-            onClick={start}
-          >
-            {running ? 'Exporting…' : 'Download dump'}
-          </button>
+          <div className="export-actions">
+            <button
+              type="button"
+              className="transfer-start"
+              disabled={running || !selected.size || (!structure && !data)}
+              onClick={() => start(false)}
+            >
+              {running && !textMode.current ? 'Exporting…' : 'Download dump'}
+            </button>
+            <button
+              type="button"
+              className="transfer-start secondary"
+              title={`Show SQL in page (first ${formatBytes(TEXT_LIMIT_BYTES)})`}
+              disabled={running || !selected.size || (!structure && !data)}
+              onClick={() => start(true)}
+            >
+              {running && textMode.current ? 'Exporting…' : 'Show as text'}
+            </button>
+          </div>
           {result && !result.error && (
             <div className="transfer-result">{result.tables} table(s), {result.rows.toLocaleString()} row(s), {formatBytes(result.bytes)}{gzip ? ' before compression' : ''}</div>
           )}
@@ -135,6 +181,17 @@ export default (props: ExportPanelPropsInterface) => {
           <div className="transfer-hint">{features.dumpHint}</div>
         </div>
       </div>
+      {output && (
+        <div className="export-output">
+          <div className="export-output-bar">
+            <span>{formatBytes(new Blob([output.text]).size)}{output.truncated ? ' - cut, download the dump for all data' : ''}</span>
+            <button type="button" onClick={copyOutput}>Copy</button>
+            <button type="button" onClick={downloadOutput}>Download shown text</button>
+            <button type="button" onClick={() => setOutput(null)}>Close</button>
+          </div>
+          <textarea readOnly value={output.text} spellCheck={false} />
+        </div>
+      )}
     </section>
   );
 }

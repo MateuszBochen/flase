@@ -19,6 +19,7 @@ export const SHORTCUTS: {group: string, items: {keys: string, action: string}[]}
       {keys: 'Double click', action: 'Edit cell'},
       {keys: 'Enter / Escape', action: 'Confirm / cancel cell edit'},
       {keys: 'Ctrl + S', action: 'Submit pending changes'},
+      {keys: 'Delete', action: 'Mark rows of selected cells for delete'},
       {keys: 'Ctrl + click / Shift + click', action: 'Add cell / range to selection'},
       {keys: 'Ctrl + A', action: 'Select all cells'},
       {keys: 'Ctrl + C', action: 'Copy selection as TSV'},

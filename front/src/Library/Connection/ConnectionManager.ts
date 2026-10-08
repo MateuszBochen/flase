@@ -123,7 +123,8 @@ class ConnectionManager {
   }
 
   /** disconnect function - server session is closed, user must log in again */
-  disconnect(establishedConnection: EstablishedConnectionInterface): void {
+  /** notify false - disconnect requested by user, no warning toast */
+  disconnect(establishedConnection: EstablishedConnectionInterface, notify: boolean = true): void {
     const id = establishedConnection.connection.id;
 
     // close and remove from apis list
@@ -137,7 +138,9 @@ class ConnectionManager {
 
     ConnectionSettings.getInstance().saveNewListOfEstablishedConnection(this.listOfEstablishedConnections);
 
-    toast.error(`Connection ${establishedConnection.connection.displayName} was closed, log in again`, {id: `ws-${id}`});
+    if (notify) {
+      toast.error(`Connection ${establishedConnection.connection.displayName} was closed, log in again`, {id: `ws-${id}`});
+    }
 
     new DisconnectRequest().disconnect(establishedConnection);
   }
