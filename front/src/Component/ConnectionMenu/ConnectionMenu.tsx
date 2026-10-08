@@ -11,6 +11,10 @@ import DatabaseManger from '../../Library/Database/DatabaseManger';
 import toast from 'react-hot-toast';
 import ConnectionControlIcon from './ConnectionControlIcon';
 import Box from '../../UI/Box/Box';
+import TabOpener from '../TabOpener/TabOpener';
+import ProcessList, {ProcessListPropsInterface} from '../Application/ProcessList/ProcessList';
+import SqlConsole, {SqlConsolePropsInterface} from '../Application/SqlConsole/SqlConsole';
+import {faTerminal} from '@fortawesome/free-solid-svg-icons';
 
 /** Connection manger */
 const connectionManger = ConnectionManager.getInstance();
@@ -43,13 +47,18 @@ export default (props: ConnectionMenuPropsInterface) => {
         >
           <FontAwesomeIcon icon={faUsersRectangle} />
         </InvisibleButton>
-        <InvisibleButton
+        <TabOpener<ProcessListPropsInterface>
           tooltip={"Processlist"}
-          onClickWheel={() => {}}
-          onClickLeft={() => {}}
+          tab={{component: ProcessList, props: {connection: props.connectionData}, tabName: `Processes: ${props.connectionData.displayName}`, isActive: false}}
         >
           <FontAwesomeIcon icon={faMicrochip} />
-        </InvisibleButton>
+        </TabOpener>
+        <TabOpener<SqlConsolePropsInterface>
+          tooltip={"SQL console"}
+          tab={{component: SqlConsole, props: {connection: props.connectionData, database: null}, tabName: `Console: ${props.connectionData.displayName}`, isActive: false}}
+        >
+          <FontAwesomeIcon icon={faTerminal} />
+        </TabOpener>
         <InvisibleButton
           tooltip={"Load database list"}
           onClickWheel={handleLoadDatabaseList}

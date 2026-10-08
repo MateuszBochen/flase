@@ -9,6 +9,8 @@ import ApplyRowChangesCommandHandler from './CommandHandler/ApplyRowChangesComma
 import GetTableStructureCommandHandler from './CommandHandler/GetTableStructureCommandHandler';
 import ChangeStructureCommandHandler from './CommandHandler/ChangeStructureCommandHandler';
 import SearchDatabaseCommandHandler from './CommandHandler/SearchDatabaseCommandHandler';
+import ExecuteStatementsCommandHandler from './CommandHandler/ExecuteStatementsCommandHandler';
+import {CancelQueryCommandHandler, GetProcessListCommandHandler, KillProcessCommandHandler} from './CommandHandler/ProcessCommandHandlers';
 import WsMessage from './Dto/WsMessage';
 import MessageType from './Enum/MessageType';
 import QueryErrorInterface from '../Driver/Interface/Data/QueryErrorInterface';
@@ -83,6 +85,18 @@ class WebsocketRequest {
         return;
       case CommandType.SEARCH_DATABASE:
         new SearchDatabaseCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
+        return;
+      case CommandType.EXECUTE_STATEMENTS:
+        new ExecuteStatementsCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
+        return;
+      case CommandType.CANCEL_QUERY:
+        new CancelQueryCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
+        return;
+      case CommandType.GET_PROCESSLIST:
+        new GetProcessListCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
+        return;
+      case CommandType.KILL_PROCESS:
+        new KillProcessCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
         return;
       default:
         throw new Error(`Command ${command.command} not supported`);

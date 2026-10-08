@@ -4,6 +4,8 @@ import RowDto from '../../Driver/Dto/RowDto';
 import UpdateResultType from '../../Driver/Type/UpdateResultType';
 import ResultFieldInterface from './Interface/Data/ResultFieldInterface';
 import RowChangeStatementInterface from './Interface/Data/RowChangeStatementInterface';
+import {StatementResultType} from './Interface/Data/StatementInterface';
+import RecordType from '../../Driver/Type/Data/RecordType';
 
 /**
  * Dedicated database connection with a selected database.
@@ -33,6 +35,17 @@ interface DriverSessionInterface {
    * Function execute update query.
    */
   updateQuery(query: string): Promise<UpdateResultType>;
+
+  /**
+   * Execute any statement. Result rows are reported by onFields / onRow (at most maxRows rows),
+   * statements without result return affected rows.
+   */
+  execute(
+    sql: string,
+    onFields: (fields: ResultFieldInterface[]) => void,
+    onRow: (row: RecordType) => void,
+    maxRows: number,
+  ): Promise<StatementResultType>;
 
   /**
    * Return connection back to the pool

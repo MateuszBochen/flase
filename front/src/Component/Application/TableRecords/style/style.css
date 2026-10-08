@@ -119,3 +119,31 @@
     margin: 0 4px;
     background-color: #5a5d5f;
 }
+
+/**   EXPLAIN   */
+.cmp-explain {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 80vw;
+    max-width: 1300px;
+}
+.cmp-explain .explain-query {
+    margin: 0;
+    padding: 6px 8px;
+    color: #a9b7c6;
+    background-color: #1e1e1e;
+    white-space: pre-wrap;
+    word-break: break-all;
+    font-size: 0.85rem;
+}
+.cmp-explain .explain-result {
+    height: 260px;
+}
+.cmp-explain .explain-error {
+    color: #ff6b68;
+    font-family: monospace;
+}
+.cmp-explain .explain-loading {
+    color: #808080;
+}

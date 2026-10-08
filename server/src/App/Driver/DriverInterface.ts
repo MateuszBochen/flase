@@ -8,6 +8,7 @@ import TableInterface from './Interface/Data/TableInterface';
 import RowChangeInterface from './Interface/Data/RowChangeInterface';
 import RowChangeStatementInterface from './Interface/Data/RowChangeStatementInterface';
 import TableStructureInterface from './Interface/Data/TableStructureInterface';
+import ProcessInterface from './Interface/Data/ProcessInterface';
 import {StructureChangeType} from './Interface/Data/StructureChangeInterface';
 import {DatabaseSearchResultInterface, SearchModeType} from './Interface/Data/DatabaseSearchInterface';
 
@@ -31,7 +32,22 @@ interface DriverInterface {
   /**
    * Open dedicated session with given database selected
    */
-  openSession(database: string): Promise<DriverSessionInterface>;
+  openSession(database: string | null, tabId?: string): Promise<DriverSessionInterface>;
+
+  /**
+   * Stop query running in session of given tab (KILL QUERY), false when nothing runs
+   */
+  cancel(tabId: string): Promise<boolean>;
+
+  /**
+   * Threads of database server (SHOW FULL PROCESSLIST)
+   */
+  getProcessList(): Promise<ProcessInterface[]>;
+
+  /**
+   * KILL QUERY (stop statement) or KILL (close connection) of thread
+   */
+  killProcess(id: number, connection: boolean): Promise<void>;
 
   /**
    * Return Database object on ech new result getting from database

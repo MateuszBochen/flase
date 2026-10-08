@@ -13,6 +13,7 @@ import {ParsedDsn} from '@soluble/dsn-parser';
 import DriverSessionInterface from '../../DriverSessionInterface';
 import MysqlSession from './MysqlSession';
 import MysqlDdlBuilder from './MysqlDdlBuilder';
+import ProcessInterface from '../../Interface/Data/ProcessInterface';
 import {StructureChangeType} from '../../Interface/Data/StructureChangeInterface';
 import {DatabaseSearchResultInterface, SearchModeType} from '../../Interface/Data/DatabaseSearchInterface';
 import TableInterface from '../../Interface/Data/TableInterface';
@@ -99,7 +100,10 @@ class MysqlAdapter implements DriverInterface {
     });
   }
 
-  openSession(database: string): Promise<DriverSessionInterface> {
+  /** sessions running for tabs - cancel kills their query */
+  private readonly runningSessions = new Map<string, MysqlSession>();
+
+  openSession(database: string | null, tabId?: string): Promise<DriverSessionInterface> {
     return new Promise((resolve, reject) => {
       this.getPool().getConnection((err: MysqlError, connection: PoolConnection) => {
         if (err) {
@@ -107,16 +111,68 @@ class MysqlAdapter implements DriverInterface {
           return;
         }
 
-        connection.query('USE ??', [database], (useErr: MysqlError | null) => {
+        const createSession = () => {
+          const session = new MysqlSession(connection, this.parser, tabId ? () => {
+            if (this.runningSessions.get(tabId) === session) {
+              this.runningSessions.delete(tabId);
+            }
+          } : undefined);
+          if (tabId) {
+            this.runningSessions.set(tabId, session);
+          }
+          return session;
+        };
+
+        const done = (useErr: MysqlError | null | undefined) => {
           if (useErr) {
             connection.release();
             reject(useErr);
             return;
           }
-          resolve(new MysqlSession(connection, this.parser));
-        });
+          resolve(createSession());
+        };
+
+        if (database) {
+          connection.query('USE ??', [database], done);
+        } else {
+          // pooled connection keeps database and variables of previous session - reset it
+          connection.changeUser({}, done);
+        }
       });
     });
+  }
+
+  async cancel(tabId: string): Promise<boolean> {
+    const threadId = this.runningSessions.get(tabId)?.threadId;
+    if (!threadId) {
+      return false;
+    }
+    // must run on other connection - the session connection is busy with the query
+    await this.queryRows('KILL QUERY ?', [threadId]);
+    return true;
+  }
+
+  async getProcessList(): Promise<ProcessInterface[]> {
+    const ownThreads = new Set<number>(((this.pool as any)?._allConnections || []).map((connection: any) => connection.threadId));
+    const rows = await this.queryRows('SHOW FULL PROCESSLIST');
+    return rows.map((row) => ({
+      id: Number(row.Id),
+      user: row.User,
+      host: row.Host,
+      db: row.db,
+      command: row.Command,
+      time: Number(row.Time),
+      state: row.State || null,
+      info: row.Info,
+      own: ownThreads.has(Number(row.Id)),
+    }));
+  }
+
+  async killProcess(id: number, connection: boolean): Promise<void> {
+    if (!Number.isInteger(id) || id <= 0) {
+      throw new Error('Invalid process id');
+    }
+    await this.queryRows(connection ? 'KILL CONNECTION ?' : 'KILL QUERY ?', [id]);
   }
 
   getListOfDatabases():Observable<DatabaseInterface> {

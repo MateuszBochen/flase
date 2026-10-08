@@ -78,7 +78,10 @@ export default forwardRef<TableFooterRefInterface, TableFooterPropsInterface>((p
           &nbsp;/&nbsp;{total}
         </div>
         {props.loading && (
-          <div className="pager-loading">&nbsp; Loading…</div>
+          <div className="pager-loading">
+            &nbsp; Loading…
+            {props.onCancel && <button type="button" className="pager-cancel" title="Stop query (KILL QUERY)" onClick={props.onCancel}>Cancel</button>}
+          </div>
         )}
       </div>
       {props.children && (

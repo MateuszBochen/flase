@@ -133,7 +133,8 @@
   border-bottom: solid 1px #91989c;
 }*/
 
-.table-records-root .cmp-records-view-pager-root {
+/* grid is used also outside of table tab (console, explain) */
+.cmp-records-view-pager-root {
   display: flex;
   height: 100%;
 }
@@ -587,4 +588,14 @@
 .cmp-records-view-pager-root .pager-export:hover {
   color: #ffffff;
   background-color: #4c5052;
+}
+.cmp-records-view-pager-root .pager-loading .pager-cancel {
+  margin-left: 8px;
+  padding: 0 8px;
+  border: solid 1px #a8413e;
+  border-radius: 3px;
+  color: #ff8a87;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
 }

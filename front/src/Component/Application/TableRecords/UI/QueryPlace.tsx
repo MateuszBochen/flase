@@ -1,6 +1,6 @@
 import React, {useCallback, useEffect, useState} from 'react';
 import IconButton from '../../../../UI/Button/IconButton';
-import {faCopy, faEraser, faPenToSquare, faRotateRight, faTable, faTableColumns, faTrashCan} from '@fortawesome/free-solid-svg-icons';
+import {faCopy, faEraser, faMagnifyingGlassChart, faPenToSquare, faRotateRight, faTable, faTableColumns, faTrashCan} from '@fortawesome/free-solid-svg-icons';
 import Editor from '../../../../UI/Editor/Editor';
 import defaultMysqlKeyWords from '../../../../Library/Database/Driver/Adapter/MySql/DefaultAutocompleteKeywords';
 import QueryPlacePropsInterface from '../Interface/QueryPlacePropsInterface';
@@ -24,6 +24,7 @@ import SortTableItemInterface from '../../../Table/Interface/SortTableItemInterf
 import QueryRefreshWasRequested from '../Event/QueryRefreshWasRequested';
 import {CompletionTableType} from '../../../../UI/Editor/SqlCompletion';
 import FilterWasRequested, {FilterRequestType} from '../Event/FilterWasRequested';
+import QueryStore from '../../../../Library/Console/QueryStore';
 import toast from 'react-hot-toast';
 
 /** QueryPlace */
@@ -112,6 +113,7 @@ export default (props: QueryPlacePropsInterface) => {
   }, []);
 
   const onSearchHandler = useCallback((newQuery: string) => {
+    QueryStore.getInstance().addHistory(props.connection.id, {sql: newQuery, database: props.database.name, executedAt: Date.now(), durationMs: -1});
     setCurrentQuery((previousQuery) => {
       const newQueryModel = previousQuery.changeQuery(newQuery);
       changeQueryHandler(newQueryModel);
@@ -190,6 +192,12 @@ export default (props: QueryPlacePropsInterface) => {
           tooltip={props.view === 'data' ? 'Reload data' : 'Reload structure'}
           disabled={props.tableOperationsDisabled}
           onClick={props.onReload}
+        />
+        <IconButton
+          icon={faMagnifyingGlassChart}
+          tooltip="Explain query"
+          disabled={props.view !== 'data' || props.tableOperationsDisabled}
+          onClick={props.onExplain}
         />
         <span className="speed-dial-separator" />
         <IconButton icon={faPenToSquare} tooltip="Rename table…" disabled={props.tableOperationsDisabled} onClick={() => props.onTableOperation('rename')} />

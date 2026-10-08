@@ -14,6 +14,7 @@ import TableOperations, {TableOperationsRefInterface, TableOperationType} from '
 import {StructureChangeType} from '../../../Library/Table/Interface/StructureChangeInterface';
 import QueryRefreshWasRequested from './Event/QueryRefreshWasRequested';
 import openTableTab from './openTableTab';
+import ExplainPopup from './UI/ExplainPopup';
 import QueryInterface from '../../../Library/Database/Interface/QueryInterface';
 
 /** TableRecords */
@@ -25,6 +26,8 @@ const TableRecords = (props: TableRecordsPropsInterface) => {
   const operationsRef = useRef<TableOperationsRefInterface | null>(null);
   /** current query of data view - written by query place, read by grid */
   const queryRef = useRef<QueryInterface | null>(null);
+  /** query shown in EXPLAIN popup */
+  const [explainQuery, setExplainQuery] = useState<string | null>(null);
 
   const tabId = props.tabId || '';
   const table: TableInterface = {databaseName: props.database.name, name: props.table.tableName};
@@ -79,6 +82,7 @@ const TableRecords = (props: TableRecordsPropsInterface) => {
         onReload={onReload}
         onTableOperation={(operation: TableOperationType) => operationsRef.current?.start(operation)}
         tableOperationsDisabled={!!gone}
+        onExplain={() => queryRef.current && setExplainQuery(queryRef.current.query)}
       />
       <div className="table-records-body">
         {/* both views stay mounted - query, history and pending changes survive switching */}
@@ -104,6 +108,15 @@ const TableRecords = (props: TableRecordsPropsInterface) => {
           />
         </div>
       </div>
+      {explainQuery && (
+        <ExplainPopup
+          connection={props.connection}
+          database={props.database.name}
+          query={explainQuery}
+          tabId={tabId}
+          onClose={() => setExplainQuery(null)}
+        />
+      )}
       <TableOperations
         ref={operationsRef}
         connection={props.connection}

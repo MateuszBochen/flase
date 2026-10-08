@@ -12,5 +12,7 @@ interface EditorPropsInterface {
   getCompletionTables?: () => CompletionTableType[];
   customKeyWords?: string[];
   isOneliner?: boolean;
+  /** access to monaco editor, e.g. keyboard commands, selection */
+  onEditorMount?: (editor: any, monaco: any) => void;
 }
 export default EditorPropsInterface;

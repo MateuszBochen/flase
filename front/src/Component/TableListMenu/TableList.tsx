@@ -6,7 +6,8 @@ import TableItem from './TableItem';
 import TabOpener from '../TabOpener/TabOpener';
 import DatabaseSearch, {DatabaseSearchPropsInterface} from '../Application/DatabaseSearch/DatabaseSearch';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
-import {faMagnifyingGlass} from '@fortawesome/free-solid-svg-icons';
+import {faMagnifyingGlass, faTerminal} from '@fortawesome/free-solid-svg-icons';
+import SqlConsole, {SqlConsolePropsInterface} from '../Application/SqlConsole/SqlConsole';
 
 /** TableList */
 export default (props: TableListPropsInterface) => {
@@ -54,6 +55,17 @@ export default (props: TableListPropsInterface) => {
             }}
           >
             <FontAwesomeIcon icon={faMagnifyingGlass} />
+          </TabOpener>
+          <TabOpener<SqlConsolePropsInterface>
+            tooltip={`SQL console for ${props.database.name}`}
+            tab={{
+              component: SqlConsole,
+              props: {connection: props.connection, database: props.database.name},
+              tabName: `Console: ${props.database.name}`,
+              isActive: false,
+            }}
+          >
+            <FontAwesomeIcon icon={faTerminal} />
           </TabOpener>
         </div>
         <ul>

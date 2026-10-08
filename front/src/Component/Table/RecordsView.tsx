@@ -493,6 +493,7 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
         <TableFooter
           onPageChange={props.onPageChange}
           loading={status.loading}
+          onCancel={props.onCancelQuery}
           ref={footerRef}
         >
           <button

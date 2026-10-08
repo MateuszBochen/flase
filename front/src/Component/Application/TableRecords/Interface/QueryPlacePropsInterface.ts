@@ -20,6 +20,8 @@ interface QueryPlacePropsInterface {
   /** data view - run query again, structure view - load structure again */
   onReload: () => void;
   onTableOperation: (operation: TableOperationType) => void;
+  /** EXPLAIN of current query */
+  onExplain: () => void;
   /** table was renamed / dropped */
   tableOperationsDisabled: boolean;
 }

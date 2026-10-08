@@ -7,6 +7,7 @@ import UpdateResultType from '../../../../Driver/Type/UpdateResultType';
 import RecordType from '../../../../Driver/Type/Data/RecordType';
 import ResultFieldInterface from '../../Interface/Data/ResultFieldInterface';
 import RowChangeStatementInterface from '../../Interface/Data/RowChangeStatementInterface';
+import {StatementResultType} from '../../Interface/Data/StatementInterface';
 const { Parser } = require('node-sql-parser');
 
 /**
@@ -17,10 +18,17 @@ class MysqlSession implements DriverSessionInterface {
   private readonly connection: PoolConnection;
   private readonly parser: typeof Parser;
   private released = false;
+  private readonly onRelease?: () => void;
 
-  constructor(connection: PoolConnection, parser: typeof Parser) {
+  constructor(connection: PoolConnection, parser: typeof Parser, onRelease?: () => void) {
     this.connection = connection;
     this.parser = parser;
+    this.onRelease = onRelease;
+  }
+
+  /** thread of the connection on database server - used by KILL QUERY */
+  get threadId(): number | null {
+    return this.connection.threadId;
   }
 
   countRecords(query: string): Promise<TotalCountDto> {
@@ -107,11 +115,72 @@ class MysqlSession implements DriverSessionInterface {
     return affectedRows;
   }
 
+  execute(
+    sql: string,
+    onFields: (fields: ResultFieldInterface[]) => void,
+    onRow: (row: RecordType) => void,
+    maxRows: number,
+  ): Promise<StatementResultType> {
+    return new Promise((resolve, reject) => {
+      let resultFields: ResultFieldInterface[] | null = null;
+      let rows = 0;
+      let okPacket: any = null;
+      let failed = false;
+
+      this.connection.query({sql, nestTables: true})
+        .on('error', (error: MysqlError) => {
+          failed = true;
+          reject(error);
+        })
+        .on('fields', (fields: FieldInfo[]) => {
+          // procedures can return more result sets - only the first one is shown
+          if (!resultFields && fields) {
+            resultFields = MysqlSession.toResultFields(fields);
+            onFields(resultFields);
+          }
+        })
+        .on('result', (row: any) => {
+          if (row?.constructor?.name === 'OkPacket') {
+            okPacket = row;
+            return;
+          }
+          if (!resultFields) {
+            return;
+          }
+          rows++;
+          // rest of rows is read but not sent - result without LIMIT must not flood client
+          if (rows <= maxRows) {
+            const flatRow: RecordType = {};
+            resultFields.forEach((field) => flatRow[field.key] = MysqlSession.serializeValue(row[field.table]?.[field.name]));
+            onRow(flatRow);
+          }
+        })
+        .on('end', () => {
+          if (failed) {
+            return;
+          }
+          if (resultFields) {
+            resolve({kind: 'rows', rows, truncated: rows > maxRows});
+          } else {
+            resolve({
+              kind: 'ok',
+              affectedRows: Number(okPacket?.affectedRows || 0),
+              changedRows: Number(okPacket?.changedRows || 0),
+              insertId: Number(okPacket?.insertId || 0),
+              warningCount: Number(okPacket?.warningCount || 0),
+              message: String(okPacket?.message || '').replace(/^\(|\)$/g, '').trim(),
+            });
+          }
+        });
+    });
+  }
+
   release(): void {
     if (this.released) {
       return;
     }
     this.released = true;
+    this.onRelease?.();
     this.connection.release();
   }
 

@@ -52,6 +52,7 @@ export default (props: EditorPropsInterface) => {
         tables: propsRef.current.getCompletionTables?.() || [],
       }));
     }
+    propsRef.current.onEditorMount?.(editor, monacoInstance);
   }, [props.hints, props.isOneliner]);
 
   return (

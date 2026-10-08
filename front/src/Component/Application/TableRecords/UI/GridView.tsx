@@ -35,6 +35,7 @@ import DriverFactory from '../../../../Library/Database/Driver/DriverFactory';
 import openTableTab from '../openTableTab';
 import {CopyFormatType, EXPORT_FILE, formatCopy} from '../../../Table/Copy/CopyFormats';
 import downloadText from '../../../../Library/File/downloadText';
+import ConsoleApi from '../../../../Library/Console/ConsoleApi';
 import {SingleRowType} from '../../../Table/Interface/RecordsViewPropsInterface';
 
 type PendingSubmitType = {
@@ -343,6 +344,7 @@ export default (props: GridViewPropsInterface) => {
         onOpenReference={onOpenReference}
         onQuickFilter={onQuickFilter}
         onExportAll={onExportAll}
+        onCancelQuery={() => ConsoleApi.getInstance().cancel(props.connection, props.tabId)}
         exportName={props.table.tableName}
         submitting={submitting}
       />

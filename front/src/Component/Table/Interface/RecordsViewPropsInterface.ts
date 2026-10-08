@@ -24,6 +24,8 @@ interface RecordsViewPropsInterface {
   onExportAll?: (format: CopyFormatType, fileName: string) => void;
   /** file name without extension, e.g. table name */
   exportName?: string;
+  /** stop running query of the grid */
+  onCancelQuery?: () => void;
   /** foreign key value was clicked */
   onOpenReference?: (column: ColumnInterface, value: CellValueType, newTab: boolean) => void;
 }
