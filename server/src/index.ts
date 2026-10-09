@@ -11,6 +11,9 @@ import MessageType from './App/Websocket/Enum/MessageType';
 import AbstractCommandHandler from './App/Websocket/CommandHandler/AbstractCommandHandler';
 import {Readable} from 'stream';
 import PredefinedConnections from './App/Settings/PredefinedConnections';
+import Settings from './App/Settings/Settings';
+const fs = require('fs');
+const path = require('path');
 const zlib = require('zlib');
 const express = require('express');
 const bodyParser = require('body-parser');
@@ -187,6 +190,27 @@ app.ws('/ws/:token', (ws:WebSocket, req: Request) => {
 
   new WebsocketRequest(found.session.driver, ws, found.session.readOnly).procedure();
 });
+
+/** production image: application is served by this server (FLASE_FRONT_DIR), API and websocket on the same address */
+const frontDirectory = Settings.getFrontDirectory();
+if (frontDirectory && fs.existsSync(path.join(frontDirectory, 'index.html'))) {
+  // hashed assets can be cached, index.html must be loaded again after update
+  app.use(express.static(frontDirectory, {
+    index: false,
+    setHeaders: (res: Response, file: string) => {
+      if (/[\\/]static[\\/]/.test(file)) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      }
+    },
+  }));
+  app.get(/^\/(?!api\/|ws\/).*/, (req: Request, res: Response) => {
+    res.setHeader('Cache-Control', 'no-cache');
+    res.sendFile(path.join(frontDirectory, 'index.html'));
+  });
+  console.log(`Serving application from ${frontDirectory}`);
+} else if (frontDirectory) {
+  console.error(`FLASE_FRONT_DIR ${frontDirectory} does not contain index.html - application is not served`);
+}
 
 const PORT = Number(process.env.PORT) || 3001;
 app.listen(PORT, () => {

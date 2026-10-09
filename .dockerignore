@@ -1,0 +1,10 @@
+# context of production image (docker/production/Dockerfile) - only sources of front and server
+.git
+.github
+.idea
+.env*
+tests
+**/node_modules
+server/dist
+front/build
+docker/db

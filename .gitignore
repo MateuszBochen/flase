@@ -3,3 +3,6 @@
 server/node_modules/
 front/node_modules/
 frontend/backup/node_modules/
+
+# build of server (made by tsc -w in development, by docker/production/Dockerfile in image)
+server/dist/

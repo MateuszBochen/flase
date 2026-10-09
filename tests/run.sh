@@ -5,6 +5,7 @@
 #   tests/run.sh server        server tests only (websocket / HTTP API, ~3 min)
 #   tests/run.sh ui            browser tests only (~15 min)
 #   tests/run.sh ui console    only tests with "console" in the name (works for server too)
+#   tests/run.sh image         production image (docker/production/Dockerfile): build, run, browser smoke test
 #
 # Requires running `docker compose up` (php_flase with server on :3001 and front on :3000,
 # flase_mysql, flase_mariadb, flase_postgres). Tests run in docker containers, nothing is installed on host.
@@ -81,6 +82,22 @@ if [ "$GROUP" = "all" ] || [ "$GROUP" = "server" ]; then
       "$NODE_IMAGE" node /t/predefined-test.js http://php_flase:3002 > "$LOGS/predefined-test" 2>&1
     report predefined-test "$LOGS/predefined-test"
     docker exec php_flase sh -c 'kill $(cat /tmp/flase-predefined.pid) 2>/dev/null; rm -f /tmp/flase-predefined.pid'
+  fi
+fi
+
+if [ "$GROUP" = "image" ]; then
+  echo "Production image"
+  docker build -q -f "$ROOT/docker/production/Dockerfile" -t flase:test "$ROOT" > "$LOGS/image-build" 2>&1
+  if [ $? -ne 0 ]; then
+    report image-build "$LOGS/image-build"
+  else
+    docker rm -f flase-image-test > /dev/null 2>&1
+    docker run -d --name flase-image-test --network flase_default -p 3005:3001 \
+      -e FLASE_CONNECTIONS='[{"name": "Maria image", "dsn": "mysql://mariadb:3306", "username": "flase"}]' flase:test > /dev/null
+    for i in $(seq 1 50); do curl -sf http://localhost:3005/api/config > /dev/null && break; sleep 0.2; done
+    docker run --rm --network host -v "$TESTS/ui:/pw" -w /pw "$PLAYWRIGHT_IMAGE" node ui-image.js http://localhost:3005 > "$LOGS/ui-image" 2>&1
+    report ui-image "$LOGS/ui-image"
+    docker rm -f flase-image-test > /dev/null 2>&1
   fi
 fi
 
