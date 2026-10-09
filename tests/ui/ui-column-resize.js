@@ -22,6 +22,14 @@ const near = (a, b, tolerance = 1.5) => Math.abs(a - b) <= tolerance;
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 
+  // open state of servers is remembered - after reload the server can already be open, click would close it
+  const openServer = async (name) => {
+    const isOpen = await page.evaluate((name) => [...document.querySelectorAll('li.vertical-slider-item')]
+      .some((item) => item.querySelector(':scope > .vertical-slider-label')?.textContent === name && item.classList.contains('active')), name);
+    if (!isOpen) {
+      await page.getByText(name, {exact: true}).first().click();
+    }
+  };
   await page.goto('http://localhost:3000');
   await page.evaluate(([connection, user]) => {
     localStorage.clear();
@@ -119,7 +127,7 @@ const near = (a, b, tolerance = 1.5) => Math.abs(a - b) <= tolerance;
 
   await page.reload();
   await page.waitForTimeout(1500);
-  await page.getByText('Resize test', {exact: true}).first().click();
+  await openServer('Resize test');
   await page.waitForTimeout(300);
   await page.locator('button[title="Load database list"]').first().dispatchEvent('mousedown');
   await page.waitForTimeout(800);

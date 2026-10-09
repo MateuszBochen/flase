@@ -17,6 +17,7 @@ export default () => {
   const connectionSettings = ConnectionSettings.getInstance();
 
   const toItem = (connectionItem: ConnectionDataInterface): VerticalSliderItem => ({
+    id: connectionItem.id,
     label: connectionItem.displayName,
     color: connectionItem.color,
     suffix: connectionItem.readOnly
@@ -52,8 +53,11 @@ export default () => {
   }, [state]);
 
   return (
+    // servers are opened / closed by user, more of them can be open at once
     <VerticalSlider
       items={state}
+      multiple
+      storageKey="open-connections"
     />
   );
 }
