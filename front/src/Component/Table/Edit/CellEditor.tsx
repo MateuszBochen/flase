@@ -10,6 +10,8 @@ interface CellEditorPropsInterface {
   onChange?: (value: CellValueType) => void;
   onCommit?: (value: CellValueType) => void;
   onCancel?: () => void;
+  /** focus editor when shown (inline editor is always focused) */
+  autoFocus?: boolean;
 }
 
 const placeholderForType = (type: string = ''): string => {
@@ -34,7 +36,7 @@ export default (props: CellEditorPropsInterface) => {
   const currentValue = useCallback((): CellValueType => isNull ? null : text, [isNull, text]);
 
   useEffect(() => {
-    if (props.mode === 'inline') {
+    if (props.mode === 'inline' || props.autoFocus) {
       // without preventScroll browser scrolls the overflow:hidden cell and its top border disappears
       inputRef.current?.focus({preventScroll: true});
       inputRef.current?.select?.();

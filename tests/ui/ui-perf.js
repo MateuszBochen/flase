@@ -96,6 +96,37 @@ const check = (name, ok, info = '') => {
   const firstId = await page.locator('.data-table-row').first().locator('.data-table-cell').first().textContent();
   check('scrolled', firstId !== '1', `first id ${firstId}`);
 
+  // --- direction of wheel: plain wheel only vertical, Shift + wheel and horizontal wheel only horizontal
+  const scrollState = () => page.evaluate(() => ({
+    firstId: document.querySelector('.data-table-row').dataset.row,
+    left: Math.round(document.querySelector('.cmp-data-grid').scrollLeft),
+  }));
+  const settle = () => page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  await page.locator('.cmp-data-grid').first().evaluate((el) => { el.scrollLeft = 0; });
+  await settle();
+  const beforeShift = await scrollState();
+  await page.keyboard.down('Shift');
+  for (let i = 0; i < 5; i++) { await page.mouse.wheel(0, 100); await settle(); }
+  await page.keyboard.up('Shift');
+  await page.waitForTimeout(200);
+  const afterShift = await scrollState();
+  check('shift + wheel scrolls only horizontally', afterShift.firstId === beforeShift.firstId && afterShift.left > beforeShift.left, `${JSON.stringify(beforeShift)} -> ${JSON.stringify(afterShift)}`);
+
+  const beforeHorizontal = await scrollState();
+  for (let i = 0; i < 5; i++) { await page.mouse.wheel(100, 0); await settle(); }
+  await page.waitForTimeout(200);
+  const afterHorizontal = await scrollState();
+  check('horizontal wheel (touchpad) scrolls only horizontally', afterHorizontal.firstId === beforeHorizontal.firstId && afterHorizontal.left > beforeHorizontal.left, `${JSON.stringify(beforeHorizontal)} -> ${JSON.stringify(afterHorizontal)}`);
+
+  const beforeVertical = await scrollState();
+  // grid is already at the end (scrolled before) - up
+  for (let i = 0; i < 3; i++) { await page.mouse.wheel(0, -60); await settle(); }
+  await page.waitForTimeout(200);
+  const afterVertical = await scrollState();
+  check('wheel scrolls only vertically', afterVertical.firstId !== beforeVertical.firstId && afterVertical.left === beforeVertical.left, `${JSON.stringify(beforeVertical)} -> ${JSON.stringify(afterVertical)}`);
+  await page.locator('.cmp-data-grid').first().evaluate((el) => { el.scrollLeft = 0; });
+  await settle();
+
   const click = await measure('click cell', async () => {
     await page.mouse.click(box.x + 300, box.y + 60);
   });

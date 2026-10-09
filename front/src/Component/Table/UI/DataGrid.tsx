@@ -44,7 +44,6 @@ export default forwardRef<DataGridRefInterface|null, DataGridPropsInterface>((pr
   const [records, setRecords] = useState<SingleRowType[]>([]);
   const [columns, setColumns] = useState<ColumnInterface[]>([]);
   const [topScroll, setTopScroll] = useState<number>(0);
-  const leftShiftIsPressed = useRef<boolean>(false);
 
   /**
    * rows come one by one from websocket - they are collected and added once per frame,
@@ -130,12 +129,12 @@ export default forwardRef<DataGridRefInterface|null, DataGridPropsInterface>((pr
   }, [insertedCount]);
 
   const scrollHandle = useCallback((event: WheelEvent) => {
+    // Shift + wheel and horizontal wheel (touchpad) scroll columns - left to browser, rows stay
+    if (event.shiftKey || Math.abs(event.deltaX) > Math.abs(event.deltaY)) {
+      return;
+    }
 
     setTopScroll((prevState) => {
-      if (leftShiftIsPressed.current) {
-        return prevState;
-      }
-
 
       if (rowsCount === 0) {
         return prevState;
@@ -158,20 +157,11 @@ export default forwardRef<DataGridRefInterface|null, DataGridPropsInterface>((pr
     });
   }, [rowsCount, sizeTableContent]);
 
-  const onKeyDownHandler = useCallback((event: KeyboardEvent) => {
-    if (event.code === 'ShiftLeft') {
-      leftShiftIsPressed.current = !leftShiftIsPressed.current;
-    }
-
-  }, []);
-
   useEffect(() => {
     if (mainTableContentContainer.current) {
       mainTableContentContainer.current.onwheel =  scrollHandle;
-      document.onkeydown =  onKeyDownHandler;
-      document.onkeyup =  onKeyDownHandler;
     }
-  }, [rowsCount, sizeTableContent]);
+  }, [scrollHandle]);
 
   useEffect(() => {
     const element = mainTableContentContainer.current;

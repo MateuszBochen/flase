@@ -34,7 +34,7 @@
   --primary: #3574f0;
   --primary-hover: #4682fa;
   --primary-text: #ffffff;
-  --grid-line: #2f3135;
+  --grid-line: #3a3d42;
   --grid-header: #2b2d30;
   --grid-zebra: rgba(255, 255, 255, 0.015);
   --shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.06);
@@ -81,7 +81,7 @@
   --primary: #3574f0;
   --primary-hover: #2a62d4;
   --primary-text: #ffffff;
-  --grid-line: #ebecf0;
+  --grid-line: #dcdfe4;
   --grid-header: #f7f8fa;
   --grid-zebra: rgba(0, 0, 0, 0.018);
   --shadow: 0 12px 40px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.06);

@@ -604,3 +604,14 @@
 .data-table-content .data-table-row .data-table-spacer {
   flex: none;
 }
+
+/* "Edit cell…" popup for non text columns (numbers, dates, enum) */
+.cmp-cell-edit-popup {
+  min-width: 360px;
+}
+
+.cmp-cell-edit-popup .hint {
+  margin-top: 8px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}

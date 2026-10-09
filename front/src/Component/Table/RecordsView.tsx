@@ -37,6 +37,7 @@ import PendingChangesBar from './UI/PendingChangesBar';
 import ContextMenu, {ContextMenuItem} from '../../UI/ContextMenu/ContextMenu';
 import RowForm from './Edit/RowForm';
 import ValueEditor from './Edit/ValueEditor';
+import CellEditPopup from './Edit/CellEditPopup';
 import {isBinaryValue} from '../../Library/Record/BinaryValue';
 import toast from 'react-hot-toast';
 
@@ -76,6 +77,8 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
   const [rowForm, setRowForm] = useState<RowFormState>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState>(null);
   const [valueEditor, setValueEditor] = useState<{rowIndex: number, column: ColumnInterface} | null>(null);
+  /** "Edit cell…" from context menu - popup with bigger editor than inline one */
+  const [cellPopup, setCellPopup] = useState<{rowIndex: number, column: ColumnInterface} | null>(null);
   const [exportMenu, setExportMenu] = useState<{x: number, y: number} | null>(null);
   const [selection, setSelection] = useState<SelectionType | null>(null);
   /** mouse button is held on cell - moving over cells extends selection */
@@ -288,6 +291,17 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
       .catch(() => toast.error('Unable to copy'));
   };
 
+  /** whole rows (all columns) with at least one selected cell */
+  const copySelectedRows = (format: CopyFormatType) => {
+    if (!selection) return;
+    const rowsCount = getRecords().length + changes.inserted.length;
+    const {rows} = selectedRowsAndColumns(selection, rowsCount);
+    const text = formatRows(format, rows, columns.map((column, index) => index));
+    navigator.clipboard?.writeText(text)
+      .then(() => toast.success(rows.length === 1 ? 'Copied 1 row' : `Copied ${rows.length} rows`))
+      .catch(() => toast.error('Unable to copy'));
+  };
+
   /** rows loaded in grid (current page, with pending changes) as file */
   const exportPage = (format: CopyFormatType) => {
     const rowsCount = getRecords().length + changes.inserted.length;
@@ -402,6 +416,10 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
         label: 'Copy selection as',
         children: COPY_FORMATS.map(({format, label}) => ({label, hint: format === 'tsv' ? 'Ctrl+C' : undefined, onClick: () => copySelection(format)})),
       });
+      items.push({
+        label: 'Copy selected rows as',
+        children: COPY_FORMATS.map(({format, label}) => ({label, onClick: () => copySelectedRows(format)})),
+      });
       if (column.reference && props.onOpenReference && value !== null && value !== undefined && !isBinaryValue(value) && rowState !== 'inserted') {
         items.push(
           {label: `Open ${column.reference.table.name} row`, onClick: () => props.onOpenReference!(column, value, false)},
@@ -441,7 +459,10 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
     if (rowIndex !== null && rowState !== 'deleted') {
       const cellEditable = !!column?.editable;
       items.push(
-        {label: 'Edit cell', hint: 'double click', disabled: !cellEditable, onClick: () => edit.onStartEdit(rowIndex, column!)},
+        {label: 'Edit cell…', disabled: !cellEditable, onClick: () => {
+          setEditingCell(null);
+          setCellPopup({rowIndex, column: column!});
+        }},
         {label: 'Set NULL', disabled: !cellEditable || !column?.nullable, onClick: () => onCommitEdit(rowIndex, column!, null)},
         'separator',
         {label: 'Edit row…', onClick: () => onEditRow(rowIndex)},
@@ -563,6 +584,17 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
           isNewRow={rowForm.rowIndex === undefined}
           onSave={onSaveRowForm}
           onCancel={() => setRowForm(null)}
+        />
+      )}
+      {cellPopup && (
+        <CellEditPopup
+          column={cellPopup.column}
+          value={getDisplayedRow(changes, getRecords(), cellPopup.rowIndex)[cellPopup.column.key]}
+          onSave={(value) => {
+            onCommitEdit(cellPopup.rowIndex, cellPopup.column, value);
+            setCellPopup(null);
+          }}
+          onClose={() => setCellPopup(null)}
         />
       )}
       {valueEditor && (

@@ -23,6 +23,7 @@ export default memo((props: RowPropsInterface) => {
   return (
     <div
       className={`data-table-row row-${props.rowState} ${props.selected ? 'selected' : ''}`}
+      data-row={props.rowIndex}
       onMouseDown={props.hasEdit ? () => handlers.onSelectRow(props.rowIndex) : undefined}
     >
       {before > 0 && <div className="data-table-spacer" style={{width: before, minWidth: before}} />}

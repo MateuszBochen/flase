@@ -526,3 +526,21 @@ div[role="status"] {
 .cmp-table-data-navbar .cmp-table-data-navbar-buttons .icon {
   height: 34px;
 }
+
+/* DDL of table - code block distinct from the rest of structure view */
+.cmp-structure-view .structure-ddl {
+  border: solid 1px var(--border);
+  border-radius: 8px;
+  background-color: var(--panel);
+  overflow: hidden;
+}
+
+.cmp-structure-view .structure-ddl .copy {
+  top: 8px;
+  right: 8px;
+}
+
+.cmp-structure-view .structure-ddl pre,
+.cmp-structure-view .structure-ddl code {
+  font-family: var(--font-mono) !important;
+}

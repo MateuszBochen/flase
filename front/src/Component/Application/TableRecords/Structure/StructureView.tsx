@@ -324,7 +324,7 @@ export default forwardRef<StructureViewRefInterface, StructureViewPropsInterface
           <Section title="DDL">
             <div className="structure-ddl">
               <button type="button" className="structure-action copy" onClick={copyDdl}>Copy</button>
-              <SyntaxHighlighter language="sql" style={theme === 'light' ? prism : darcula} customStyle={{margin: 0, background: 'var(--input-bg)', fontSize: '0.85rem'}}>
+              <SyntaxHighlighter language="sql" style={theme === 'light' ? prism : darcula} customStyle={{margin: 0, padding: '12px 14px', background: 'transparent', fontSize: '0.85rem'}}>
                 {`${structure.ddl};`}
               </SyntaxHighlighter>
             </div>

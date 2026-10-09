@@ -94,6 +94,27 @@ const check = (name, ok, info = '') => {
   await page.waitForTimeout(300);
   check('copy union of ranges', (await clipboard()) === '1\tnew\tNULL\n2\tnew\tx\n3\tnew\ty', JSON.stringify(await clipboard()));
 
+  // --- whole rows of the same selection (all columns)
+  const allColumns = await grid().locator('.header-cell .column-name').allInnerTexts();
+  const wholeRows = [];
+  for (let row = 0; row < 3; row++) {
+    wholeRows.push((await rows().nth(row).locator('.data-table-cell').allInnerTexts()).map((text) => text.trim()).join('\t'));
+  }
+  const copyRowsAs = async (format) => {
+    await (await cell(1, 'status')).click({button: 'right'});
+    await page.getByRole('menuitem', {name: 'Copy selected rows as'}).hover();
+    await page.waitForTimeout(200);
+    await page.getByRole('menuitem', {name: format, exact: true}).click();
+    await page.waitForTimeout(300);
+  };
+  await copyRowsAs('TSV');
+  check('copy selected rows - all columns of rows with selected cell', (await clipboard()) === wholeRows.join('\n'), JSON.stringify(await clipboard()));
+  check('selection kept after copying rows', await grid().locator('.cell-selected').count() === 5, String(await grid().locator('.cell-selected').count()));
+  await copyRowsAs('JSON');
+  const copiedJson = JSON.parse(await clipboard());
+  check('copy selected rows as JSON', copiedJson.length === 3 && Object.keys(copiedJson[0]).length === allColumns.length && copiedJson[1].id == 2,
+    JSON.stringify(copiedJson).slice(0, 200));
+
   // --- export
   const exportAs = async (scope, format) => {
     await grid().getByRole('button', {name: 'Export'}).click();
