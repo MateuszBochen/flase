@@ -19,3 +19,17 @@ export const serializeBinaryValue = (value: any): any => {
     text: isText ? text : null,
   };
 };
+
+/**
+ * binary value as client got it (see serializeBinaryValue) back to bytes - e.g. BINARY(16) key in WHERE of row change
+ * preview of long value is not whole value, row cannot be identified by it
+ */
+export const deserializeBinaryValue = (value: any): any => {
+  if (value === null || typeof value !== 'object' || value.binary !== true || typeof value.hex !== 'string') {
+    return value;
+  }
+  if (value.truncated) {
+    throw new Error('Row cannot be identified by binary value longer than its preview - add primary key of other type');
+  }
+  return Buffer.from(value.hex, 'hex');
+};

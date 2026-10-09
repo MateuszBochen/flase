@@ -67,7 +67,7 @@ const check = (name, ok, info = '') => {
   await sidebarFilter.fill('ord');
   await page.waitForTimeout(300);
   const filtered = await page.locator('.table-list-menu-root li').allInnerTexts();
-  check('table tree filter', filtered.length === 2 && filtered.every((t) => t.includes('ord')), JSON.stringify(filtered));
+  check('table tree filter', JSON.stringify(filtered) === JSON.stringify(['order_items', 'orders', 'uuid_orders']), JSON.stringify(filtered));
   await sidebarFilter.fill('');
 
   await page.locator('.table-list-filter button[title^="Search in data of shop"]').dispatchEvent('mousedown');

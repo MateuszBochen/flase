@@ -101,3 +101,36 @@ CREATE TABLE wide_test (id SERIAL PRIMARY KEY,
 INSERT INTO wide_test (c01, c02, c03, c04, c05, c06, c07, c08, c09, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20, c21, c22, c23, c24, c25, c26, c27, c28, c29, c30, c31, c32, c33, c34, c35, c36, c37, c38, c39, c40, c41, c42, c43, c44, c45, c46, c47, c48, c49)
 SELECT 'text value 1 row ' || n, n * 1.25 + 2, TIMESTAMP '2026-01-01' + (n * 3) * INTERVAL '1 minute', 'longer text of column 4 for row ' || n || ' lorem ipsum dolor sit amet', n * 5, 'text value 6 row ' || n, n * 1.25 + 7, TIMESTAMP '2026-01-01' + (n * 8) * INTERVAL '1 minute', 'longer text of column 9 for row ' || n || ' lorem ipsum dolor sit amet', n * 10, 'text value 11 row ' || n, n * 1.25 + 12, TIMESTAMP '2026-01-01' + (n * 13) * INTERVAL '1 minute', 'longer text of column 14 for row ' || n || ' lorem ipsum dolor sit amet', n * 15, 'text value 16 row ' || n, n * 1.25 + 17, TIMESTAMP '2026-01-01' + (n * 18) * INTERVAL '1 minute', 'longer text of column 19 for row ' || n || ' lorem ipsum dolor sit amet', n * 20, 'text value 21 row ' || n, n * 1.25 + 22, TIMESTAMP '2026-01-01' + (n * 23) * INTERVAL '1 minute', 'longer text of column 24 for row ' || n || ' lorem ipsum dolor sit amet', n * 25, 'text value 26 row ' || n, n * 1.25 + 27, TIMESTAMP '2026-01-01' + (n * 28) * INTERVAL '1 minute', 'longer text of column 29 for row ' || n || ' lorem ipsum dolor sit amet', n * 30, 'text value 31 row ' || n, n * 1.25 + 32, TIMESTAMP '2026-01-01' + (n * 33) * INTERVAL '1 minute', 'longer text of column 34 for row ' || n || ' lorem ipsum dolor sit amet', n * 35, 'text value 36 row ' || n, n * 1.25 + 37, TIMESTAMP '2026-01-01' + (n * 38) * INTERVAL '1 minute', 'longer text of column 39 for row ' || n || ' lorem ipsum dolor sit amet', n * 40, 'text value 41 row ' || n, n * 1.25 + 42, TIMESTAMP '2026-01-01' + (n * 43) * INTERVAL '1 minute', 'longer text of column 44 for row ' || n || ' lorem ipsum dolor sit amet', n * 45, 'text value 46 row ' || n, n * 1.25 + 47, TIMESTAMP '2026-01-01' + (n * 48) * INTERVAL '1 minute', 'longer text of column 49 for row ' || n || ' lorem ipsum dolor sit amet'
 FROM generate_series(1, 1000) AS n;
+
+-- UUID as primary key, foreign key of uuid
+DROP TABLE IF EXISTS uuid_orders;
+DROP TABLE IF EXISTS uuid_customers;
+CREATE TABLE uuid_customers (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name VARCHAR(100) NOT NULL,
+  email VARCHAR(150) NULL
+);
+CREATE TABLE uuid_orders (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  customer_id uuid NOT NULL REFERENCES uuid_customers (id),
+  total NUMERIC(10,2) NOT NULL DEFAULT 0,
+  created TIMESTAMP NOT NULL DEFAULT '2026-01-02 03:04:05'
+);
+INSERT INTO uuid_customers (id, name, email) VALUES
+  ('3f2c1a9e-6b7d-4e8f-9a0b-1c2d3e4f5a01', 'Anna', 'anna@example.com'),
+  ('7a8b9c0d-1e2f-4a3b-8c4d-5e6f7a8b9c02', 'Piotr', 'piotr@example.com'),
+  ('b1c2d3e4-f5a6-4b7c-9d8e-0f1a2b3c4d03', 'Marta', NULL);
+INSERT INTO uuid_orders (id, customer_id, total) VALUES
+  ('d4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f11', '3f2c1a9e-6b7d-4e8f-9a0b-1c2d3e4f5a01', 120.50),
+  ('e5f6a7b8-c9d0-4e1f-9a2b-3c4d5e6f7a12', '3f2c1a9e-6b7d-4e8f-9a0b-1c2d3e4f5a01', 15.00),
+  ('f6a7b8c9-d0e1-4f2a-8b3c-4d5e6f7a8b13', '7a8b9c0d-1e2f-4a3b-8c4d-5e6f7a8b9c02', 99.99);
+
+-- binary key (uuid stored as bytes)
+DROP TABLE IF EXISTS uuid_bin_test;
+CREATE TABLE uuid_bin_test (
+  id bytea PRIMARY KEY DEFAULT decode(replace(gen_random_uuid()::text, '-', ''), 'hex'),
+  name VARCHAR(100) NOT NULL
+);
+INSERT INTO uuid_bin_test (id, name) VALUES
+  (decode('3F2C1A9E6B7D4E8F9A0B1C2D3E4F5A01', 'hex'), 'first'),
+  (decode('7A8B9C0D1E2F4A3B8C4D5E6F7A8B9C02', 'hex'), 'second');

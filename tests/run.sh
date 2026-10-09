@@ -24,6 +24,7 @@ failed=()
 reset_data() {
   docker exec -i flase_mysql mysql -uroot -proot shop < "$TESTS/fixtures/mysql.sql" 2>/dev/null
   docker exec -i flase_mariadb mariadb -uroot -proot shop < "$TESTS/fixtures/mysql.sql"
+  docker exec -i flase_mariadb mariadb -uroot -proot shop < "$TESTS/fixtures/mariadb.sql"
   docker exec -i flase_postgres psql -q -U flase -d shop -v ON_ERROR_STOP=1 < "$TESTS/fixtures/postgres.sql" 2>&1 | grep -v NOTICE
 }
 
@@ -79,7 +80,7 @@ if [ "$GROUP" = "all" ] || [ "$GROUP" = "ui" ]; then
   # file and arguments
   for test in "ui-test5.js 0" "ui-test.js 0" "ui-test.js 1" "ui-test2.js 0" "ui-test3.js 0" "ui-test4.js 0" "ui-structure.js 0" \
     "ui-ddl.js 0" "ui-browse.js 0" "ui-copy.js 0" "ui-deselect.js 0" "ui-value.js 0" "ui-completion.js 0" "ui-search.js 0" \
-    "ui-console.js 0" "ui-transfer.js 0" "ui-postgres.js" "ui-edit-popup.js" "ui-perf.js mysql" "ui-perf.js postgres"; do
+    "ui-console.js 0" "ui-transfer.js 0" "ui-postgres.js" "ui-edit-popup.js" "ui-uuid.js mariadb" "ui-uuid.js mysql" "ui-uuid.js postgres" "ui-perf.js mysql" "ui-perf.js postgres"; do
     file="${test%% *}"
     selected "$file" || continue
     reset_data

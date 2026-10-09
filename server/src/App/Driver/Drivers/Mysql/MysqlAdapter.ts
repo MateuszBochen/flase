@@ -32,6 +32,7 @@ import TableStructureInterface, {
   StructureTableInfoInterface,
   StructureTriggerInterface,
 } from '../../Interface/Data/TableStructureInterface';
+import {deserializeBinaryValue} from '../BinaryValue';
 const mysql = require('mysql');
 const { Parser } = require('node-sql-parser');
 
@@ -653,7 +654,8 @@ class MysqlAdapter implements DriverInterface {
     return entries
       .map(([column, value]) => value === null
         ? mysql.format('?? IS NULL', [column])
-        : mysql.format('?? = ?', [column, value]))
+        // Buffer of binary key is formatted as X'...'
+        : mysql.format('?? = ?', [column, deserializeBinaryValue(value)]))
       .join(' AND ');
   }
 

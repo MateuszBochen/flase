@@ -26,6 +26,7 @@ import PostgresDdlBuilder from './PostgresDdlBuilder';
 import PostgresDumper from './PostgresDumper';
 import PostgresUsers from './PostgresUsers';
 import {UserManagerInterface} from '../../Interface/Data/UserInterface';
+import {deserializeBinaryValue} from '../BinaryValue';
 const { Parser } = require('node-sql-parser');
 
 /** types without = operator - rows are identified by text form of value */
@@ -405,6 +406,10 @@ class PostgresAdapter implements DriverInterface {
       const name = PostgresSql.identifier(column);
       if (value === null) {
         return `${name} IS NULL`;
+      }
+      const bytes = deserializeBinaryValue(value);
+      if (Buffer.isBuffer(bytes)) {
+        return `${name} = '\\x${bytes.toString('hex')}'::bytea`;
       }
       return NO_EQUALITY_TYPE.test(types?.get(column) || '')
         ? `${name}::text = ${PostgresSql.literal(value)}`

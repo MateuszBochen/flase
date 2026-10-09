@@ -93,3 +93,39 @@ FROM (SELECT a.d + b.d * 10 + c.d * 100 + 1 AS n FROM
   (SELECT 0 d UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) b,
   (SELECT 0 d UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) c) seq
 ORDER BY seq.n;
+
+-- UUID as primary key: CHAR(36) with foreign key and BINARY(16) (MySQL and MariaDB)
+DROP TABLE IF EXISTS uuid_orders;
+DROP TABLE IF EXISTS uuid_customers;
+DROP TABLE IF EXISTS uuid_bin_test;
+CREATE TABLE uuid_customers (
+  id CHAR(36) NOT NULL DEFAULT (UUID()),
+  name VARCHAR(100) NOT NULL,
+  email VARCHAR(150) NULL,
+  PRIMARY KEY (id)
+);
+CREATE TABLE uuid_orders (
+  id CHAR(36) NOT NULL DEFAULT (UUID()),
+  customer_id CHAR(36) NOT NULL,
+  total DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+  created DATETIME NOT NULL DEFAULT '2026-01-02 03:04:05',
+  PRIMARY KEY (id),
+  KEY idx_uuid_orders_customer (customer_id),
+  CONSTRAINT fk_uuid_orders_customer FOREIGN KEY (customer_id) REFERENCES uuid_customers (id)
+);
+INSERT INTO uuid_customers (id, name, email) VALUES
+  ('3f2c1a9e-6b7d-4e8f-9a0b-1c2d3e4f5a01', 'Anna', 'anna@example.com'),
+  ('7a8b9c0d-1e2f-4a3b-8c4d-5e6f7a8b9c02', 'Piotr', 'piotr@example.com'),
+  ('b1c2d3e4-f5a6-4b7c-9d8e-0f1a2b3c4d03', 'Marta', NULL);
+INSERT INTO uuid_orders (id, customer_id, total) VALUES
+  ('d4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f11', '3f2c1a9e-6b7d-4e8f-9a0b-1c2d3e4f5a01', 120.50),
+  ('e5f6a7b8-c9d0-4e1f-9a2b-3c4d5e6f7a12', '3f2c1a9e-6b7d-4e8f-9a0b-1c2d3e4f5a01', 15.00),
+  ('f6a7b8c9-d0e1-4f2a-8b3c-4d5e6f7a8b13', '7a8b9c0d-1e2f-4a3b-8c4d-5e6f7a8b9c02', 99.99);
+CREATE TABLE uuid_bin_test (
+  id BINARY(16) NOT NULL DEFAULT (UNHEX(REPLACE(UUID(), '-', ''))),
+  name VARCHAR(100) NOT NULL,
+  PRIMARY KEY (id)
+);
+INSERT INTO uuid_bin_test (id, name) VALUES
+  (UNHEX('3F2C1A9E6B7D4E8F9A0B1C2D3E4F5A01'), 'first'),
+  (UNHEX('7A8B9C0D1E2F4A3B8C4D5E6F7A8B9C02'), 'second');

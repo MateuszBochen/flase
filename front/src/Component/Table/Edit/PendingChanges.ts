@@ -153,9 +153,16 @@ export const buildRowChanges = (
     const identifying = limitOne
       ? columns.filter((column) => column.editable).map((column) => column.key)
       : editable.primaryKey;
+    // key column does not have to be editable (e.g. BINARY(16) / bytea key) - it only identifies row
     const where: SingleRowType = {};
-    identifying.forEach((key) => where[key] = row[key] ?? null);
-    return toTableValues(where);
+    identifying.forEach((key) => {
+      // key missing in result is skipped - change is then refused, never matched by NULL
+      const name = columnByKey.get(key)?.orgName;
+      if (name) {
+        where[name] = row[key] ?? null;
+      }
+    });
+    return where;
   };
 
   const rowChanges: RowChangeInterface[] = [];
