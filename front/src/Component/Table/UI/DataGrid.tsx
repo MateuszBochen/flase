@@ -16,6 +16,28 @@ import ColumnInterface from '../../../Library/Table/Interface/ColumnInterface';
 import {getRowState} from '../Edit/PendingChanges';
 import {GridHandlersInterface, selectedColumnsOfRow} from '../Interface/GridEditInterface';
 
+/**
+ * callback of ResizeObserver runs in next frame - state changed directly in callback changes layout of observed
+ * elements in the same frame and browser reports "ResizeObserver loop completed with undelivered notifications"
+ */
+const inNextFrame = (callback: () => void) => {
+  let frame: number | null = null;
+  return {
+    run: () => {
+      if (frame === null) {
+        frame = requestAnimationFrame(() => {
+          frame = null;
+          callback();
+        });
+      }
+    },
+    cancel: () => {
+      if (frame !== null) cancelAnimationFrame(frame);
+      frame = null;
+    },
+  };
+};
+
 /** DataGrid */
 export default forwardRef<DataGridRefInterface|null, DataGridPropsInterface>((props: DataGridPropsInterface, ref) => {
 
@@ -152,26 +174,27 @@ export default forwardRef<DataGridRefInterface|null, DataGridPropsInterface>((pr
   }, [rowsCount, sizeTableContent]);
 
   useEffect(() => {
-    const observer = new ResizeObserver((entries: ResizeObserverEntry[]) => {
-      entries.forEach((entry) => {
-        setSizeTableContent({
-          width: entry.target.getBoundingClientRect().width,
-          height: entry.target.getBoundingClientRect().height
-        });
-      });
-    });
+    const element = mainTableContentContainer.current;
+    const measureSize = () => {
+      if (element) {
+        const rect = element.getBoundingClientRect();
+        setSizeTableContent((previous) => previous.width === rect.width && previous.height === rect.height
+          ? previous
+          : {width: rect.width, height: rect.height});
+      }
+    };
+    const scheduled = inNextFrame(measureSize);
+    const observer = new ResizeObserver(scheduled.run);
 
-    if (mainTableContentContainer.current) {
-      setSizeTableContent({
-        width: mainTableContentContainer.current.getBoundingClientRect().width,
-        height: mainTableContentContainer.current.getBoundingClientRect().height
-      });
-      observer.observe(mainTableContentContainer.current);
+    if (element) {
+      measureSize();
+      observer.observe(element);
     }
 
-     return () => {
-       if (mainTableContentContainer.current) observer.unobserve(mainTableContentContainer.current);
-     }
+    return () => {
+      scheduled.cancel();
+      observer.disconnect();
+    };
 
   }, []);
 
@@ -187,10 +210,14 @@ export default forwardRef<DataGridRefInterface|null, DataGridPropsInterface>((pr
       setWidths((previous) => previous.length === next.length && previous.every((width, index) => width === next[index]) ? previous : next);
     };
     measure();
-    const observer = new ResizeObserver(measure);
+    const scheduled = inNextFrame(measure);
+    const observer = new ResizeObserver(scheduled.run);
     observer.observe(headerRow);
     Array.from(headerRow.children).forEach((cell) => observer.observe(cell));
-    return () => observer.disconnect();
+    return () => {
+      scheduled.cancel();
+      observer.disconnect();
+    };
   }, [columns]);
 
   /** only columns visible in horizontal scroll (and few around) are rendered, the rest is replaced by spacers */
@@ -220,10 +247,12 @@ export default forwardRef<DataGridRefInterface|null, DataGridPropsInterface>((pr
     };
     update();
     scroller.addEventListener('scroll', update, {passive: true});
-    const observer = new ResizeObserver(update);
+    const scheduled = inNextFrame(update);
+    const observer = new ResizeObserver(scheduled.run);
     observer.observe(scroller);
     return () => {
       scroller.removeEventListener('scroll', update);
+      scheduled.cancel();
       observer.disconnect();
     };
   }, [widths]);

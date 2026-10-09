@@ -18,6 +18,31 @@ export default (props: EditorPropsInterface) => {
 
   useEffect(() => () => unregisterCompletion.current?.(), []);
 
+  /**
+   * own automatic layout - Monaco's automaticLayout re-layouts synchronously in ResizeObserver callback,
+   * which changes size of observed element and browser reports "ResizeObserver loop completed with undelivered notifications"
+   */
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const layoutFrame = useRef<number | null>(null);
+  const scheduleLayout = () => {
+    if (layoutFrame.current === null) {
+      layoutFrame.current = requestAnimationFrame(() => {
+        layoutFrame.current = null;
+        editorRef.current?.layout();
+      });
+    }
+  };
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+    const observer = new ResizeObserver(scheduleLayout);
+    observer.observe(wrapper);
+    return () => {
+      if (layoutFrame.current !== null) cancelAnimationFrame(layoutFrame.current);
+      observer.disconnect();
+    };
+  }, []);
+
   useEffect(() => {
     if(editorRef.current) {
       if (editorRef.current.getValue() !== props.defaultText) {
@@ -28,6 +53,8 @@ export default (props: EditorPropsInterface) => {
 
   const handleEditorMount: OnMount = useCallback((editor, monacoInstance) => {
     editorRef.current = editor;
+    // editor is created asynchronously - container could have changed size before, observer did not have editor then
+    scheduleLayout();
 
     /** disable enter if is oneliner */
     if (props.isOneliner) {
@@ -59,7 +86,7 @@ export default (props: EditorPropsInterface) => {
   }, [props.hints, props.isOneliner]);
 
   return (
-    <div className={`editor-syntax-highlighter-wrapper ${props.isOneliner ? 'is-oneliner' : ''}`}>
+    <div ref={wrapperRef} className={`editor-syntax-highlighter-wrapper ${props.isOneliner ? 'is-oneliner' : ''}`}>
       <Editor
         theme={theme === 'light' ? 'vs' : 'vs-dark'}
         height="100%"
@@ -68,10 +95,11 @@ export default (props: EditorPropsInterface) => {
         defaultValue={props.defaultText}
         onMount={handleEditorMount}
         options={{
+          automaticLayout: false,
 
           suggestOnTriggerCharacters: true,
           fontFamily: "'JetBrains Mono', Menlo, Consolas, monospace",
-          fontSize: 13,
+          fontSize: 14,
           fontLigatures: true,
           quickSuggestions: true,
           minimap: { enabled: false },
@@ -85,7 +113,9 @@ export default (props: EditorPropsInterface) => {
           folding: !props.isOneliner,
           glyphMargin: !props.isOneliner,
           overviewRulerLanes: 0,
-          padding: {top: 6, bottom: 0},
+          // one line editor (query of table, 34px high): line of 20px with the same space above and below
+          lineHeight: props.isOneliner ? 20 : 0,
+          padding: props.isOneliner ? {top: 7, bottom: 7} : {top: 6, bottom: 0},
         }}
       />
     </div>

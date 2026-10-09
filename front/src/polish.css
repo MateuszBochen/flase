@@ -406,7 +406,7 @@ input[type="radio"] {
 .cmp-records-view .cmp-records-view-table-wrapper .cmp-data-grid .header-columns-row .header-cell .column-name-wrapper .column-name {
   color: var(--text-strong);
   font-weight: 600;
-  font-size: 12.5px;
+  font-size: 13.5px;
 }
 
 .cmp-records-view .cmp-records-view-table-wrapper .cmp-data-grid .header-columns-row .header-cell:first-child .column-name-wrapper {
@@ -417,7 +417,7 @@ input[type="radio"] {
   border-color: var(--grid-line);
   background-color: transparent;
   font-family: var(--font-mono);
-  font-size: 12.5px;
+  font-size: 13.5px;
 }
 
 /* zebra and hover only for rows / cells without state (selected, changed, inserted, deleted) */
@@ -509,4 +509,20 @@ div[role="status"] {
 
 .cmp-records-view .cmp-records-view-pager {
   flex: none;
+}
+
+/* name of database is the beginning of query - the same font as editor, so "shop://SELECT ..." reads as one line */
+.cmp-table-data-navbar .cmp-table-data-navbar-buttons .icon.database-name {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  padding-bottom: 0;
+}
+
+/* history arrows and name of database are centered in whole height of bar, as the line of editor */
+.cmp-table-data-navbar .cmp-table-data-navbar-buttons {
+  align-items: stretch;
+}
+
+.cmp-table-data-navbar .cmp-table-data-navbar-buttons .icon {
+  height: 34px;
 }

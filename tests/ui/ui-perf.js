@@ -44,6 +44,11 @@ const check = (name, ok, info = '') => {
     return result;
   };
 
+  // "ResizeObserver loop ..." is dispatched as error event of window, not as page error
+  await page.addInitScript(() => {
+    window.__windowErrors = [];
+    window.addEventListener('error', (event) => window.__windowErrors.push(event.message));
+  });
   await page.goto('http://localhost:3000');
   await page.evaluate(([connection, user]) => {
     localStorage.clear();
@@ -66,6 +71,14 @@ const check = (name, ok, info = '') => {
     await page.getByText('wide_test', {exact: true}).first().click();
     await rowsLoaded();
   });
+  // editor of query is created asynchronously - it must fill its place, not stay as wide as container was at creation
+  await page.locator('.cmp-table-data-navbar-editor-wrapper:visible .monaco-editor').first().waitFor({timeout: 10000});
+  await page.waitForTimeout(200);
+  const editorSize = await page.evaluate(() => {
+    const wrapper = [...document.querySelectorAll('.cmp-table-data-navbar-editor-wrapper')].find((item) => item.offsetParent);
+    return {wrapper: Math.round(wrapper.getBoundingClientRect().width), monaco: Math.round(wrapper.querySelector('.monaco-editor').getBoundingClientRect().width)};
+  });
+  check('query editor fills its place', editorSize.monaco > 200 && Math.abs(editorSize.wrapper - editorSize.monaco) <= 2, JSON.stringify(editorSize));
   const cells = await page.locator('.data-table-cell').count();
   console.log(`INFO  rendered rows ${await page.locator('.data-table-row').count()}, cells ${cells}`);
   check('rows rendered', cells > 1000, `${cells} cells`);
@@ -119,6 +132,25 @@ const check = (name, ok, info = '') => {
   });
   check('last column rendered after horizontal scroll', visible.lastInside && /longer text of column 49/.test(visible.lastText), JSON.stringify(visible));
   check('not all columns rendered', visible.count < 50, `${visible.count} cells in row`);
+
+  // resizing of window must not end in ResizeObserver loop
+  // like dragging edge of window - size changes in every frame
+  for (let width = 1920; width >= 1000; width -= 23) {
+    await page.setViewportSize({width, height: 1080 - Math.round((1920 - width) / 3)});
+  }
+  for (let width = 1000; width <= 1920; width += 37) {
+    await page.setViewportSize({width, height: 1080});
+  }
+  await page.setViewportSize({width: 1920, height: 1080});
+  await page.waitForTimeout(300);
+  const windowErrors = await page.evaluate(() => window.__windowErrors);
+  check('no errors while resizing window', windowErrors.length === 0, windowErrors.join(' | '));
+  const lastAfterResize = await page.evaluate(() => {
+    const grid = document.querySelector('.cmp-data-grid').getBoundingClientRect();
+    const cells = [...document.querySelector('.data-table-row').querySelectorAll('.data-table-cell')];
+    return cells.some((cell) => /longer text of column 49/.test(cell.textContent)) && cells[cells.length - 1].getBoundingClientRect().left < grid.right;
+  });
+  check('columns follow resized window', lastAfterResize);
 
   check('no page errors', errors.length === 0, errors.join(' | '));
   console.log(`SUMMARY open ${open.wall} ms, scroll ${scroll.task.toFixed(0)} ms task, click ${click.task.toFixed(0)} ms, drag ${drag.task.toFixed(0)} ms, edit ${edit.task.toFixed(0)} ms`);
