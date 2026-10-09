@@ -53,3 +53,9 @@
   color: #e8913a;
   font-size: 0.8em;
 }
+
+.vertical-slider-root ul .vertical-slider-item .connection-predefined {
+  margin-left: 6px;
+  color: var(--text-muted);
+  font-size: 0.75em;
+}

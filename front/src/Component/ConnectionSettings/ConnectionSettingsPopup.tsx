@@ -68,6 +68,31 @@ export default (props: ConnectionSettingsPopupPropsInterface) => {
     props.onClose();
   };
 
+  if (props.connection.predefined) {
+    return (
+      <Popup
+        isOpen={true}
+        label={`Connection ${props.connection.displayName}`}
+        onClickOk={props.onClose}
+        buttons={[
+          <Button key="close" size="small" label="Close" onClick={props.onClose} />,
+          ...(connected ? [<Button key="disconnect" size="small" label="Disconnect" onClick={disconnect} />] : []),
+        ]}
+      >
+        <div className="cmp-connection-settings managed">
+          <dl>
+            <dt>Name</dt><dd>{props.connection.displayName}</dd>
+            <dt>DSN</dt><dd><code>{props.connection.dsn}</code></dd>
+            {props.connection.username && <><dt>Default user</dt><dd>{props.connection.username}</dd></>}
+            <dt>Read only</dt><dd>{props.connection.readOnly ? 'yes - enforced by server' : 'no'}</dd>
+            <dt>Confirm every change</dt><dd>{props.connection.changeConfirmationRequired ? 'yes' : 'no'}</dd>
+          </dl>
+          <div className="hint">Connection is defined by administrator in configuration of Flase server (FLASE_CONNECTIONS) - it cannot be changed or deleted here.</div>
+        </div>
+      </Popup>
+    );
+  }
+
   return (
     <Popup
       isOpen={true}

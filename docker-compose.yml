@@ -10,6 +10,14 @@ services:
       - "3001:3001"
     volumes:
       - ./:/var/www/html/
+    # environment:
+    #   # connections defined by administrator - JSON array, item is DSN or object
+    #   # (name, dsn, username, readOnly, color, confirmChanges); readOnly is enforced by server
+    #   FLASE_CONNECTIONS: >-
+    #     [{"name": "Shop production", "dsn": "mysql://10.0.0.5:3306", "username": "app", "readOnly": true, "color": "#d9534f"},
+    #      "postgresql://10.0.0.6:5432/reports"]
+    #   # false = users can use only connections above (default true)
+    #   FLASE_ALLOW_CUSTOM_CONNECTIONS: "false"
 
   # Test databases. Inside the compose network log in with host `mysql` / `mariadb`;
   # from the host machine use 127.0.0.1 and the published port.

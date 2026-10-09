@@ -18,6 +18,7 @@ import NewDatabaseConnection from '../NewDatabaseConnection/NewDatabaseConnectio
 import ConnectionSettings from '../../../Library/Connection/ConnectionSettings';
 import ThemeManager from '../../../Library/Theme/ThemeManager';
 import {SHORTCUT_HELP_EVENT} from '../../../Library/Shortcuts/Shortcuts';
+import {useServerConfig} from '../../../Library/Config/ServerConfig';
 import './style.css';
 
 const FEATURES = [
@@ -35,6 +36,7 @@ const FEATURES = [
  * @author Mateusz Bochen
  */
 const WhatsNew: FC<undefined> = () => {
+  const {allowCustomConnections} = useServerConfig();
   const connections = ConnectionSettings.getInstance().getConnections().length;
 
   const newConnection = () => EventBus.emit(new NewTabComponentWasSelected<undefined>({
@@ -56,10 +58,17 @@ const WhatsNew: FC<undefined> = () => {
       </div>
 
       <div className="welcome-actions">
-        <button type="button" className="welcome-action primary" onClick={newConnection}>
-          <FontAwesomeIcon icon={faNetworkWired} />
-          <span><b>New connection</b><small>{connections ? `${connections} saved - open them in the left panel` : 'mysql://, mariadb://, postgresql://'}</small></span>
-        </button>
+        {allowCustomConnections ? (
+          <button type="button" className="welcome-action primary" onClick={newConnection}>
+            <FontAwesomeIcon icon={faNetworkWired} />
+            <span><b>New connection</b><small>{connections ? `${connections} saved - open them in the left panel` : 'mysql://, mariadb://, postgresql://'}</small></span>
+          </button>
+        ) : (
+          <div className="welcome-action primary managed">
+            <FontAwesomeIcon icon={faNetworkWired} />
+            <span><b>{connections} connection{connections === 1 ? '' : 's'} from administrator</b><small>Open them in the left panel</small></span>
+          </div>
+        )}
         <button type="button" className="welcome-action" onClick={() => window.dispatchEvent(new Event(SHORTCUT_HELP_EVENT))}>
           <FontAwesomeIcon icon={faKeyboard} />
           <span><b>Keyboard shortcuts</b><small>F1 anywhere</small></span>

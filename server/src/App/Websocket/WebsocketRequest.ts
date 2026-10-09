@@ -27,9 +27,13 @@ class WebsocketRequest {
   private lastCommand: string = '';
   private lastCommandTimeStamp: number = 0;
 
-  constructor(databaseDriver: DriverInterface, clientWebsocket: WebSocket) {
+  /** read only enforced by server - flag sent by browser is not trusted */
+  private readonly forceReadOnly: boolean;
+
+  constructor(databaseDriver: DriverInterface, clientWebsocket: WebSocket, forceReadOnly: boolean = false) {
     this.databaseDriver = databaseDriver;
     this.clientWebsocket = clientWebsocket;
+    this.forceReadOnly = forceReadOnly;
   }
 
   public procedure(): void {
@@ -40,6 +44,12 @@ class WebsocketRequest {
       } catch (e) {
         console.error('Invalid websocket message', event.data);
         return;
+      }
+
+      if (this.forceReadOnly) {
+        // guard and read only database sessions read the flag from command
+        command.connectionData = command.connectionData || ({} as any);
+        command.connectionData.connection = {...(command.connectionData.connection || {}), readOnly: true} as any;
       }
 
       if (this.isDuplicate(event.data)) {

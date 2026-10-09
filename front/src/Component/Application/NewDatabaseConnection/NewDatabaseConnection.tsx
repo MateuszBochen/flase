@@ -10,6 +10,7 @@ import LoginRequest from '../../../Library/API/Request/LoginRequest';
 import DisconnectRequest from '../../../Library/API/Request/DisconnectRequest';
 import EventBus from '../../../Library/EventBus/EventBus';
 import ConnectionFormWasSubmitted from '../../ConnectionForm/Event/ConnectionFormWasSubmitted';
+import {useServerConfig} from '../../../Library/Config/ServerConfig';
 import './style.css';
 
 type EngineType = 'mysql' | 'mariadb' | 'postgresql';
@@ -37,6 +38,7 @@ const buildDsn = (engine: EngineType, host: string, port: string, database: stri
 
 /** NewDatabaseConnection - engine, address (host / port / database or DSN), user, color and safety options */
 export default () => {
+  const {allowCustomConnections} = useServerConfig();
   const [engine, setEngine] = useState<EngineType>('mysql');
   const [mode, setMode] = useState<ModeType>('host');
   const [host, setHost] = useState<string>('localhost');
@@ -149,6 +151,22 @@ export default () => {
   };
 
   const shown = (error: string | null) => submitted && error ? <div className="field-error">{error}</div> : null;
+
+  if (!allowCustomConnections) {
+    return (
+      <div className="cmp-new-connection">
+        <div className="new-connection-card">
+          <div className="new-connection-header">
+            <div className="new-connection-mark"><FontAwesomeIcon icon={faLock} /></div>
+            <div>
+              <h1>Connections are managed by administrator</h1>
+              <p>This Flase server allows only connections defined in its configuration. Use them from the left panel.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="cmp-new-connection">

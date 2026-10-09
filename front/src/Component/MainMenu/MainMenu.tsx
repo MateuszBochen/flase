@@ -8,11 +8,14 @@ import InvisibleButton from '../../UI/Button/InvisibleButton';
 import ThemeManager, {useTheme} from '../../Library/Theme/ThemeManager';
 import {SHORTCUT_HELP_EVENT} from '../../Library/Shortcuts/Shortcuts';
 import ShortcutHelp from '../Shortcuts/ShortcutHelp';
+import {useServerConfig} from '../../Library/Config/ServerConfig';
 import HorizontalButtonList from '../../UI/Button/HorizontalButtonList';
 
 
 export default () => {
   const theme = useTheme();
+  // administrator can allow only connections defined on server
+  const {allowCustomConnections} = useServerConfig();
 
 
   return (
@@ -25,12 +28,14 @@ export default () => {
           >
             <FontAwesomeIcon icon={faHome} />
           </TabOpener>
-          <TabOpener<undefined>
-            tab={newDatabaseConnection}
-            tooltip={"Creating new connection"}
-          >
-            <FontAwesomeIcon icon={faNetworkWired} />
-          </TabOpener>
+          {allowCustomConnections && (
+            <TabOpener<undefined>
+              tab={newDatabaseConnection}
+              tooltip={"Creating new connection"}
+            >
+              <FontAwesomeIcon icon={faNetworkWired} />
+            </TabOpener>
+          )}
           <TabOpener<undefined>
             tab={testApp}
             tooltip={"Test application"}

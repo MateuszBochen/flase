@@ -147,3 +147,11 @@
   font-size: 13px;
   line-height: 1.45;
 }
+
+.cmp-welcome .welcome-action.managed {
+  cursor: default;
+}
+
+.cmp-welcome .welcome-action.managed:hover {
+  transform: none;
+}

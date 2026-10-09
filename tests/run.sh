@@ -17,6 +17,8 @@ GROUP="${1:-all}"
 FILTER="${2:-}"
 NODE_IMAGE=node:22.11
 PLAYWRIGHT_IMAGE=mcr.microsoft.com/playwright:v1.49.1-noble
+# configuration of server for predefined-test (password in DSN must never reach browser)
+PREDEFINED_CONNECTIONS='[{"name": "Shop prod", "dsn": "mysql://mariadb:3306", "username": "flase", "readOnly": true, "color": "#d9534f"}, "postgresql://user:secret@postgres:5432/shop", {"name": "bad", "dsn": "ftp://x"}]'
 
 passed=()
 failed=()
@@ -69,6 +71,17 @@ if [ "$GROUP" = "all" ] || [ "$GROUP" = "server" ]; then
       "$NODE_IMAGE" node "/t/$test.js" http://php_flase:3001 > "$LOGS/$test" 2>&1
     report "$test" "$LOGS/$test"
   done
+  # second server instance (port 3002) with connections defined by administrator, development server is not touched
+  if selected predefined-test; then
+    reset_data
+    docker exec -d -e PORT=3002 -e FLASE_ALLOW_CUSTOM_CONNECTIONS=false -e FLASE_CONNECTIONS="$PREDEFINED_CONNECTIONS" php_flase \
+      sh -c 'cd /var/www/html/server && echo $$ > /tmp/flase-predefined.pid && exec node dist/index.js > /tmp/flase-predefined.log 2>&1'
+    for i in $(seq 1 50); do docker exec php_flase sh -c "curl -sf http://localhost:3002/api/config > /dev/null" && break; sleep 0.2; done
+    docker run --rm --network flase_default -v "$ROOT/server/node_modules:/nm:ro" -v "$TESTS/server:/t:ro" -e NODE_PATH=/nm \
+      "$NODE_IMAGE" node /t/predefined-test.js http://php_flase:3002 > "$LOGS/predefined-test" 2>&1
+    report predefined-test "$LOGS/predefined-test"
+    docker exec php_flase sh -c 'kill $(cat /tmp/flase-predefined.pid) 2>/dev/null; rm -f /tmp/flase-predefined.pid'
+  fi
 fi
 
 if [ "$GROUP" = "all" ] || [ "$GROUP" = "ui" ]; then
@@ -80,7 +93,7 @@ if [ "$GROUP" = "all" ] || [ "$GROUP" = "ui" ]; then
   # file and arguments
   for test in "ui-test5.js 0" "ui-test.js 0" "ui-test.js 1" "ui-test2.js 0" "ui-test3.js 0" "ui-test4.js 0" "ui-structure.js 0" \
     "ui-ddl.js 0" "ui-browse.js 0" "ui-copy.js 0" "ui-deselect.js 0" "ui-value.js 0" "ui-completion.js 0" "ui-search.js 0" \
-    "ui-console.js 0" "ui-transfer.js 0" "ui-postgres.js" "ui-edit-popup.js" "ui-column-resize.js" "ui-new-connection.js" "ui-sidebar.js" "ui-uuid.js mariadb" "ui-uuid.js mysql" "ui-uuid.js postgres" "ui-perf.js mysql" "ui-perf.js postgres"; do
+    "ui-console.js 0" "ui-transfer.js 0" "ui-postgres.js" "ui-edit-popup.js" "ui-column-resize.js" "ui-new-connection.js" "ui-sidebar.js" "ui-predefined.js" "ui-uuid.js mariadb" "ui-uuid.js mysql" "ui-uuid.js postgres" "ui-perf.js mysql" "ui-perf.js postgres"; do
     file="${test%% *}"
     selected "$file" || continue
     reset_data

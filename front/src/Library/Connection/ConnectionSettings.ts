@@ -6,6 +6,7 @@ import NewConnectionWasAdded from './Event/NewConnectionWasAdded';
 import ConnectionWasUpdated from './Event/ConnectionWasUpdated';
 import ConnectionWasRemoved from './Event/ConnectionWasRemoved';
 import EstablishedConnectionInterface from './Interface/EstablishedConnectionInterface';
+import ConnectionListWasChanged from './Event/ConnectionListWasChanged';
 
 
 class ConnectionSettings {
@@ -14,6 +15,10 @@ class ConnectionSettings {
   private readonly SETTINGS_KEY_ESTABLISHED_NAME = 'established_connections';
 
   private readonly connections: ConnectionDataInterface[] = [];
+  /** defined by administrator on server - not stored in browser */
+  private predefined: ConnectionDataInterface[] = [];
+  /** own connections are allowed by server */
+  private allowCustom: boolean = true;
   private establishedConnections: {[key:string]: EstablishedConnectionInterface} = {};
 
   public static getInstance(): ConnectionSettings {
@@ -41,8 +46,27 @@ class ConnectionSettings {
   }
 
 
+  /**
+   * connections defined on server; objects of known ids are updated in place (open tabs keep reference)
+   * without allowed own connections the stored ones are hidden (they stay stored, server refuses them)
+   */
+  applyServerConfig = (predefined: ConnectionDataInterface[], allowCustom: boolean) => {
+    this.predefined = predefined.map((item) => {
+      const existing = this.predefined.find((known) => known.id === item.id);
+      return existing ? Object.assign(existing, item) : {...item, predefined: true};
+    });
+    this.allowCustom = allowCustom;
+    EventBus.emit(new ConnectionListWasChanged());
+  }
+
+  canAddConnections = (): boolean => this.allowCustom;
+
   addNewConnection = (data: ConnectionDataInterface) => {
-    const areExistInList = this.connections.some((storedConnection) => storedConnection.displayName === data.displayName);
+    if (!this.allowCustom) {
+      toast.error('Only connections defined by administrator are allowed');
+      return;
+    }
+    const areExistInList = this.getConnections().some((storedConnection) => storedConnection.displayName === data.displayName);
     if (areExistInList) {
       toast.error('Connection with same name already exist');
       return;
@@ -63,7 +87,7 @@ class ConnectionSettings {
     if (!connection) {
       return false;
     }
-    if (changes.displayName && this.connections.some((item) => item.id !== id && item.displayName === changes.displayName)) {
+    if (changes.displayName && this.getConnections().some((item) => item.id !== id && item.displayName === changes.displayName)) {
       toast.error('Connection with same name already exist');
       return false;
     }
@@ -101,11 +125,12 @@ class ConnectionSettings {
   }
 
   getConnection = (id: string): ConnectionDataInterface | undefined => {
-    return this.connections.find((item) => item.id === id);
+    return this.getConnections().find((item) => item.id === id);
   }
 
+  /** predefined (server) first, then own ones when they are allowed */
   getConnections = ():ConnectionDataInterface[] => {
-    return this.connections;
+    return this.allowCustom ? [...this.predefined, ...this.connections] : this.predefined;
   }
 
   getEstablishedConnection = ():{[key:string]: EstablishedConnectionInterface} => {

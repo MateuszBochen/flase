@@ -7,6 +7,7 @@ import MainMenu from './Component/MainMenu/MainMenu';
 import {whatsNew} from './Component/Application/applications';
 import ConnectionList from './Component/ConnectionList/ConnectionList';
 import ConnectionManager from './Library/Connection/ConnectionManager';
+import ServerConfig from './Library/Config/ServerConfig';
 import ResizableColumns from './UI/ResizableColumns/ResizableColumns';
 // last - overrides styles of components
 import './polish.css';
@@ -18,6 +19,8 @@ const styleOfMainLeftMenu = {
 
 // run connection manager
 ConnectionManager.getInstance().menage();
+// connections defined by administrator, whether own connections are allowed
+ServerConfig.load();
 
 function App() {
   return (

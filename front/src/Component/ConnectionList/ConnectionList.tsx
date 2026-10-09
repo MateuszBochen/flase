@@ -9,8 +9,9 @@ import ConnectionDataInterface from '../../Library/Connection/Interface/Connecti
 import ConnectionMenu from '../ConnectionMenu/ConnectionMenu';
 import ConnectionWasUpdated from '../../Library/Connection/Event/ConnectionWasUpdated';
 import ConnectionWasRemoved from '../../Library/Connection/Event/ConnectionWasRemoved';
+import ConnectionListWasChanged from '../../Library/Connection/Event/ConnectionListWasChanged';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
-import {faLock} from '@fortawesome/free-solid-svg-icons';
+import {faLock, faServer} from '@fortawesome/free-solid-svg-icons';
 
 /** ConnectionList */
 export default () => {
@@ -20,8 +21,13 @@ export default () => {
     id: connectionItem.id,
     label: connectionItem.displayName,
     color: connectionItem.color,
-    suffix: connectionItem.readOnly
-      ? <span className="connection-read-only" title="Read only connection"><FontAwesomeIcon icon={faLock} /></span>
+    suffix: connectionItem.readOnly || connectionItem.predefined
+      ? (
+        <>
+          {connectionItem.predefined && <span className="connection-predefined" title="Defined by administrator on server"><FontAwesomeIcon icon={faServer} /></span>}
+          {connectionItem.readOnly && <span className="connection-read-only" title="Read only connection"><FontAwesomeIcon icon={faLock} /></span>}
+        </>
+      )
       : null,
     component: (<ConnectionMenu connectionData={connectionItem} />),
   });
@@ -33,9 +39,13 @@ export default () => {
     const rebuild = () => setState(connectionSettings.getConnections().map(toItem));
     const updatedId = EventBus.subscribe(ConnectionWasUpdated.name, rebuild);
     const removedId = EventBus.subscribe(ConnectionWasRemoved.name, rebuild);
+    const listId = EventBus.subscribe(ConnectionListWasChanged.name, rebuild);
+    // configuration of server could be loaded before this subscription
+    rebuild();
     return () => {
       EventBus.unSub(updatedId);
       EventBus.unSub(removedId);
+      EventBus.unSub(listId);
     };
   }, []);
 

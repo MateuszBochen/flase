@@ -7,6 +7,8 @@ const uuid = require('uuid');
 type SessionType = {
   driver: DriverInterface;
   username: string;
+  /** read only enforced by server (predefined connection), browser cannot turn it off */
+  readOnly: boolean;
   /** expiration of the newest token, ms */
   expiresAt: number;
   openWebsockets: number;
@@ -29,10 +31,10 @@ class SessionStore {
   }
 
   /** new session for connected driver, returns token for client */
-  create(driver: DriverInterface, username: string): EstablishedUser {
+  create(driver: DriverInterface, username: string, options: {readOnly?: boolean} = {}): EstablishedUser {
     const sessionId = uuid.v4();
     const token = JWT.getJwtToken({username, sessionId});
-    this.sessions[sessionId] = {driver, username, expiresAt: SessionStore.expiresAt(token), openWebsockets: 0};
+    this.sessions[sessionId] = {driver, username, readOnly: !!options.readOnly, expiresAt: SessionStore.expiresAt(token), openWebsockets: 0};
 
     // released if client never opens websocket
     this.scheduleRelease(sessionId);

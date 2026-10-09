@@ -10,6 +10,7 @@ import {importCsv, importSql} from './App/Transfer/Importers';
 import MessageType from './App/Websocket/Enum/MessageType';
 import AbstractCommandHandler from './App/Websocket/CommandHandler/AbstractCommandHandler';
 import {Readable} from 'stream';
+import PredefinedConnections from './App/Settings/PredefinedConnections';
 const zlib = require('zlib');
 const express = require('express');
 const bodyParser = require('body-parser');
@@ -48,15 +49,30 @@ app.post('/api/login', (req:Request, res:Response) => {
   }
 
   const data = req.body as ConnectionRequestInterface;
+  // predefined connection: address and read only come from server configuration, never from browser
+  const predefined = PredefinedConnections.find((data.connectionData as any).id);
+  if (predefined) {
+    data.connectionData.dsn = predefined.dsn;
+    data.connectionData.readOnly = data.connectionData.readOnly || predefined.readOnly;
+  } else if (!PredefinedConnections.allowCustom()) {
+    res.status(403).send({error: 'Only connections defined by administrator are allowed'});
+    return;
+  }
+
   const connector = new EstablishConnection();
   connector.connect(data).then((response: EstablishConnectionResultInterface) => {
     if (response.driver && response.username !== null) {
-      res.send(sessions.create(response.driver, response.username));
+      res.send(sessions.create(response.driver, response.username, {readOnly: !!predefined?.readOnly}));
     } else {
       console.log('login fail', response.error);
       res.status(401).send({error: response.error});
     }
   });
+});
+
+/** connections defined by administrator and whether users can add own ones */
+app.get('/api/config', (req: Request, res: Response) => {
+  res.send(PredefinedConnections.forClient());
 });
 
 /** new token for the same session, client calls it before token expires */
@@ -169,11 +185,12 @@ app.ws('/ws/:token', (ws:WebSocket, req: Request) => {
   sessions.websocketOpened(found.sessionId);
   ws.addEventListener('close', () => sessions.websocketClosed(found.sessionId));
 
-  new WebsocketRequest(found.session.driver, ws).procedure();
+  new WebsocketRequest(found.session.driver, ws, found.session.readOnly).procedure();
 });
 
-app.listen(3001, () => {
-  console.log('Example app listening on port 3001!');
+const PORT = Number(process.env.PORT) || 3001;
+app.listen(PORT, () => {
+  console.log(`Flase server listening on port ${PORT}`);
 });
 
 
