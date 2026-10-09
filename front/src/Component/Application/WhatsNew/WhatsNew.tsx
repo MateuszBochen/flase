@@ -40,7 +40,7 @@ const WhatsNew: FC<undefined> = () => {
   const newConnection = () => EventBus.emit(new NewTabComponentWasSelected<undefined>({
     component: NewDatabaseConnection,
     props: undefined,
-    tabName: 'New Database Connection',
+    tabName: 'New connection',
     isActive: false,
     activate: true,
   }));

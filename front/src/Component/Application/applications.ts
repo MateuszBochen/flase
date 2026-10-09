@@ -22,5 +22,5 @@ export const  newDatabaseConnection:TabInterface<undefined> = {
   component: NewDatabaseConnection,
   props: undefined,
   isActive: true,
-  tabName: 'New Database Connection'
+  tabName: 'New connection'
 }

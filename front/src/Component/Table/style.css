@@ -615,3 +615,37 @@
   color: var(--text-muted);
   font-size: 0.8rem;
 }
+
+/* resize of columns - handle on right edge of header cell */
+.cmp-records-view .cmp-records-view-table-wrapper .cmp-data-grid .header-columns-row .header-cell {
+  position: relative;
+}
+.cmp-records-view .cmp-records-view-table-wrapper .cmp-data-grid .header-columns-row .header-cell.sized {
+  flex: none;
+  overflow: hidden;
+}
+.cmp-records-view .cmp-records-view-table-wrapper .cmp-data-grid .header-columns-row .header-cell.sized .column-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cmp-records-view .cmp-records-view-table-wrapper .cmp-data-grid .header-columns-row .header-cell .column-resize-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 2;
+}
+.cmp-records-view .cmp-records-view-table-wrapper .cmp-data-grid .header-columns-row .header-cell .column-resize-handle:hover,
+body.column-resizing .header-cell .column-resize-handle:active {
+  background-color: var(--primary);
+  opacity: 0.6;
+}
+/* while dragging: the same cursor everywhere, no text selection */
+body.column-resizing,
+body.column-resizing * {
+  cursor: col-resize !important;
+  user-select: none !important;
+}

@@ -449,6 +449,11 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
       items.push({label: 'Clear filter', onClick: filter('clear')});
     }
 
+    if (columnsViewRef.current?.hasWidths()) {
+      if (items.length) items.push('separator');
+      items.push({label: 'Reset column widths', onClick: () => columnsViewRef.current?.resetWidths()});
+    }
+
     if (!canEdit) {
       if (readOnlyReason) {
         items.push({label: `Read only: ${readOnlyReason}`, disabled: true});
@@ -530,6 +535,7 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
            onColumnDidMount={() => {}}
            onSort={props.onSort}
            parentRef={dataGridRef}
+           widthsKey={props.columnWidthsKey}
          />
          <DataGrid
            ref={dataGridViewRef}

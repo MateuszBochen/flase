@@ -349,6 +349,7 @@ export default (props: GridViewPropsInterface) => {
         onExportAll={onExportAll}
         onCancelQuery={() => ConsoleApi.getInstance().cancel(props.connection, props.tabId)}
         exportName={props.table.tableName}
+        columnWidthsKey={`${props.connection.id}/${props.table.dataBaseName}.${props.table.tableName}`}
         submitting={submitting}
       />
       {sqlPreview && (

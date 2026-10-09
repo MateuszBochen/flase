@@ -148,6 +148,8 @@ const check = (name, ok, info = '') => {
   await editor.click();
   await page.keyboard.press('Control+A');
   await page.keyboard.type('SELECT name, note FROM edit_test');
+  // close completion of table name - Enter would accept it instead of running query
+  await page.keyboard.press('Escape');
   await page.keyboard.press('Enter');
   await page.waitForTimeout(1500);
   await page.screenshot({path: `${OUT}/08-read-only.png`});

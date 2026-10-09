@@ -27,6 +27,8 @@ interface RecordsViewPropsInterface {
   onExportAll?: (format: CopyFormatType, fileName: string) => void;
   /** file name without extension, e.g. table name */
   exportName?: string;
+  /** widths of columns set by user are remembered under this key (connection / table) */
+  columnWidthsKey?: string;
   /** stop running query of the grid */
   onCancelQuery?: () => void;
   /** foreign key value was clicked */

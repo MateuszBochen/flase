@@ -45,6 +45,7 @@ export default memo((props: CellPropsInterface) => {
     <div
       className={`data-table-cell ${className} ${stateClass}`}
       style={style}
+      data-col={columnIndex}
       onDoubleClick={props.editable ? () => handlers.onStartEdit(rowIndex, column) : undefined}
       onContextMenu={props.hasEdit ? (event) => {
         event.preventDefault();
