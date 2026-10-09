@@ -1,28 +1,30 @@
 import ColumnInterface from '../../../Library/Table/Interface/ColumnInterface';
-import {MouseEvent, MutableRefObject} from 'react';
 import {CellValueType} from './RecordsViewPropsInterface';
+import {GridHandlersInterface} from './GridEditInterface';
 
+/** only primitive values and stable objects - cell is memoized */
 interface CellPropsInterface {
-  column: ColumnInterface; // PropTypes.arrayOf(PropTypes.instanceOf(Column)),
-  tabIndex: number; //PropTypes.number,
-  cellRender: () => void; //PropTypes.any,
+  column: ColumnInterface;
+  columnIndex: number;
+  rowIndex: number;
+  width?: number;
+  tabIndex: number;
+  cellRender: () => void;
   key?: string|number;
   value: CellValueType;
-  gridRef: MutableRefObject<HTMLDivElement | null>;
   /** shown when value is undefined, e.g. DEFAULT in new row */
   placeholder?: string;
   /** value differs from database */
   changed?: boolean;
   isEditing?: boolean;
-  onDoubleClick?: () => void;
-  onContextMenu?: (event: MouseEvent) => void;
   selected?: boolean;
-  onMouseDown?: (event: MouseEvent) => void;
-  onMouseEnter?: () => void;
+  /** grid has editing - selection, context menu */
+  hasEdit: boolean;
+  /** double click starts editing */
+  editable: boolean;
   /** value is foreign key - open referenced row */
-  onOpenReference?: (newTab: boolean) => void;
-  onCommit?: (value: CellValueType) => void;
-  onCancel?: () => void;
+  reference: boolean;
+  handlers: GridHandlersInterface;
 }
 
 export default CellPropsInterface;

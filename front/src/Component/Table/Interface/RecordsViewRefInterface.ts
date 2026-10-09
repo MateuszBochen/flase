@@ -4,6 +4,8 @@ import EditableResultInterface from '../../../Library/Record/Interface/EditableR
 
 interface RecordsViewRefInterface {
   addRow: (rowItem: SingleRowType) => void;
+  /** many rows at once, rendered at once (e.g. rows buffered before grid was shown) */
+  addRows: (rowItems: SingleRowType[]) => void;
   setColumns: (columns: ColumnInterface[], editable?: EditableResultInterface | null, readOnlyReason?: string) => void;
   /** keepScroll - stay at the same position, rows of the same query are loaded again */
   reset: (option?: string, keepScroll?: boolean) => void;

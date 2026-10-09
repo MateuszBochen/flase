@@ -135,6 +135,11 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
       totalRows.current = totalRows.current += 1;
       footerRef.current!.setLength(totalRows.current);
     },
+    addRows: (rowItems: SingleRowType[]) => {
+      dataGridViewRef.current!.addRows(rowItems);
+      totalRows.current += rowItems.length;
+      footerRef.current!.setLength(totalRows.current);
+    },
     setColumns: (newColumns: ColumnInterface[], newEditable?: EditableResultInterface | null, newReadOnlyReason?: string) => {
       columnsViewRef.current!.setColumns(newColumns);
       dataGridViewRef.current!.setColumns(newColumns);

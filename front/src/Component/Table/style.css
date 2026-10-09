@@ -599,3 +599,8 @@
   font: inherit;
   cursor: pointer;
 }
+
+/* place of columns which are not rendered (horizontal virtualization) */
+.data-table-content .data-table-row .data-table-spacer {
+  flex: none;
+}

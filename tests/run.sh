@@ -79,7 +79,7 @@ if [ "$GROUP" = "all" ] || [ "$GROUP" = "ui" ]; then
   # file and arguments
   for test in "ui-test5.js 0" "ui-test.js 0" "ui-test.js 1" "ui-test2.js 0" "ui-test3.js 0" "ui-test4.js 0" "ui-structure.js 0" \
     "ui-ddl.js 0" "ui-browse.js 0" "ui-copy.js 0" "ui-deselect.js 0" "ui-value.js 0" "ui-completion.js 0" "ui-search.js 0" \
-    "ui-console.js 0" "ui-transfer.js 0" "ui-postgres.js"; do
+    "ui-console.js 0" "ui-transfer.js 0" "ui-postgres.js" "ui-perf.js mysql" "ui-perf.js postgres"; do
     file="${test%% *}"
     selected "$file" || continue
     reset_data

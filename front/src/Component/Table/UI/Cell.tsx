@@ -1,3 +1,4 @@
+import {memo} from 'react';
 import CellPropsInterface from '../Interface/CellPropsInterface';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faArrowUpRightFromSquare} from '@fortawesome/free-solid-svg-icons';
@@ -26,52 +27,52 @@ const renderValue = (value: CellValueType | undefined, placeholder?: string) => 
   return value;
 };
 
-/** Cell */
-export default (props: CellPropsInterface) => {
+/** Cell - memoized, all props are primitive values or stable objects */
+export default memo((props: CellPropsInterface) => {
+  const {handlers, rowIndex, columnIndex, column} = props;
 
-  const keyName = `${props.column.alias}-${props.column.name}`;
+  const keyName = `${column.alias}-${column.name}`;
   const className = `cmp-data-data-cell-${keyName}`;
 
-  const columnClassName = `#cmp-data-data-header-cell-${keyName}`;
-  const headerElement = props.gridRef.current!.querySelector(columnClassName);
-
-  let style;
-  if (headerElement) {
-    const rectBoundPx = `${headerElement.getBoundingClientRect().width}px`;
-    style = {
-      width: rectBoundPx,
-      minWidth: rectBoundPx,
-      maxWidth: rectBoundPx,
-    };
-  }
+  const style = props.width ? {width: props.width, minWidth: props.width, maxWidth: props.width} : undefined;
 
   const stateClass = `${props.changed ? 'changed' : ''} ${props.isEditing ? 'editing' : ''} ${props.selected ? 'cell-selected' : ''}`;
+  const onOpenReference = props.reference
+    ? (newTab: boolean) => handlers.onOpenReference(column, props.value, newTab)
+    : undefined;
 
   return (
     <div
       className={`data-table-cell ${className} ${stateClass}`}
-      key={keyName}
       style={style}
-      onDoubleClick={props.onDoubleClick}
-      onContextMenu={props.onContextMenu}
-      onMouseDown={props.onMouseDown}
-      onMouseEnter={props.onMouseEnter}
+      onDoubleClick={props.editable ? () => handlers.onStartEdit(rowIndex, column) : undefined}
+      onContextMenu={props.hasEdit ? (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        handlers.onContextMenu(event, rowIndex, column);
+      } : undefined}
+      onMouseDown={props.hasEdit ? (event) => {
+        if (event.button === 0 && !props.isEditing) {
+          handlers.onCellMouseDown(rowIndex, columnIndex, event.shiftKey ? 'extend' : event.ctrlKey || event.metaKey ? 'add' : 'replace');
+        }
+      } : undefined}
+      onMouseEnter={props.hasEdit ? () => handlers.onCellMouseEnter(rowIndex, columnIndex) : undefined}
     >
       <div className="data-table-cell-content">
         {props.isEditing ? (
           <CellEditor
             mode="inline"
-            column={props.column}
+            column={column}
             value={props.value}
-            onCommit={props.onCommit}
-            onCancel={props.onCancel}
+            onCommit={(value) => handlers.onCommitEdit(rowIndex, column, value)}
+            onCancel={handlers.onCancelEdit}
           />
         ) : (
           <div
-            className={`dtc-content ${props.onOpenReference ? 'is-reference' : ''}`}
+            className={`dtc-content ${onOpenReference ? 'is-reference' : ''}`}
             title={props.value === null ? 'NULL' : isBinaryValue(props.value) ? 'binary - open value editor' : String(props.value ?? '').slice(0, 500)}
           >
-            {props.onOpenReference && (
+            {onOpenReference && (
               <button
                 type="button"
                 className="dtc-reference"
@@ -81,12 +82,12 @@ export default (props: CellPropsInterface) => {
                   event.stopPropagation();
                   if (event.button === 1) {
                     event.preventDefault();
-                    props.onOpenReference!(true);
+                    onOpenReference!(true);
                   }
                 }}
                 onClick={(event) => {
                   event.stopPropagation();
-                  props.onOpenReference!(event.ctrlKey || event.metaKey);
+                  onOpenReference!(event.ctrlKey || event.metaKey);
                 }}
                 onDoubleClick={(event) => event.stopPropagation()}
               >
@@ -99,4 +100,4 @@ export default (props: CellPropsInterface) => {
       </div>
     </div>
   );
-}
+});

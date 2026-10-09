@@ -32,3 +32,64 @@ INSERT INTO value_test (doc, body, data, bin) VALUES
  ('[1,2,3]', CONCAT('line 1', CHAR(10), 'line 2'), UNHEX(REPEAT('DEADBEEF', 600)), NULL);
 DROP TABLE IF EXISTS csv_target;
 SET FOREIGN_KEY_CHECKS = 1;
+
+-- wide table for render performance (50 columns, 1000 rows)
+DROP TABLE IF EXISTS wide_test;
+CREATE TABLE wide_test (id INT AUTO_INCREMENT PRIMARY KEY,
+  c01 VARCHAR(64) NULL,
+  c02 DECIMAL(10,2) NULL,
+  c03 DATETIME NULL,
+  c04 TEXT NULL,
+  c05 INT NULL,
+  c06 VARCHAR(64) NULL,
+  c07 DECIMAL(10,2) NULL,
+  c08 DATETIME NULL,
+  c09 TEXT NULL,
+  c10 INT NULL,
+  c11 VARCHAR(64) NULL,
+  c12 DECIMAL(10,2) NULL,
+  c13 DATETIME NULL,
+  c14 TEXT NULL,
+  c15 INT NULL,
+  c16 VARCHAR(64) NULL,
+  c17 DECIMAL(10,2) NULL,
+  c18 DATETIME NULL,
+  c19 TEXT NULL,
+  c20 INT NULL,
+  c21 VARCHAR(64) NULL,
+  c22 DECIMAL(10,2) NULL,
+  c23 DATETIME NULL,
+  c24 TEXT NULL,
+  c25 INT NULL,
+  c26 VARCHAR(64) NULL,
+  c27 DECIMAL(10,2) NULL,
+  c28 DATETIME NULL,
+  c29 TEXT NULL,
+  c30 INT NULL,
+  c31 VARCHAR(64) NULL,
+  c32 DECIMAL(10,2) NULL,
+  c33 DATETIME NULL,
+  c34 TEXT NULL,
+  c35 INT NULL,
+  c36 VARCHAR(64) NULL,
+  c37 DECIMAL(10,2) NULL,
+  c38 DATETIME NULL,
+  c39 TEXT NULL,
+  c40 INT NULL,
+  c41 VARCHAR(64) NULL,
+  c42 DECIMAL(10,2) NULL,
+  c43 DATETIME NULL,
+  c44 TEXT NULL,
+  c45 INT NULL,
+  c46 VARCHAR(64) NULL,
+  c47 DECIMAL(10,2) NULL,
+  c48 DATETIME NULL,
+  c49 TEXT NULL
+);
+INSERT INTO wide_test (c01, c02, c03, c04, c05, c06, c07, c08, c09, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20, c21, c22, c23, c24, c25, c26, c27, c28, c29, c30, c31, c32, c33, c34, c35, c36, c37, c38, c39, c40, c41, c42, c43, c44, c45, c46, c47, c48, c49)
+SELECT CONCAT('text value 1 row ', seq.n), seq.n * 1.25 + 2, TIMESTAMPADD(MINUTE, seq.n * 3, '2026-01-01 00:00:00'), CONCAT('longer text of column 4 for row ', seq.n, ' lorem ipsum dolor sit amet'), seq.n * 5, CONCAT('text value 6 row ', seq.n), seq.n * 1.25 + 7, TIMESTAMPADD(MINUTE, seq.n * 8, '2026-01-01 00:00:00'), CONCAT('longer text of column 9 for row ', seq.n, ' lorem ipsum dolor sit amet'), seq.n * 10, CONCAT('text value 11 row ', seq.n), seq.n * 1.25 + 12, TIMESTAMPADD(MINUTE, seq.n * 13, '2026-01-01 00:00:00'), CONCAT('longer text of column 14 for row ', seq.n, ' lorem ipsum dolor sit amet'), seq.n * 15, CONCAT('text value 16 row ', seq.n), seq.n * 1.25 + 17, TIMESTAMPADD(MINUTE, seq.n * 18, '2026-01-01 00:00:00'), CONCAT('longer text of column 19 for row ', seq.n, ' lorem ipsum dolor sit amet'), seq.n * 20, CONCAT('text value 21 row ', seq.n), seq.n * 1.25 + 22, TIMESTAMPADD(MINUTE, seq.n * 23, '2026-01-01 00:00:00'), CONCAT('longer text of column 24 for row ', seq.n, ' lorem ipsum dolor sit amet'), seq.n * 25, CONCAT('text value 26 row ', seq.n), seq.n * 1.25 + 27, TIMESTAMPADD(MINUTE, seq.n * 28, '2026-01-01 00:00:00'), CONCAT('longer text of column 29 for row ', seq.n, ' lorem ipsum dolor sit amet'), seq.n * 30, CONCAT('text value 31 row ', seq.n), seq.n * 1.25 + 32, TIMESTAMPADD(MINUTE, seq.n * 33, '2026-01-01 00:00:00'), CONCAT('longer text of column 34 for row ', seq.n, ' lorem ipsum dolor sit amet'), seq.n * 35, CONCAT('text value 36 row ', seq.n), seq.n * 1.25 + 37, TIMESTAMPADD(MINUTE, seq.n * 38, '2026-01-01 00:00:00'), CONCAT('longer text of column 39 for row ', seq.n, ' lorem ipsum dolor sit amet'), seq.n * 40, CONCAT('text value 41 row ', seq.n), seq.n * 1.25 + 42, TIMESTAMPADD(MINUTE, seq.n * 43, '2026-01-01 00:00:00'), CONCAT('longer text of column 44 for row ', seq.n, ' lorem ipsum dolor sit amet'), seq.n * 45, CONCAT('text value 46 row ', seq.n), seq.n * 1.25 + 47, TIMESTAMPADD(MINUTE, seq.n * 48, '2026-01-01 00:00:00'), CONCAT('longer text of column 49 for row ', seq.n, ' lorem ipsum dolor sit amet')
+FROM (SELECT a.d + b.d * 10 + c.d * 100 + 1 AS n FROM
+  (SELECT 0 d UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) a,
+  (SELECT 0 d UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) b,
+  (SELECT 0 d UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) c) seq
+ORDER BY seq.n;

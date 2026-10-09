@@ -33,7 +33,7 @@ export default (props: ConsoleResultPropsInterface) => {
     if (buffer.columns) {
       view.setColumns(buffer.columns, null, buffer.readOnlyReason);
     }
-    buffer.rows.forEach((row) => view.addRow(row));
+    view.addRows(buffer.rows);
     if (buffer.finished !== null) {
       finish(buffer.finished);
     }

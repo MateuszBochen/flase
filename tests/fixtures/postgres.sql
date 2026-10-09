@@ -44,3 +44,60 @@ CREATE TRIGGER trg_struct_code BEFORE INSERT ON struct_test FOR EACH ROW EXECUTE
 CREATE VIEW struct_view AS SELECT id, code FROM struct_test;
 INSERT INTO struct_test (code, total, created) VALUES ('x1', 5, '2026-10-07 18:14:05'), ('x2', 7, '2026-10-07 18:14:05');
 INSERT INTO struct_child VALUES (1, 1), (2, 2);
+
+-- wide table for render performance (50 columns, 1000 rows)
+DROP TABLE IF EXISTS wide_test;
+CREATE TABLE wide_test (id SERIAL PRIMARY KEY,
+  c01 VARCHAR(64) NULL,
+  c02 NUMERIC(10,2) NULL,
+  c03 TIMESTAMP NULL,
+  c04 TEXT NULL,
+  c05 INT NULL,
+  c06 VARCHAR(64) NULL,
+  c07 NUMERIC(10,2) NULL,
+  c08 TIMESTAMP NULL,
+  c09 TEXT NULL,
+  c10 INT NULL,
+  c11 VARCHAR(64) NULL,
+  c12 NUMERIC(10,2) NULL,
+  c13 TIMESTAMP NULL,
+  c14 TEXT NULL,
+  c15 INT NULL,
+  c16 VARCHAR(64) NULL,
+  c17 NUMERIC(10,2) NULL,
+  c18 TIMESTAMP NULL,
+  c19 TEXT NULL,
+  c20 INT NULL,
+  c21 VARCHAR(64) NULL,
+  c22 NUMERIC(10,2) NULL,
+  c23 TIMESTAMP NULL,
+  c24 TEXT NULL,
+  c25 INT NULL,
+  c26 VARCHAR(64) NULL,
+  c27 NUMERIC(10,2) NULL,
+  c28 TIMESTAMP NULL,
+  c29 TEXT NULL,
+  c30 INT NULL,
+  c31 VARCHAR(64) NULL,
+  c32 NUMERIC(10,2) NULL,
+  c33 TIMESTAMP NULL,
+  c34 TEXT NULL,
+  c35 INT NULL,
+  c36 VARCHAR(64) NULL,
+  c37 NUMERIC(10,2) NULL,
+  c38 TIMESTAMP NULL,
+  c39 TEXT NULL,
+  c40 INT NULL,
+  c41 VARCHAR(64) NULL,
+  c42 NUMERIC(10,2) NULL,
+  c43 TIMESTAMP NULL,
+  c44 TEXT NULL,
+  c45 INT NULL,
+  c46 VARCHAR(64) NULL,
+  c47 NUMERIC(10,2) NULL,
+  c48 TIMESTAMP NULL,
+  c49 TEXT NULL
+);
+INSERT INTO wide_test (c01, c02, c03, c04, c05, c06, c07, c08, c09, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20, c21, c22, c23, c24, c25, c26, c27, c28, c29, c30, c31, c32, c33, c34, c35, c36, c37, c38, c39, c40, c41, c42, c43, c44, c45, c46, c47, c48, c49)
+SELECT 'text value 1 row ' || n, n * 1.25 + 2, TIMESTAMP '2026-01-01' + (n * 3) * INTERVAL '1 minute', 'longer text of column 4 for row ' || n || ' lorem ipsum dolor sit amet', n * 5, 'text value 6 row ' || n, n * 1.25 + 7, TIMESTAMP '2026-01-01' + (n * 8) * INTERVAL '1 minute', 'longer text of column 9 for row ' || n || ' lorem ipsum dolor sit amet', n * 10, 'text value 11 row ' || n, n * 1.25 + 12, TIMESTAMP '2026-01-01' + (n * 13) * INTERVAL '1 minute', 'longer text of column 14 for row ' || n || ' lorem ipsum dolor sit amet', n * 15, 'text value 16 row ' || n, n * 1.25 + 17, TIMESTAMP '2026-01-01' + (n * 18) * INTERVAL '1 minute', 'longer text of column 19 for row ' || n || ' lorem ipsum dolor sit amet', n * 20, 'text value 21 row ' || n, n * 1.25 + 22, TIMESTAMP '2026-01-01' + (n * 23) * INTERVAL '1 minute', 'longer text of column 24 for row ' || n || ' lorem ipsum dolor sit amet', n * 25, 'text value 26 row ' || n, n * 1.25 + 27, TIMESTAMP '2026-01-01' + (n * 28) * INTERVAL '1 minute', 'longer text of column 29 for row ' || n || ' lorem ipsum dolor sit amet', n * 30, 'text value 31 row ' || n, n * 1.25 + 32, TIMESTAMP '2026-01-01' + (n * 33) * INTERVAL '1 minute', 'longer text of column 34 for row ' || n || ' lorem ipsum dolor sit amet', n * 35, 'text value 36 row ' || n, n * 1.25 + 37, TIMESTAMP '2026-01-01' + (n * 38) * INTERVAL '1 minute', 'longer text of column 39 for row ' || n || ' lorem ipsum dolor sit amet', n * 40, 'text value 41 row ' || n, n * 1.25 + 42, TIMESTAMP '2026-01-01' + (n * 43) * INTERVAL '1 minute', 'longer text of column 44 for row ' || n || ' lorem ipsum dolor sit amet', n * 45, 'text value 46 row ' || n, n * 1.25 + 47, TIMESTAMP '2026-01-01' + (n * 48) * INTERVAL '1 minute', 'longer text of column 49 for row ' || n || ' lorem ipsum dolor sit amet'
+FROM generate_series(1, 1000) AS n;

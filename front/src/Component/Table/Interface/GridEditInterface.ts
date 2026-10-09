@@ -62,3 +62,31 @@ interface GridEditInterface {
 }
 
 export default GridEditInterface;
+
+/** stable callbacks of grid - the same object for whole life of grid, so memoized rows and cells are not re-rendered */
+export interface GridHandlersInterface {
+  onSelectRow: (rowIndex: number) => void;
+  onStartEdit: (rowIndex: number, column: ColumnInterface) => void;
+  onCommitEdit: (rowIndex: number, column: ColumnInterface, value: CellValueType) => void;
+  onCancelEdit: () => void;
+  onCellMouseDown: (rowIndex: number, columnIndex: number, mode: SelectModeType) => void;
+  onCellMouseEnter: (rowIndex: number, columnIndex: number) => void;
+  onContextMenu: (event: MouseEvent, rowIndex: number | null, column: ColumnInterface | null) => void;
+  onOpenReference: (column: ColumnInterface, value: CellValueType, newTab: boolean) => void;
+}
+
+/** selected columns of one row as text "from-to,from-to" - primitive value, cheap to compare in memoized row */
+export const selectedColumnsOfRow = (selection: SelectionType | null, rowIndex: number): string | null => {
+  if (!selection) return null;
+  const ranges: string[] = [];
+  selection.forEach(({anchor, focus}) => {
+    if (rowIndex >= Math.min(anchor.rowIndex, focus.rowIndex) && rowIndex <= Math.max(anchor.rowIndex, focus.rowIndex)) {
+      ranges.push(`${Math.min(anchor.columnIndex, focus.columnIndex)}-${Math.max(anchor.columnIndex, focus.columnIndex)}`);
+    }
+  });
+  return ranges.length ? ranges.join(',') : null;
+};
+
+export const parseSelectedColumns = (selectedColumns: string | null): Array<[number, number]> => selectedColumns
+  ? selectedColumns.split(',').map((range) => range.split('-').map(Number) as [number, number])
+  : [];

@@ -151,7 +151,7 @@ const check = (name, ok, info = '') => {
   const checked = await transfer().locator('.transfer-table-list input:checked').evaluateAll((items) => items.map((item) => item.parentElement.textContent));
   check('opened from table: only that table selected', JSON.stringify(checked) === '["edit_test"]' && (await transfer().locator('.transfer-title').innerText()).includes('shop.edit_test'), JSON.stringify(checked));
 
-  await page.locator('[class*="tab-label"]').filter({hasText: 'Import / export: shop'}).first().click();
+  await page.locator('.tab-label-list-item').filter({hasText: /Import \/ export: shop(?!\.)/}).first().click();
   await importFile('cleanup.sql', 'DROP TABLE csv_target;');
   await runImport();
 
