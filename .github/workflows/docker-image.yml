@@ -1,0 +1,120 @@
+# Production image to Docker Hub after new tag (v1.2.3 -> 1.2.3, 1.2, 1, latest; v1.3.0-rc.1 does not move latest).
+#
+# Setup in GitHub repository -> Settings -> Secrets and variables -> Actions:
+#   variable DOCKERHUB_USERNAME - Docker Hub account (or organization)
+#   secret   DOCKERHUB_TOKEN    - Docker Hub -> Account settings -> Personal access tokens
+#                                 (Read & Write publishes image, Read, Write, Delete also updates description)
+#   variable DOCKERHUB_IMAGE    - optional, default <DOCKERHUB_USERNAME>/flase
+#
+# Release: git tag v1.0.0 && git push origin v1.0.0
+name: Docker image
+
+on:
+  push:
+    tags: ['v*']
+  # manual run (Actions -> Docker image -> Run workflow) builds and tests image without publishing
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docker-image-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      IMAGE: ${{ vars.DOCKERHUB_IMAGE || format('{0}/flase', vars.DOCKERHUB_USERNAME) }}
+    steps:
+      # clear message instead of "Password required" of login step
+      - name: Check Docker Hub settings
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          USERNAME: ${{ vars.DOCKERHUB_USERNAME }}
+          TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          if [ -z "$USERNAME" ]; then
+            echo "::error::Repository variable DOCKERHUB_USERNAME is missing (Settings -> Secrets and variables -> Actions -> Variables)"
+            exit 1
+          fi
+          if [ -z "$TOKEN" ]; then
+            echo "::error::Repository secret DOCKERHUB_TOKEN is missing or empty (Settings -> Secrets and variables -> Actions -> Secrets -> New repository secret; not a variable, not an environment secret)"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      # before build - base image (node) is pulled as logged in user: higher limits than anonymous pulls
+      - name: Log in to Docker Hub
+        if: vars.DOCKERHUB_USERNAME != ''
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Tags of image
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v0.') }}
+            type=sha,format=short,enable=${{ github.event_name == 'workflow_dispatch' }}
+          labels: |
+            org.opencontainers.image.title=Flase
+            org.opencontainers.image.description=Web database manager for MySQL, MariaDB and PostgreSQL - modern phpMyAdmin alternative
+            org.opencontainers.image.licenses=AGPL-3.0-or-later
+
+      - name: Build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/production/Dockerfile
+          load: true
+          tags: flase:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test
+        run: |
+          docker run -d --name flase -p 3001:3001 -e FLASE_CONNECTIONS='["mysql://db:3306"]' flase:ci
+          for _ in $(seq 1 30); do curl -sf http://localhost:3001/api/config > /dev/null && break; sleep 1; done
+          curl -sf http://localhost:3001/api/config | grep -q '"allowCustomConnections":true'
+          curl -sf http://localhost:3001/api/config | grep -q 'mysql://db:3306'
+          curl -sf http://localhost:3001/ | grep -q '<div id="root">'
+          curl -sf http://localhost:3001/tables/deep/link | grep -q '<div id="root">'
+          docker logs flase
+
+      - name: Publish
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/production/Dockerfile
+          # linux/arm64 can be added (emulated build takes several times longer)
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+
+      # README and short description on Docker Hub (search). Token needs "Read, Write, Delete" permission,
+      # with "Read & Write" only this step fails and the image is still published.
+      - name: Description on Docker Hub
+        if: startsWith(github.ref, 'refs/tags/v')
+        continue-on-error: true
+        uses: peter-evans/dockerhub-description@v4
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: ${{ env.IMAGE }}
+          short-description: Web database manager for MySQL, MariaDB and PostgreSQL - modern phpMyAdmin alternative
+          readme-filepath: ./README.md
+          enable-url-completion: true

@@ -1,0 +1,26 @@
+/* tab bar + content of active tab; height is shared by flex, not computed from offsetTop */
+.application-renderer-root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.application-renderer-root > .tab-label-list-root {
+  flex: none;
+}
+
+.application-render-root {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.application-render-root .tab-wrapper {
+  display: none;
+}
+.application-render-root .tab-wrapper.active {
+  display: block;
+  height: 100%;
+  overflow: hidden;
+}

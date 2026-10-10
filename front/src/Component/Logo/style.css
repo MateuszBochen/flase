@@ -1,0 +1,7 @@
+.workspace-menu-logo {
+    height: 35px;
+    text-align: center;
+    border-bottom: solid 1px var(--bg);
+    color: var(--text-muted);
+    line-height: 35px;
+}

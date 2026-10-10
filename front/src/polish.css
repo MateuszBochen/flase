@@ -1,0 +1,546 @@
+/**
+ * Visual polish - loaded after styles of components (see App.tsx).
+ * Only colors, radius, spacing of controls - sizes of data grid rows stay (virtual scroll depends on them).
+ */
+
+/* ---------- base ---------- */
+
+body {
+  font-feature-settings: 'cv11', 'ss01';
+  letter-spacing: -0.005em;
+}
+
+code, pre, kbd, .cmp-sql-preview, textarea {
+  font-family: var(--font-mono);
+}
+
+::selection {
+  background-color: var(--selection);
+}
+
+/* slim as before (4px) - layouts of grid and console count with thin scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+  background-color: transparent;
+}
+
+::-webkit-scrollbar-track {
+  border: none;
+  background-color: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: 6px;
+  background-color: var(--border-strong);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--text-muted);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+select,
+textarea {
+  border-radius: var(--radius) !important;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3px rgba(53, 116, 240, 0.25);
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--primary);
+}
+
+/* ---------- left side: logo, main menu, connections ---------- */
+
+.workspace-menu-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 14px;
+  border-bottom: solid 1px var(--border);
+  line-height: normal;
+  text-align: left;
+}
+
+.workspace-menu-logo .logo-mark {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  color: #ffffff;
+  background: linear-gradient(135deg, #3574f0 0%, #7b5cf5 100%);
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(53, 116, 240, 0.4);
+}
+
+.workspace-menu-logo .logo-name {
+  color: var(--text-strong);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.workspace-menu-logo .logo-tagline {
+  margin-left: auto;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.main-menu-root .buttons-bar {
+  padding: 6px 10px;
+  border-bottom: solid 1px var(--border);
+}
+
+.main-menu-root .invisible-button-root,
+.cmp-connection-menu .invisible-button-root {
+  border-radius: 5px;
+  transition: background-color 0.12s, color 0.12s;
+}
+
+.invisible-button-root:hover:not(:disabled) {
+  color: var(--primary);
+}
+
+.vertical-slider-root ul .vertical-slider-item {
+  margin: 2px 6px;
+  padding: 5px 8px;
+  border-bottom: none;
+  border-radius: var(--radius);
+  transition: background-color 0.12s;
+}
+
+.vertical-slider-root ul .vertical-slider-item:hover {
+  background-color: var(--hover);
+}
+
+.vertical-slider-root ul .vertical-slider-item.active {
+  background-color: var(--hover);
+}
+
+.vertical-slider-root ul .vertical-slider-item .vertical-slider-label {
+  font-weight: 500;
+}
+
+.vertical-slider-root .vertical-slider-item .vertical-slider-root {
+  border-radius: var(--radius);
+}
+
+/* ---------- tabs ---------- */
+
+.tab-label-list-root {
+  /* the same height as before - content below counts with it */
+  height: 35px;
+  border-bottom: solid 1px var(--border);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.tab-label-list-root .tab-label-list {
+  height: 100%;
+  padding: 0 6px;
+  align-items: flex-end;
+  box-sizing: border-box;
+  /* many tabs can be scrolled (wheel with shift / touchpad), scrollbar is never shown */
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.tab-label-list-root .tab-label-list::-webkit-scrollbar {
+  display: none;
+}
+
+.tab-label-list-root .tab-label-list .tab-label-list-item {
+  display: flex;
+  align-items: center;
+  height: 30px;
+  line-height: 30px;
+  margin-right: 2px;
+  padding: 0 6px 0 12px;
+  border-radius: 7px 7px 0 0;
+  border-bottom: solid 2px transparent;
+  color: var(--text-muted);
+  background-color: transparent;
+  white-space: nowrap;
+  font-size: 13px;
+  transition: background-color 0.12s, color 0.12s;
+}
+
+.tab-label-list-root .tab-label-list .tab-label-list-item:hover {
+  color: var(--text-strong);
+  background-color: var(--hover);
+}
+
+.tab-label-list-root .tab-label-list .tab-label-list-item.active {
+  color: var(--text-strong);
+  background-color: var(--tab-active);
+  border-bottom: solid 2px var(--primary);
+}
+
+.tab-label-list-root .tab-label-list .tab-label-list-item.colored {
+  border-top: solid 2px;
+}
+
+.tab-label-list-root .tab-label-list .tab-label-list-item .close-tab {
+  margin-left: 6px;
+  color: inherit;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+
+.tab-label-list-root .tab-label-list .tab-label-list-item:hover .close-tab,
+.tab-label-list-root .tab-label-list .tab-label-list-item.active .close-tab {
+  opacity: 0.7;
+}
+
+.tab-label-list-root .tab-label-list .tab-label-list-item .close-tab .close-tab-icon {
+  width: 16px;
+  height: 16px;
+  line-height: 16px;
+  border-radius: 4px;
+  font-size: 9px;
+}
+
+.tab-label-list-root .tab-label-list .tab-label-list-item .close-tab .close-tab-icon:hover {
+  color: #ffffff;
+  background-color: #c94f4f;
+}
+
+/* ---------- buttons ---------- */
+
+.button.main-button {
+  border-radius: var(--radius);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 500;
+  text-transform: none;
+  transition: background-color 0.12s, box-shadow 0.12s, transform 0.05s;
+}
+
+.button.main-button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.button.main-button.light {
+  color: var(--text-strong);
+  background-color: var(--button-bg);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+
+.button.main-button.light:hover {
+  background-color: var(--hover-strong);
+}
+
+.button.main-button.light.success {
+  color: var(--primary-text);
+  background-color: var(--primary);
+  box-shadow: none;
+}
+
+.button.main-button.light.success:hover {
+  background-color: var(--primary-hover);
+}
+
+.button.main-button.light.danger {
+  color: #ffffff;
+  background-color: #c94f4f;
+  box-shadow: none;
+}
+
+.button.main-button.light.danger:hover {
+  background-color: #d95c5c;
+}
+
+.button.main-button.light:disabled,
+.button.main-button.light:disabled:hover {
+  color: var(--text-muted);
+  background-color: var(--hover);
+  box-shadow: inset 0 0 0 1px var(--border);
+  opacity: 0.7;
+}
+
+.button.main-button.small {
+  padding: 5px 12px;
+}
+
+.button-group-root {
+  display: flex;
+  gap: 8px;
+}
+
+/* ---------- popup ---------- */
+
+.popup-root.light {
+  background-color: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(2px);
+}
+
+.popup-root .popup-content {
+  min-width: 420px;
+  max-width: min(1100px, 92vw);
+  max-height: 88vh;
+  padding: 0;
+  overflow: auto;
+  border-radius: 12px;
+  background: var(--popup-bg);
+  box-shadow: var(--shadow);
+  animation: popup-in 0.14s ease-out;
+}
+
+@keyframes popup-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.popup-root .popup-content .popup-name {
+  padding: 14px 18px;
+  border-bottom: solid 1px var(--border);
+  color: var(--text-strong);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.popup-root .popup-content .popup-render-component {
+  margin-bottom: 0;
+  padding: 16px 18px 72px;
+}
+
+.popup-root .popup-content .popup-buttons {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 18px;
+  border-top: solid 1px var(--border);
+  background: var(--popup-bg);
+  border-radius: 0 0 12px 12px;
+}
+
+/* ---------- forms in popups ---------- */
+
+.cmp-structure-form label,
+.cmp-connection-settings label {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.cmp-structure-form label input,
+.cmp-structure-form label select,
+.cmp-connection-settings label input {
+  font-size: 13px;
+}
+
+.cmp-sql-preview {
+  border-radius: 8px;
+}
+
+/* ---------- toolbars of tabs ---------- */
+
+.button.icon-button,
+.speed-dial button,
+.cmp-icon-button {
+  border-radius: 5px;
+}
+
+.cmp-sql-console .console-toolbar button,
+.cmp-er-diagram .er-toolbar button,
+.cmp-user-manager button,
+.cmp-transfer .transfer-start,
+.cmp-transfer .export-output-bar button {
+  border-radius: var(--radius) !important;
+  transition: background-color 0.12s, border-color 0.12s;
+}
+
+.cmp-sql-console .console-toolbar button:hover:not(:disabled),
+.cmp-er-diagram .er-toolbar button:hover,
+.cmp-user-manager button:hover:not(:disabled) {
+  border-color: var(--primary) !important;
+}
+
+.cmp-transfer .transfer-start:not(.secondary) {
+  background-color: var(--primary);
+}
+
+.cmp-transfer .transfer-panel,
+.cmp-user-manager .user-attributes span {
+  border-radius: 10px;
+}
+
+.cmp-transfer .transfer-panel {
+  background-color: var(--panel);
+  border-color: var(--border);
+}
+
+/* ---------- data grid (colors only) ---------- */
+
+.cmp-records-view .cmp-records-view-table-wrapper .cmp-data-grid .header-columns-row .header-cell .column-name-wrapper {
+  border-color: var(--grid-line);
+  background-color: var(--grid-header);
+}
+
+.cmp-records-view .cmp-records-view-table-wrapper .cmp-data-grid .header-columns-row .header-cell .column-name-wrapper .column-name {
+  color: var(--text-strong);
+  font-weight: 600;
+  font-size: 13.5px;
+}
+
+.cmp-records-view .cmp-records-view-table-wrapper .cmp-data-grid .header-columns-row .header-cell:first-child .column-name-wrapper {
+  border-color: var(--grid-line);
+}
+
+.data-table-content .data-table-row .data-table-cell .data-table-cell-content {
+  border-color: var(--grid-line);
+  background-color: transparent;
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+}
+
+/* zebra and hover only for rows / cells without state (selected, changed, inserted, deleted) */
+.data-table-content .data-table-row.row-normal:not(.selected):nth-child(even) .data-table-cell:not(.changed):not(.cell-selected) .data-table-cell-content {
+  background-color: var(--grid-zebra);
+}
+
+.data-table-content .data-table-row.row-normal:not(.selected):hover .data-table-cell:not(.changed):not(.cell-selected) .data-table-cell-content {
+  background-color: var(--hover);
+}
+
+.cmp-records-view .cmp-records-view-pager {
+  border-top: solid 1px var(--border);
+  background-color: var(--panel);
+}
+
+.cmp-records-view .sort-box button {
+  opacity: 0.45;
+  transition: opacity 0.12s;
+}
+
+.cmp-records-view .header-cell:hover .sort-box button {
+  opacity: 1;
+}
+
+/* ---------- context menu ---------- */
+
+.cmp-context-menu,
+.context-menu-root {
+  border-radius: 8px !important;
+  box-shadow: var(--shadow) !important;
+}
+
+/* ---------- toasts ---------- */
+
+div[role="status"] {
+  font-family: var(--font-ui);
+  font-size: 13px;
+}
+
+/* ---------- tree of databases / tables - nested items use less space ---------- */
+
+.vertical-slider-root .vertical-slider-item .vertical-slider-root ul .vertical-slider-item {
+  margin: 1px 0;
+  padding: 4px 5px;
+}
+
+.table-list-filter {
+  flex-wrap: wrap;
+  margin: 2px 0 4px;
+}
+
+/* filter on its own line, icons of database under it */
+.table-list-filter .form-control {
+  flex: 1 1 100%;
+  min-width: 0;
+}
+
+.table-list-filter input.form-control {
+  padding: 2px 6px;
+}
+
+.table-list-menu-root li button {
+  border-radius: 4px;
+}
+
+:root[data-theme="light"] .data-table-content .data-table-row .data-table-cell.cell-selected .data-table-cell-content {
+  color: var(--text-strong);
+  background-color: #bcd2fb;
+}
+
+/* ---------- layout - heights shared by flex (fixed calc() broke when toolbar / pager height changed) ---------- */
+
+.resizable-columns-root .resizable-column-right-side {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.cmp-records-view {
+  display: flex;
+  flex-direction: column;
+}
+
+.cmp-records-view .cmp-records-view-table-wrapper {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
+}
+
+.cmp-records-view .cmp-records-view-pager {
+  flex: none;
+}
+
+/* name of database is the beginning of query - the same font as editor, so "shop://SELECT ..." reads as one line */
+.cmp-table-data-navbar .cmp-table-data-navbar-buttons .icon.database-name {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  padding-bottom: 0;
+}
+
+/* history arrows and name of database are centered in whole height of bar, as the line of editor */
+.cmp-table-data-navbar .cmp-table-data-navbar-buttons {
+  align-items: stretch;
+}
+
+.cmp-table-data-navbar .cmp-table-data-navbar-buttons .icon {
+  height: 34px;
+}
+
+/* DDL of table - code block distinct from the rest of structure view */
+.cmp-structure-view .structure-ddl {
+  border: solid 1px var(--border);
+  border-radius: 8px;
+  background-color: var(--panel);
+  overflow: hidden;
+}
+
+.cmp-structure-view .structure-ddl .copy {
+  top: 8px;
+  right: 8px;
+}
+
+.cmp-structure-view .structure-ddl pre,
+.cmp-structure-view .structure-ddl code {
+  font-family: var(--font-mono) !important;
+}

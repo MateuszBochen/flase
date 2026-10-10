@@ -1,0 +1,4 @@
+/* result grid fills its container - console tab or explain popup */
+.console-result-grid {
+  height: 100%;
+}

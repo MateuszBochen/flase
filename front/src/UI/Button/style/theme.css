@@ -1,0 +1,76 @@
+
+
+/** Button */
+
+.button.main-button.light {
+  background-color: var(--button-background);
+  /*background: var( --theme-border-color-fradient);*/
+  color: var(--light-color-on-fill);
+}
+
+.button.main-button.light > span {
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+.button.main-button.light:hover {
+  background-color: var(--button-background-hover);
+  /*text-shadow:
+          0 0 7px #fff,
+          0 0 10px #fff,
+          0 0 21px #fff,
+          0 0 42px #0fa,
+          0 0 82px #0fa,
+          0 0 92px #0fa,
+          0 0 102px #0fa,
+          0 0 151px #0fa;*/
+}
+
+.button.main-button.light:disabled,
+.button.main-button.light:disabled:hover
+{
+  color: var(--white-color);
+  background-color: rgba(0, 0, 0, 1);
+  cursor: not-allowed;
+}
+
+.button.main-button.light:disabled:before,
+.button.main-button.light:disabled:hover:before {
+  background-color: rgba(0, 171, 219, 1);
+}
+
+.button.main-button.light:before {
+  background-color: var(--light-border-color-fill);
+}
+.button.main-button.light:hover:before {
+  background-color: var(--light-border-color-fill-hightlight);
+}
+
+.button.main-button.danger {
+  background-color: var(--danger-color);
+}
+.button.main-button.danger:hover {
+  background-color: var(--danger-color-hover);
+}
+
+.button.main-button.success {
+  background-color: var(--success-color);
+}
+.button.main-button.success:hover {
+  background-color: var(--success-color-hover);
+}
+
+
+/** Switch button */
+.button-switch-root .button-switch-switch {
+  border: none;
+  background-color: #505050;
+  border-radius: 10px;
+}
+.button-switch-root .button-switch-switch:before {
+  background-color: #3b4151;
+  border-radius: 10px;
+}
+.button-switch-root .button-switch-switch.checked:before {
+  background-color: var(--success-color);
+  border-radius: 10px;
+}

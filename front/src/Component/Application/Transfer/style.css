@@ -1,0 +1,289 @@
+.cmp-transfer {
+  height: 100%;
+  overflow: auto;
+  padding: 10px 14px 30px;
+  color: var(--text);
+  background-color: var(--bg);
+}
+
+.cmp-transfer .transfer-title {
+  margin-bottom: 8px;
+  color: var(--accent);
+  font-size: 1.05rem;
+}
+
+.cmp-transfer .transfer-title span {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.cmp-transfer .transfer-panel {
+  margin-bottom: 18px;
+  padding: 10px 12px;
+  border: solid 1px var(--panel);
+  border-radius: 4px;
+}
+
+.cmp-transfer h3 {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+  font-weight: normal;
+  color: var(--title);
+}
+
+.cmp-transfer .transfer-columns {
+  display: flex;
+  gap: 24px;
+}
+
+.cmp-transfer .transfer-tables {
+  min-width: 260px;
+}
+
+.cmp-transfer .transfer-table-list {
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 4px 0 0 4px;
+  border-left: solid 1px var(--panel);
+}
+
+.cmp-transfer .transfer-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 1px 0;
+}
+
+.cmp-transfer .transfer-check.select-all {
+  margin-bottom: 4px;
+  color: var(--text-strong);
+}
+
+.cmp-transfer .transfer-options {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cmp-transfer .transfer-options.inline {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  margin: 8px 0;
+}
+
+.cmp-transfer .transfer-options label:not(.transfer-check) {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cmp-transfer select,
+.cmp-transfer input[type="file"] {
+  padding: 2px 6px;
+  border: solid 1px var(--border-strong);
+  border-radius: 3px;
+  color: var(--text);
+  background-color: var(--input-bg);
+  font: inherit;
+}
+
+.cmp-transfer .transfer-start,
+.cmp-transfer .transfer-cancel {
+  align-self: flex-start;
+  margin-top: 8px;
+  padding: 3px 14px;
+  border: none;
+  border-radius: 3px;
+  color: #ffffff;
+  background-color: #4b6eaf;
+  font: inherit;
+  cursor: pointer;
+}
+
+.cmp-transfer .transfer-cancel {
+  background-color: #a8413e;
+}
+
+.cmp-transfer .transfer-start:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.cmp-transfer .transfer-hint {
+  margin-top: 6px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.cmp-transfer .transfer-result {
+  margin-top: 6px;
+  color: var(--success-text);
+}
+
+.cmp-transfer .transfer-error,
+.cmp-transfer .import-error-message {
+  color: var(--danger-text);
+  font-family: monospace;
+}
+
+.cmp-transfer .import-file {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cmp-transfer .import-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.cmp-transfer .csv-preview {
+  max-width: 100%;
+  overflow-x: auto;
+  margin-top: 6px;
+}
+
+.cmp-transfer .csv-preview table {
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.cmp-transfer .csv-preview th,
+.cmp-transfer .csv-preview td {
+  max-width: 220px;
+  padding: 2px 8px;
+  border: solid 1px var(--panel);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cmp-transfer .csv-preview th select {
+  width: 100%;
+  color: var(--text-muted);
+}
+
+.cmp-transfer .csv-preview th select.mapped {
+  color: var(--title);
+  border-color: #4b6eaf;
+}
+
+.cmp-transfer .csv-preview tr.header-row td {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.cmp-transfer .import-progress {
+  margin-top: 10px;
+}
+
+.cmp-transfer .progress-bar {
+  height: 6px;
+  max-width: 600px;
+  border-radius: 3px;
+  background-color: var(--panel);
+  overflow: hidden;
+}
+
+.cmp-transfer .progress-bar > div {
+  height: 100%;
+  background-color: var(--success-text);
+  transition: width 0.2s;
+}
+
+.cmp-transfer .progress-text {
+  margin-top: 4px;
+  color: var(--text-strong);
+}
+
+.cmp-transfer .import-errors {
+  margin-top: 8px;
+}
+
+.cmp-transfer .import-error {
+  margin-bottom: 6px;
+  padding-left: 8px;
+  border-left: solid 3px var(--danger-text);
+}
+
+.cmp-transfer .import-error pre {
+  margin: 2px 0 0;
+  color: var(--text-muted);
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-size: 0.8rem;
+}
+
+.cmp-transfer .export-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.cmp-transfer .transfer-start.secondary {
+  color: var(--text);
+  background-color: var(--button-bg);
+  border: solid 1px var(--border-strong);
+}
+
+.cmp-transfer .export-output {
+  margin-top: 10px;
+}
+
+.cmp-transfer .export-output-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  color: var(--text-muted);
+}
+
+.cmp-transfer .export-output-bar button {
+  padding: 1px 8px;
+  border: solid 1px var(--border-strong);
+  border-radius: 3px;
+  color: var(--text);
+  background-color: var(--button-bg);
+  cursor: pointer;
+}
+
+.cmp-transfer .export-output textarea,
+.cmp-transfer .import-text textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 6px;
+  border: solid 1px var(--border-strong);
+  border-radius: 3px;
+  color: var(--text);
+  background-color: var(--input-bg);
+  font-family: monospace;
+  font-size: 0.85rem;
+  resize: vertical;
+}
+
+.cmp-transfer .export-output textarea {
+  height: 420px;
+  white-space: pre;
+}
+
+.cmp-transfer .import-source {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 6px;
+}
+
+.cmp-transfer .import-text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.cmp-transfer .import-text select {
+  align-self: flex-start;
+}
+
+.cmp-transfer .import-text textarea {
+  height: 180px;
+}

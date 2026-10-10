@@ -1,0 +1,113 @@
+.cmp-process-list {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  color: var(--text);
+  background-color: var(--bg);
+}
+
+.cmp-process-list .process-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 30px;
+  padding: 0 8px;
+  background-color: var(--panel);
+}
+
+.cmp-process-list .process-toolbar label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cmp-process-list button,
+.cmp-process-list .process-filter {
+  padding: 1px 8px;
+  border: solid 1px var(--border-strong);
+  border-radius: 3px;
+  color: var(--text-strong);
+  background-color: var(--bg);
+  font: inherit;
+  cursor: pointer;
+}
+
+.cmp-process-list button:hover {
+  color: #ffffff;
+  background-color: var(--tab-bg);
+}
+
+.cmp-process-list button.danger {
+  color: var(--danger-text-soft);
+}
+
+.cmp-process-list .process-summary {
+  margin-left: auto;
+  color: var(--text-muted);
+}
+
+.cmp-process-list .process-table-wrapper {
+  flex: 1;
+  overflow: auto;
+}
+
+.cmp-process-list .process-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.cmp-process-list .process-table th,
+.cmp-process-list .process-table td {
+  padding: 2px 8px;
+  border-bottom: solid 1px var(--panel);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.cmp-process-list .process-table th {
+  position: sticky;
+  top: 0;
+  color: var(--text-muted);
+  font-weight: normal;
+  background-color: var(--bg);
+}
+
+.cmp-process-list .process-table td.number {
+  text-align: right;
+}
+
+.cmp-process-list .process-table td.muted {
+  color: var(--text-muted);
+}
+
+.cmp-process-list .process-table td.query {
+  max-width: 500px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: monospace;
+  font-size: 0.85rem;
+}
+
+.cmp-process-list .process-table td.actions {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.cmp-process-list .process-table tr.own td {
+  background-color: rgba(75, 110, 175, 0.08);
+}
+
+.cmp-process-list .process-table tr.slow td {
+  color: var(--title-soft);
+}
+
+.cmp-process-list .own-badge {
+  margin-left: 6px;
+  padding: 0 4px;
+  border-radius: 3px;
+  color: var(--input-bg);
+  background-color: var(--number);
+  font-size: 0.7rem;
+}

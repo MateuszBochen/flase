@@ -1,0 +1,12 @@
+
+.vertical-slider-root .vertical-slider-item:has(button.is-connect) {
+  color: var(--primary);
+}
+
+.vertical-slider-root .vertical-slider-item .vertical-slider-root {
+  color: var(--text-strong);
+}
+
+/*
+#
+*/

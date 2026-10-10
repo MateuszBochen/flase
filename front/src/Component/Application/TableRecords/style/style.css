@@ -1,0 +1,149 @@
+.table-records-root {
+    background-color: var(--tab-bg);
+    height: 100%;
+    max-height: 100%;
+}
+.table-records-root .cmp-table-data-header{
+    height: 52px;
+    width: 100%;
+
+}
+
+.table-records-root .cmp-table-data-content {
+    max-height: calc(100% - 52px);
+    height: calc(100% - 52px);
+    overflow: auto;
+}
+
+
+.cmp-table-data-navbar {
+    display: flex;
+    /*flex-wrap: wrap;*/
+    flex-direction: row;
+    max-width: 100%;
+}
+.cmp-table-data-navbar .cmp-table-data-navbar-buttons {
+    display: flex;
+    background-color: var(--input-bg);
+}
+.cmp-table-data-navbar .cmp-table-data-navbar-editor-wrapper {
+    width: 100%;
+    max-width: 100%;
+    flex: 1;
+    height: 34px;
+}
+.cmp-table-data-navbar .cmp-table-data-navbar-buttons .icon{
+    height: 30px;
+    width: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.cmp-table-data-navbar .cmp-table-data-navbar-buttons .icon.database-name {
+    padding-left: 5px;
+    padding-bottom: 4px;
+    width: auto;
+}
+
+.table-records-root td .reference {
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.table-records-root td > .cell-filed {
+    min-height: 100%;
+    min-width: 100%;
+    max-width: 100%;
+    height: 100%;
+    width: 100%;
+    display: list-item;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.table-records-root td > .cell-filed input{
+    display: flex;
+    max-width: 100%;
+    min-width: 100%;
+    width: 100%;
+}
+
+.table-records-root td > .cell-filed .form-control {
+    padding: 2px 4px;
+    height: 24px;
+    border: 1px solid #2140a3;
+}
+
+.speed-dial-buttons {
+    /*border-bottom: solid 1px var(--text-muted);*/
+}
+
+
+/**   LAYOUT - header height depends on view (query editor is hidden in structure view)   */
+.table-records-root {
+    display: flex;
+    flex-direction: column;
+}
+.table-records-root .cmp-table-data-header {
+    height: auto;
+    flex: none;
+}
+.table-records-root .table-records-body {
+    flex: 1;
+    min-height: 0;
+}
+.table-records-root .table-records-view {
+    height: 100%;
+}
+.table-records-root .table-records-body .cmp-table-data-content {
+    height: 100%;
+    max-height: 100%;
+}
+
+/**   TOOLBAR (view switch, reload, table operations)   */
+.table-records-root .speed-dial-buttons {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    height: 22px;
+    padding: 0 4px;
+}
+.table-records-root .speed-dial-buttons .icon-button {
+    width: 24px;
+    height: 20px;
+    border-radius: 3px;
+}
+.table-records-root .speed-dial-buttons .speed-dial-separator {
+    width: 1px;
+    height: 14px;
+    margin: 0 4px;
+    background-color: #5a5d5f;
+}
+
+/**   EXPLAIN   */
+.cmp-explain {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 80vw;
+    max-width: 1300px;
+}
+.cmp-explain .explain-query {
+    margin: 0;
+    padding: 6px 8px;
+    color: var(--text);
+    background-color: var(--input-bg);
+    white-space: pre-wrap;
+    word-break: break-all;
+    font-size: 0.85rem;
+}
+.cmp-explain .explain-result {
+    height: 260px;
+}
+.cmp-explain .explain-error {
+    color: var(--danger-text);
+    font-family: monospace;
+}
+.cmp-explain .explain-loading {
+    color: var(--text-muted);
+}

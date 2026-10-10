@@ -1,0 +1,651 @@
+.cmp-records-view {
+  max-width: 100%;
+  height: 100%;
+}
+
+.cmp-records-view .cmp-records-view-table-wrapper {
+  position: relative;
+  overflow: auto;
+  width: 100%;
+  height: calc(100% - 30px);
+  padding-bottom: 0px;
+  display: flex;
+  flex-direction: column;
+}
+
+.cmp-records-view .cmp-records-view-table-wrapper .cmp-records-view-table-wrapper-table-content {
+  position: relative;
+  flex: 0.99;
+  width: max-content;
+  min-width: 100%;
+}
+
+.cmp-records-view .cmp-records-view-table-wrapper .cmp-records-view-table-wrapper-table-content .loading-records {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.54);
+  display: none;
+}
+
+.cmp-records-view .cmp-records-view-table-wrapper .cmp-records-view-table-wrapper-table-content table {
+  table-layout:fixed;
+}
+
+.cmp-records-view .cmp-records-view-sticky-table {
+  position: absolute;
+  min-width: 100%;
+  z-index: 11;
+}
+
+.cmp-records-view .cmp-records-view-sticky-table table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.cmp-records-view .cmp-records-view-pager {
+/*  border-top: solid 1px var(--panel);*/
+  height: 30px;
+  background-color: var(--bg);
+  /*user-select: none;*/
+}
+
+.cmp-records-view .cmp-records-view-pager .cmp-records-view-pager-item.pager {
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  display: flex;
+}
+
+.cmp-records-view .cmp-records-view-pager .cmp-records-view-pager-item.pager button {
+  margin-left: 5px;
+}
+
+.cmp-records-view .cmp-records-view-pager .cmp-records-view-pager-item.pager .form-control {
+  padding: 3px 5px;
+  font-size: 0.9rem;
+  margin-left: 5px;
+  margin-right: 5px;
+  height: 20px;
+  width: 100px;
+}
+
+.cmp-records-view table {
+  min-width: 100%;
+  box-sizing: content-box;
+  border-spacing: 0;
+}
+.cmp-records-view table th {
+  box-sizing: content-box;
+}
+.cmp-records-view table tr {
+  box-sizing: content-box;
+}
+.cmp-records-view table tr th{
+  box-sizing: content-box;
+}
+
+.cmp-records-view table thead th {
+  background-color: var(--panel);
+/*  border-right: solid 1px var(--text-muted);
+  border-bottom: solid 1px var(--text-muted);
+  border-top: solid 1px var(--text-muted);*/
+  padding: 0 5px;
+  white-space: nowrap;
+  box-sizing: content-box;
+}
+
+.cmp-records-view table thead th:first-child {
+/*  border-left: solid 1px var(--text-muted);*/
+}
+
+.cmp-records-view table thead th .column-name-wrapper {
+  display: flex;
+  white-space: nowrap;
+  flex-direction: row;
+  flex-wrap: nowrap;
+}
+.cmp-records-view table thead th .column-name {
+
+}
+
+.cmp-records-view table thead th .sort-box {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  margin-left: auto;
+  padding-left: 4px;
+}
+
+.cmp-records-view table thead th .sort-box button {
+  padding: 0 4px;
+
+}
+
+
+/*.cmp-records-view table tbody td:first-child {
+  border-left: solid 1px var(--text-muted);
+}
+
+.cmp-records-view table tbody tr:last-child td {
+  border-bottom: solid 1px var(--text-muted);
+}*/
+
+/* grid is used also outside of table tab (console, explain) */
+.cmp-records-view-pager-root {
+  display: flex;
+  height: 100%;
+}
+
+
+.cmp-records-view-pager-root .cmp-records-view-pager-item.pager-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/**   GRID   */
+.cmp-records-view .cmp-records-view-table-wrapper .cmp-data-grid {
+  padding-right: 2px;
+  padding-left: 2px;
+  height: 100%;
+  overflow-y: hidden;
+}
+
+
+/**   GRID HEADER   */
+.cmp-records-view .cmp-records-view-table-wrapper .cmp-data-grid .header-columns-row {
+  display: inline-flex;
+  flex-direction: row;
+  min-width: 100%;
+}
+.cmp-records-view .cmp-records-view-table-wrapper .cmp-data-grid .header-columns-row .header-cell {
+  flex: 1;
+  white-space: nowrap;
+}
+
+.cmp-records-view .cmp-records-view-table-wrapper .cmp-data-grid .header-columns-row .header-cell .column-name-wrapper {
+  display: flex;
+  padding: 2px 3px;
+  background-color: rgba(0, 0, 0, 0.1);
+  border-right: solid 1px var(--text-muted);
+  border-top: solid 1px var(--text-muted);
+}
+.cmp-records-view .cmp-records-view-table-wrapper .cmp-data-grid .header-columns-row .header-cell .column-name-wrapper .column-name {
+ margin-right: 5px;
+  width: 100%;
+  display: block;
+}
+
+.cmp-records-view .cmp-records-view-table-wrapper .cmp-data-grid .header-columns-row .header-cell:first-child .column-name-wrapper {
+  border-left: solid 1px var(--text-muted);
+}
+
+.cmp-records-view .cmp-records-view-table-wrapper .cmp-data-grid .header-columns-row .header-cell .column-name-wrapper .sort-box {
+  flex-direction: row;
+  flex-wrap: nowrap;
+  margin-left: auto;
+}
+
+
+.cmp-records-view .cmp-records-view-table-wrapper .cmp-data-grid .header-columns-row .header-cell .column-name-wrapper .column-name .column-name-skeleton {
+  display: block;
+  height: 19px;
+  width: calc(100% + 5px);
+
+  background: linear-gradient(-60deg, var(--bg) 33%, #3d3d3d, var(--bg) 66%) right/300% 100%;
+  animation: move 1s linear infinite;
+}
+
+@keyframes move {
+  to {background-position: left}
+}
+
+/** .data-table-content */
+.cmp-records-view .cmp-records-view-table-wrapper .cmp-data-grid .cmp-records-view-table-wrapper-table-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.cmp-records-view .cmp-records-view-table-wrapper .cmp-records-view-table-wrapper-table-content .columns-table {
+  height: 21px;
+  background-color: var(--panel);
+}
+
+.cmp-records-view .cmp-records-view-table-wrapper .data-table-content {
+  display: inline-flex;
+  min-height: calc(100% - 25px);
+  height: calc(100% - 25px);
+  overflow-y: hidden;
+  min-width: 100%;
+}
+.cmp-records-view .cmp-records-view-table-wrapper .data-table-content .data-table-content-wrapper {
+  min-width: 100%;
+}
+
+.cmp-records-view .cmp-records-view-table-wrapper .data-table-content .data-table-content-wrapper .data-table-content-window {
+  min-width: 100%;
+  min-height: 100%;
+}
+
+.data-table-content .data-table-row {
+  display: flex;
+  flex-direction: row;
+  height: 21px;
+}
+.data-table-content .data-table-row .data-table-cell {
+  flex: 1;
+  overflow: hidden;
+  line-height: 17px;
+/*  border-right: solid 1px var(--text-muted);
+  border-bottom: solid 1px var(--text-muted);*/
+  /*padding: 0 5px;*/
+  white-space: nowrap;
+
+}
+
+.data-table-content .data-table-row .data-table-cell .data-table-cell-content {
+  background-color: var(--hover-strong);
+  border-right: solid 1px var(--text-muted);
+  border-top: solid 1px var(--text-muted);
+  height: 100%;
+  /* border included - content must fit row height, otherwise cell can be scrolled by 1px */
+  box-sizing: border-box;
+}
+
+.data-table-content .data-table-row .data-table-cell .data-table-cell-content .dtc-content {
+  /* 1px border + 2px + 17px line + 1px = 21px row */
+  padding: 2px 3px 1px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.data-table-content .data-table-row .data-table-cell:first-child {
+/*  border-left: solid 1px var(--text-muted);*/
+}
+
+.data-table-content .data-table-row:last-child .data-table-cell{
+/*  border-bottom: solid 1px var(--text-muted);*/
+}
+
+/**   QUERY STATUS   */
+.cmp-records-view .cmp-records-view-table-wrapper .cmp-records-view-message {
+  position: absolute;
+  top: 30px;
+  left: 2px;
+  right: 2px;
+  padding: 8px 10px;
+  color: var(--text);
+  background-color: var(--bg);
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: text;
+}
+
+.cmp-records-view .cmp-records-view-table-wrapper .cmp-records-view-message.cmp-records-view-message-error {
+  color: var(--danger-text);
+  border-left: solid 3px var(--danger-text);
+  font-family: monospace;
+}
+
+.cmp-records-view-pager-root .cmp-records-view-pager-item.pager-info .pager-loading {
+  color: var(--text-muted);
+}
+
+
+/**   PENDING CHANGES (footer)   */
+.cmp-records-view-pager-root .cmp-records-view-pager-item.pager-extra {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  padding-right: 8px;
+}
+.cmp-records-view-pager-root .pending-bar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.cmp-records-view-pager-root .pending-bar.read-only {
+  color: var(--text-muted);
+  cursor: help;
+}
+.cmp-records-view-pager-root .pending-bar .pending-count {
+  color: var(--title-soft);
+  margin-right: 6px;
+}
+.cmp-records-view-pager-root .pending-bar .pending-action {
+  padding: 1px 8px;
+  border: none;
+  border-radius: 3px;
+  color: var(--text-strong);
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+.cmp-records-view-pager-root .pending-bar .pending-action:hover:not(:disabled) {
+  color: #ffffff;
+  background-color: var(--tab-bg);
+}
+.cmp-records-view-pager-root .pending-bar .pending-action.submit {
+  color: #ffffff;
+  background-color: #499c54;
+}
+.cmp-records-view-pager-root .pending-bar .pending-action.submit:hover:not(:disabled) {
+  background-color: #57b162;
+}
+.cmp-records-view-pager-root .pending-bar .pending-action:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/**   ROW STATES   */
+.data-table-content .data-table-row.selected .data-table-cell .data-table-cell-content {
+  background-color: rgba(75, 110, 175, 0.2);
+}
+.data-table-content .data-table-row .data-table-cell.changed .data-table-cell-content {
+  background-color: rgba(224, 196, 108, 0.35);
+}
+.data-table-content .data-table-row.row-inserted .data-table-cell .data-table-cell-content {
+  background-color: rgba(98, 151, 85, 0.35);
+}
+.data-table-content .data-table-row.row-deleted .data-table-cell .data-table-cell-content {
+  background-color: rgba(255, 107, 104, 0.25);
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+.data-table-content .data-table-row .data-table-cell .dtc-content .dtc-null {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/**   CELL EDITOR   */
+.cmp-cell-editor {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  height: 100%;
+}
+.cmp-cell-editor .cell-editor-input {
+  flex: 1;
+  min-width: 0;
+  padding: 1px 3px;
+  border: solid 1px #4b6eaf;
+  outline: none;
+  color: var(--text);
+  background-color: var(--input-bg);
+  font: inherit;
+}
+.cmp-cell-editor .cell-editor-input.is-null::placeholder {
+  color: var(--text-muted);
+  font-style: italic;
+}
+.cmp-cell-editor .cell-editor-null {
+  padding: 0 4px;
+  border: solid 1px var(--border-strong);
+  color: var(--text-muted);
+  background-color: var(--panel);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+.cmp-cell-editor .cell-editor-null.active {
+  color: var(--input-bg);
+  background-color: var(--title-soft);
+}
+.cmp-cell-editor.form textarea.cell-editor-input {
+  resize: vertical;
+  min-height: 60px;
+}
+
+/**   ROW FORM   */
+.cmp-row-form {
+  max-height: 65vh;
+  overflow-y: auto;
+  min-width: 500px;
+  padding-right: 6px;
+}
+.cmp-row-form .row-form-field {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 3px 0;
+  border-bottom: solid 1px var(--hover);
+}
+.cmp-row-form .row-form-label {
+  display: flex;
+  flex-direction: column;
+  width: 30%;
+  min-width: 140px;
+  padding-top: 2px;
+}
+.cmp-row-form .row-form-label .row-form-type {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cmp-row-form .row-form-editor {
+  display: flex;
+  flex: 1;
+  gap: 4px;
+  min-height: 24px;
+}
+.cmp-row-form .row-form-read-only {
+  color: var(--text-muted);
+  padding: 2px 3px;
+}
+.cmp-row-form .row-form-default {
+  flex: 1;
+  text-align: left;
+  padding: 2px 6px;
+  border: dashed 1px var(--border-strong);
+  color: var(--text-muted);
+  background: transparent;
+  font-style: italic;
+  cursor: pointer;
+}
+.cmp-row-form .row-form-use-default {
+  padding: 0 6px;
+  border: solid 1px var(--border-strong);
+  color: var(--text-muted);
+  background-color: var(--panel);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+/**   SQL PREVIEW   */
+.cmp-sql-preview {
+  max-height: 60vh;
+  max-width: 80vw;
+  overflow: auto;
+  margin: 0;
+  padding: 8px;
+  color: var(--text);
+  background-color: var(--input-bg);
+  white-space: pre-wrap;
+  word-break: break-all;
+  user-select: text;
+}
+
+/**   EMPTY STRING / FOREIGN KEY   */
+.data-table-content .data-table-row .data-table-cell .dtc-content .dtc-empty {
+  color: var(--text-muted);
+}
+.data-table-content .data-table-row .data-table-cell .dtc-content.is-reference {
+  color: #8fb3e8;
+}
+.data-table-content .data-table-row .data-table-cell .dtc-content .dtc-reference {
+  float: right;
+  margin-left: 4px;
+  padding: 0 2px;
+  border: none;
+  color: #589df6;
+  background: none;
+  font-size: 0.7rem;
+  line-height: 17px;
+  cursor: pointer;
+  opacity: 0.6;
+}
+.data-table-content .data-table-row .data-table-cell .dtc-content .dtc-reference:hover {
+  opacity: 1;
+}
+
+/**   CELL SELECTION   */
+.cmp-records-view:focus {
+  outline: none;
+}
+.data-table-content {
+  user-select: none;
+}
+.data-table-content .data-table-row .data-table-cell.cell-selected .data-table-cell-content {
+  background-color: rgba(75, 110, 175, 0.7);
+  color: #ffffff;
+}
+.data-table-content .data-table-row .data-table-cell .dtc-content .dtc-binary {
+  color: #9876aa;
+}
+
+/**   VALUE EDITOR   */
+.cmp-value-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 70vw;
+  max-width: 1100px;
+}
+.cmp-value-editor .value-editor-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.cmp-value-editor .value-editor-toolbar button {
+  padding: 1px 8px;
+  border: solid 1px var(--border-strong);
+  border-radius: 3px;
+  color: var(--text-strong);
+  background-color: var(--panel);
+  font: inherit;
+  cursor: pointer;
+}
+.cmp-value-editor .value-editor-toolbar button.active {
+  color: var(--text-strong);
+  border-color: #4b6eaf;
+}
+.cmp-value-editor .value-editor-toolbar button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.cmp-value-editor .value-editor-info {
+  margin-right: auto;
+  color: var(--text-muted);
+}
+.cmp-value-editor .value-editor-error {
+  color: var(--danger-text);
+}
+.cmp-value-editor .value-editor-check {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-strong);
+}
+.cmp-value-editor .value-editor-text {
+  height: 55vh;
+  margin: 0;
+  padding: 8px;
+  overflow: auto;
+  border: solid 1px var(--border-strong);
+  color: var(--text);
+  background-color: var(--input-bg);
+  font-family: monospace;
+  font-size: 0.85rem;
+  white-space: pre;
+  resize: none;
+}
+.cmp-value-editor textarea.value-editor-text.wrap {
+  white-space: pre-wrap;
+}
+.cmp-value-editor .value-editor-text.binary {
+  user-select: text;
+}
+.cmp-value-editor .value-editor-hint {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+/**   EXPORT   */
+.cmp-records-view-pager-root .pager-export {
+  margin-right: 10px;
+  padding: 1px 8px;
+  border: solid 1px var(--border-strong);
+  border-radius: 3px;
+  color: var(--text-strong);
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+.cmp-records-view-pager-root .pager-export:hover {
+  color: var(--text-strong);
+  background-color: var(--tab-bg);
+}
+.cmp-records-view-pager-root .pager-loading .pager-cancel {
+  margin-left: 8px;
+  padding: 0 8px;
+  border: solid 1px #a8413e;
+  border-radius: 3px;
+  color: var(--danger-text-soft);
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+/* place of columns which are not rendered (horizontal virtualization) */
+.data-table-content .data-table-row .data-table-spacer {
+  flex: none;
+}
+
+/* "Edit cell…" popup for non text columns (numbers, dates, enum) */
+.cmp-cell-edit-popup {
+  min-width: 360px;
+}
+
+.cmp-cell-edit-popup .hint {
+  margin-top: 8px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+/* resize of columns - handle on right edge of header cell */
+.cmp-records-view .cmp-records-view-table-wrapper .cmp-data-grid .header-columns-row .header-cell {
+  position: relative;
+}
+.cmp-records-view .cmp-records-view-table-wrapper .cmp-data-grid .header-columns-row .header-cell.sized {
+  flex: none;
+  overflow: hidden;
+}
+.cmp-records-view .cmp-records-view-table-wrapper .cmp-data-grid .header-columns-row .header-cell.sized .column-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cmp-records-view .cmp-records-view-table-wrapper .cmp-data-grid .header-columns-row .header-cell .column-resize-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 2;
+}
+.cmp-records-view .cmp-records-view-table-wrapper .cmp-data-grid .header-columns-row .header-cell .column-resize-handle:hover,
+body.column-resizing .header-cell .column-resize-handle:active {
+  background-color: var(--primary);
+  opacity: 0.6;
+}
+/* while dragging: the same cursor everywhere, no text selection */
+body.column-resizing,
+body.column-resizing * {
+  cursor: col-resize !important;
+  user-select: none !important;
+}

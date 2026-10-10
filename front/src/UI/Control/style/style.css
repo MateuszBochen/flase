@@ -1,0 +1,133 @@
+
+/** just input */
+.control.control-input-root,
+/** for icon picker */
+.control.control-input-picker {
+    width: 100%;
+    margin-top: 10px;
+    margin-bottom: 20px;
+}
+
+.control.control-input-root input
+{
+    box-sizing: border-box;
+    width: 100%;
+    border: 1px solid;
+    padding: 6px;
+    margin: 0px;
+}
+
+.control.control-input-picker .picker-holder-wrapper {
+    cursor: pointer;
+    position: relative;
+}
+
+.control.control-input-picker .picker-holder-wrapper .picker-dropdown-holder {
+    z-index: 1;
+    position: absolute;
+    top: 10px;
+    left: 10px;
+}
+
+.control.control-input-root .label-wrapper,
+.control.control-input-picker .label-wrapper {
+    padding-left: 0;
+    position: relative;
+}
+
+.control.control-input-root .label-wrapper > label,
+.control.control-input-picker .label-wrapper > label {
+    position: relative;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.control.control-input-root .label-wrapper > label:before,
+.control.control-input-picker .label-wrapper > label:before {
+    content: ' ';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+
+    z-index: -1;
+}
+
+.control.control-input-root .label-wrapper > label:after,
+.control.control-input-picker .label-wrapper > label:after {
+    content: ' ';
+    position: absolute;
+    z-index: -1;
+    top: 2px;
+    left: 3px;
+    width: calc(100% - 6px);
+    height: calc(100% - 4px);
+
+}
+
+
+.control.control-input-root .label-wrapper > .error-wrapper {
+    display: inline;
+    position: relative;
+    padding: 5px 17px 17px 15px;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+}
+
+.control.control-input-root .label-wrapper > .error-wrapper:before,
+.control.control-input-picker .label-wrapper > .error-wrapper:before {
+    content: ' ';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+
+    z-index: -1;
+}
+
+.control.control-input-root .label-wrapper > .error-wrapper:after,
+.control.control-input-picker .label-wrapper > .error-wrapper:after {
+    content: ' ';
+    position: absolute;
+    z-index: -1;
+    top: 2px;
+    left: 3px;
+    width: calc(100% - 6px);
+    height: calc(100% - 4px);
+
+}
+
+
+.control.control-input-picker.icon-picker .picker-dropdown-holder {
+    width: calc(100% - 20px);
+}
+
+.control.control-input-picker .dropdown-root {
+
+}
+
+.control.control-input-picker .options-list {
+    max-height: 300px;
+    max-width: 100%;
+    overflow: auto;
+    min-height: 200px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 20px);
+    justify-content: space-between;
+    grid-gap: 2px;
+}
+
+.control.control-input-picker .options-list li{
+    padding: 2px;
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+/** COLORS */
+

@@ -1,0 +1,46 @@
+.table-list-menu-root input {
+  width: 100%;
+  box-sizing: border-box;
+  background-color: var(--inset-soft);
+  border: none;
+  color: var(--text-muted);
+}
+.table-list-menu-root input:focus-visible {
+  border-color: var(--inset-border);
+}
+
+.table-list-menu-root li {
+  border-bottom: solid 1px var(--bg);
+}
+
+.table-list-menu-root li:last-child {
+  border: none;
+}
+
+.table-list-menu-root li button {
+  color: var(--text-muted);
+  width: 100%;
+  text-align: left;
+  line-height: 1.3rem;
+  padding-left: 3px;
+  padding-right: 3px;
+}
+.table-list-menu-root li button:hover {
+  background: var(--inset-soft);
+}
+.table-list-menu-root li:last-child button {
+  padding-bottom: 0;
+}
+
+.table-list-filter {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.table-list-filter .form-control {
+  flex: 1;
+  min-width: 0;
+}
+.table-list-filter .invisible-button-root {
+  padding: 0 4px;
+}

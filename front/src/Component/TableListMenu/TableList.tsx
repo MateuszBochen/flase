@@ -1,0 +1,103 @@
+import Box from '../../UI/Box/Box';
+import TableListPropsInterface from './Interface/TableListPropsInterface';
+import {useCallback, useEffect, useState} from 'react';
+import TableInformationInterface from '../../Library/Table/Interface/TableInformationInterface';
+import TableItem from './TableItem';
+import TabOpener from '../TabOpener/TabOpener';
+import DatabaseSearch, {DatabaseSearchPropsInterface} from '../Application/DatabaseSearch/DatabaseSearch';
+import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
+import {faDiagramProject, faMagnifyingGlass, faRightLeft, faTerminal} from '@fortawesome/free-solid-svg-icons';
+import ErDiagram, {ErDiagramPropsInterface} from '../Application/ErDiagram/ErDiagram';
+import TransferTab, {TransferTabPropsInterface} from '../Application/Transfer/TransferTab';
+import SqlConsole, {SqlConsolePropsInterface} from '../Application/SqlConsole/SqlConsole';
+
+/** TableList */
+export default (props: TableListPropsInterface) => {
+  const [state, setState] = useState<TableInformationInterface[]>(props.tables);
+  const [filter, setFilter] = useState<string>('');
+
+  useEffect(() => {
+    setState(props.tables);
+  }, [props.tables]);
+
+  /** comma separates alternatives: "ord, cust" */
+  const compare = useCallback((input: string, filter: string):boolean => {
+    const splitFilter = filter.split(',');
+    for (const key in splitFilter) {
+      if (input.trim().toLowerCase().includes(splitFilter[key].trim())) {
+        return true;
+      }
+    }
+    return false;
+  }, []);
+
+  return (
+    <Box maxPossibleHeight={true}>
+      <div
+        onClick={(e) => {
+          e.stopPropagation();
+          e.preventDefault()
+        }}
+      >
+        <div className="table-list-filter">
+          <input
+            type="text"
+            className="form-control"
+            value={filter}
+            placeholder="Filter tables…"
+            onChange={(e) => setFilter(e.target.value.toLowerCase())}
+          />
+          <TabOpener<DatabaseSearchPropsInterface>
+            tooltip={`Search in data of ${props.database.name}`}
+            tab={{
+              component: DatabaseSearch,
+              props: {connection: props.connection, database: props.database},
+              tabName: `Search: ${props.database.name}`,
+              isActive: false,
+            }}
+          >
+            <FontAwesomeIcon icon={faMagnifyingGlass} />
+          </TabOpener>
+          <TabOpener<SqlConsolePropsInterface>
+            tooltip={`SQL console for ${props.database.name}`}
+            tab={{
+              component: SqlConsole,
+              props: {connection: props.connection, database: props.database.name},
+              tabName: `Console: ${props.database.name}`,
+              isActive: false,
+            }}
+          >
+            <FontAwesomeIcon icon={faTerminal} />
+          </TabOpener>
+          <TabOpener<TransferTabPropsInterface>
+            tooltip={`Import / export ${props.database.name}`}
+            tab={{
+              component: TransferTab,
+              props: {connection: props.connection, database: props.database.name},
+              tabName: `Import / export: ${props.database.name}`,
+              isActive: false,
+            }}
+          >
+            <FontAwesomeIcon icon={faRightLeft} />
+          </TabOpener>
+          <TabOpener<ErDiagramPropsInterface>
+            tooltip={`ER diagram of ${props.database.name}`}
+            tab={{
+              component: ErDiagram,
+              props: {connection: props.connection, database: props.database.name},
+              tabName: `ER: ${props.database.name}`,
+              isActive: false,
+            }}
+          >
+            <FontAwesomeIcon icon={faDiagramProject} />
+          </TabOpener>
+        </div>
+        <ul>
+          {state.filter((tableItem) => compare(tableItem.tableName, filter)).map((filteredItem) =>(
+            <TableItem connection={props.connection} database={props.database} table={filteredItem} key={filteredItem.tableName}/>
+          ))}
+        </ul>
+      </div>
+    </Box>
+  );
+}

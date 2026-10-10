@@ -1,0 +1,88 @@
+/**
+ * Colors of dark (default) and light theme. Theme is set by data-theme on <html> (ThemeManager).
+ */
+:root {
+  color-scheme: dark;
+  --bg: #1e1f22;
+  --panel: #2b2d30;
+  --input-bg: #1e1f22;
+  --text: #bcbec4;
+  --text-strong: #dfe1e5;
+  --text-muted: #868a91;
+  --border: #393b40;
+  --border-strong: #4e5157;
+  --tab-bg: #2b2d30;
+  --tab-active: #1e1f22;
+  --tab-hover: #393b40;
+  --accent: #cc7832;
+  --title: #ffc66d;
+  --title-soft: #e0c46c;
+  --success-text: #6a8759;
+  --number: #6897bb;
+  --danger-text: #ff6b68;
+  --danger-text-soft: #ff8a87;
+  --hover: rgba(255, 255, 255, 0.04);
+  --hover-strong: rgba(255, 255, 255, 0.1);
+  --selection: #2e436e;
+  --grid-dot: #2f3135;
+  --accent-bg: #4b6eaf;
+  --button-bg: #2b2d30;
+  --inset: #00000036;
+  --inset-soft: #ffffff0f;
+  --inset-border: #4fffff1f;
+  --popup-bg: #2b2d30;
+  --primary: #3574f0;
+  --primary-hover: #4682fa;
+  --primary-text: #ffffff;
+  --grid-line: #3a3d42;
+  --grid-header: #2b2d30;
+  --grid-zebra: rgba(255, 255, 255, 0.015);
+  --shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --radius: 6px;
+  --font-ui: 'Inter', -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', Menlo, Consolas, monospace;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #ffffff;
+  --panel: #f7f8fa;
+  --input-bg: #ffffff;
+  --text: #2b2d30;
+  --text-strong: #1e1f22;
+  --text-muted: #6c707e;
+  --border: #ebecf0;
+  --border-strong: #dfe1e5;
+  --tab-bg: #f7f8fa;
+  --tab-active: #ffffff;
+  --tab-hover: #ebecf0;
+  --accent: #a65a00;
+  --title: #8a5d00;
+  --title-soft: #806400;
+  --success-text: #3d7a2a;
+  --number: #1750a5;
+  --danger-text: #c62828;
+  --danger-text-soft: #c62828;
+  --hover: rgba(0, 0, 0, 0.04);
+  --hover-strong: rgba(0, 0, 0, 0.08);
+  --selection: #d4e2ff;
+  --grid-dot: #ebecf0;
+  --accent-bg: #4b6eaf;
+  --button-bg: #ffffff;
+  --inset: rgba(0, 0, 0, 0.035);
+  --inset-soft: rgba(0, 0, 0, 0.03);
+  --inset-border: #d0d7de;
+  --popup-bg: #ffffff;
+
+  --white-color: #2b2b2b;
+  --button-background: rgba(0, 0, 0, 0.06);
+  --button-background-hover: rgba(0, 0, 0, 0.12);
+  --light-scrollbar-track-color: rgba(0, 0, 0, 0.04);
+  --primary: #3574f0;
+  --primary-hover: #2a62d4;
+  --primary-text: #ffffff;
+  --grid-line: #dcdfe4;
+  --grid-header: #f7f8fa;
+  --grid-zebra: rgba(0, 0, 0, 0.018);
+  --shadow: 0 12px 40px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.06);
+}

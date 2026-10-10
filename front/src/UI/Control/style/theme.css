@@ -1,0 +1,70 @@
+.control.control-input-root.light input,
+.control.control-input-picker.light .picker-holder,
+.control.control-input-root.light label
+{
+    border-color: var(--light-border-color);
+}
+.control.control-input-picker.light .picker-holder {
+    background-color: #fff;
+}
+
+.control.control-input-root.light .label-wrapper > label:after,
+.control.control-input-picker.light .label-wrapper > label:after {
+    background-color: var(--light-border-color-fill);
+}
+
+.control.control-input-root.light .label-wrapper > label:before,
+.control.control-input-picker.light .label-wrapper > label:before {
+    background-color: var(--light-border-color);
+}
+
+.control.control-input-root.light .label-wrapper > label,
+.control.control-input-picker.light .label-wrapper > label {
+    color: var(--light-color-on-fill);
+}
+
+
+.control.control-input-root.light.error input,
+.control.control-input-picker.light.error .picker-holder,
+.control.control-input-root.light.error label,
+.control.control-input-root.light.error .error-wrapper
+{
+    border-color: var(--light-border-color-error);
+}
+
+.control.control-input-root.light.error .label-wrapper > label:after,
+.control.control-input-picker.light.error .label-wrapper > label:after,
+.control.control-input-root.light.error .label-wrapper > .error-wrapper:after {
+    background-color: var(--light-border-color-fill-error);
+}
+
+.control.control-input-root.light.error .label-wrapper > label:before,
+.control.control-input-picker.light.error .label-wrapper > label:before,
+.control.control-input-root.light.error .label-wrapper > .error-wrapper:before {
+    background-color: var(--light-border-color-error);
+}
+
+.control.control-input-root .label-wrapper .error-wrapper {
+    color: white;
+}
+
+.input-error-box {
+    border: solid 1px;
+    border-color: var(--light-border-color-error);
+    background-color: #f96e6e61;
+    border-top: solid 1px transparent;
+    margin-top: -1px;
+}
+
+.input-error-box ul {
+    list-style: none;
+    margin: 8px 0 4px;
+    padding: 0 2px 0;
+    font-size: 0.75rem;
+    color: #fbdfdf;
+}
+
+.input-error-box ul li:before {
+    content: "🧨";
+    padding-right: 2px;
+}

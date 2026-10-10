@@ -1,0 +1,116 @@
+.cmp-database-search {
+  height: 100%;
+  overflow: auto;
+  padding: 10px;
+  color: var(--text);
+  background-color: var(--bg);
+}
+
+.cmp-database-search .search-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cmp-database-search .search-database {
+  color: var(--accent);
+}
+
+.cmp-database-search .search-term {
+  flex: 1;
+  max-width: 600px;
+}
+
+.cmp-database-search input,
+.cmp-database-search select,
+.cmp-database-search .search-form button {
+  padding: 3px 8px;
+  border: solid 1px var(--border-strong);
+  border-radius: 3px;
+  color: var(--text);
+  background-color: var(--input-bg);
+  font: inherit;
+}
+
+.cmp-database-search .search-form button {
+  color: #ffffff;
+  background-color: #4b6eaf;
+  cursor: pointer;
+}
+
+.cmp-database-search .search-form button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.cmp-database-search .search-summary {
+  min-height: 20px;
+  margin: 10px 0 6px;
+  color: var(--text-muted);
+}
+
+.cmp-database-search .search-warning {
+  margin-bottom: 8px;
+  padding: 6px 10px;
+  color: var(--title-soft);
+  border-left: solid 3px var(--title-soft);
+  font-family: monospace;
+}
+
+.cmp-database-search .search-results {
+  border-collapse: collapse;
+  min-width: 60%;
+}
+
+.cmp-database-search .search-results th,
+.cmp-database-search .search-results td {
+  padding: 3px 12px 3px 4px;
+  border-bottom: solid 1px var(--panel);
+  text-align: left;
+  vertical-align: top;
+}
+
+.cmp-database-search .search-results th {
+  color: var(--text-muted);
+  font-weight: normal;
+}
+
+.cmp-database-search .search-results td.rows {
+  text-align: right;
+}
+
+.cmp-database-search .search-link {
+  padding: 0;
+  border: none;
+  color: #589df6;
+  background: none;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.cmp-database-search .search-column {
+  margin: 0 6px 2px 0;
+  padding: 0 6px;
+  border: solid 1px var(--border-strong);
+  border-radius: 10px;
+  color: var(--text-strong);
+  background: var(--panel);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.cmp-database-search .search-column span {
+  color: var(--text-muted);
+}
+
+.cmp-database-search .search-column:hover {
+  color: #ffffff;
+  border-color: #4b6eaf;
+}
+
+.cmp-database-search .search-empty {
+  color: var(--text-muted);
+  font-style: italic;
+}
