@@ -67,6 +67,10 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v0.') }}
             type=sha,format=short,enable=${{ github.event_name == 'workflow_dispatch' }}
+          labels: |
+            org.opencontainers.image.title=Flase
+            org.opencontainers.image.description=Web database manager for MySQL, MariaDB and PostgreSQL - modern phpMyAdmin alternative
+            org.opencontainers.image.licenses=AGPL-3.0-or-later
 
       - name: Build
         uses: docker/build-push-action@v6

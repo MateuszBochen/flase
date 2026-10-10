@@ -1,5 +1,11 @@
 # Flase - modern web database manager, phpMyAdmin alternative
 
+[![License: AGPL v3+](https://img.shields.io/badge/License-AGPL%20v3%2B-blue.svg)](LICENSE)
+[![Docker Image Version](https://img.shields.io/docker/v/backen/flase?sort=semver&label=Docker%20Hub)](https://hub.docker.com/r/backen/flase)
+[![Docker Pulls](https://img.shields.io/docker/pulls/backen/flase)](https://hub.docker.com/r/backen/flase)
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20me%20a%20coffee-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/djbacken)
+[![buycoffee.to](https://img.shields.io/badge/buycoffee.to-postaw%20kaw%C4%99-6F4E37)](https://buycoffee.to/djbacken)
+
 **Flase** is a fast, open source **web-based database client** for **MySQL**, **MariaDB** and **PostgreSQL**.
 It is a modern **alternative to phpMyAdmin and Adminer** with the comfort of desktop tools like DataGrip, DBeaver or HeidiSQL -
 but running in the browser, in one Docker container.
@@ -61,7 +67,7 @@ import and export dumps, draw ER diagrams and manage users - all from one self-h
 ## Quick start (Docker)
 
 ```bash
-docker run -d --name flase -p 3001:3001 -e JWT_SECRET=$(openssl rand -hex 32) <dockerhub-user>/flase:latest
+docker run -d --name flase -p 3001:3001 -e JWT_SECRET=$(openssl rand -hex 32) backen/flase:latest
 ```
 
 Open http://localhost:3001 and add a connection, for example `mysql://db-host:3306`, `mariadb://db-host:3306`
@@ -72,7 +78,7 @@ or `postgresql://db-host:5432/database`. Passwords are never stored - they are a
 ```yaml
 services:
   flase:
-    image: <dockerhub-user>/flase:latest
+    image: backen/flase:latest
     ports:
       - "3001:3001"
     environment:
@@ -115,6 +121,25 @@ tests/run.sh image         # build the production image and run browser smoke te
 - `docker/production/Dockerfile` - production image, published to Docker Hub by GitHub Actions on a `v*` tag
 
 Changes of each version are in [CHANGELOG.md](CHANGELOG.md).
+
+## Support
+
+Flase is developed in free time. If it saves you time, you can support it:
+
+- [Buy Me a Coffee](https://buymeacoffee.com/djbacken)
+- [buycoffee.to](https://buycoffee.to/djbacken)
+
+Bug reports and ideas are welcome in [GitHub issues](https://github.com/MateuszBochen/flase/issues).
+
+## License
+
+Flase is free software: you can redistribute it and/or modify it under the terms of the
+[GNU Affero General Public License](LICENSE) as published by the Free Software Foundation,
+either version 3 of the License, or (at your option) any later version (`AGPL-3.0-or-later`).
+
+In short: you can use, modify and share Flase freely, also commercially. When you distribute it or let users interact
+with a modified version over a network (e.g. you host it as a service), you must make the source code of your
+version available under the same license.
 
 ---
 

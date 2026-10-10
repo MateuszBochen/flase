@@ -5,6 +5,10 @@ versions follow [Semantic Versioning](https://semver.org/). A `v*` tag publishes
 
 ## [Unreleased]
 
+### Added
+- License: GNU Affero General Public License v3 or later (`AGPL-3.0-or-later`)
+- Support links (Buy Me a Coffee, buycoffee.to) and badges in README
+
 ## [0.0.1] - 2026-10-10
 
 First public version - web database manager for MySQL, MariaDB and PostgreSQL, alternative to phpMyAdmin.
