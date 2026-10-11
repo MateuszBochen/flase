@@ -5,6 +5,7 @@ import {
   ColumnPositionType,
   StructureChangeType,
 } from '../../Interface/Data/StructureChangeInterface';
+import {foreignKeyParts} from '../ForeignKey';
 const mysql = require('mysql');
 
 /** CURRENT_TIMESTAMP family is allowed without parentheses, also on older servers */
@@ -102,6 +103,14 @@ class MysqlDdlBuilder {
         const name = operation.name?.trim() ? ` ${mysql.escapeId(operation.name.trim())}` : '';
         return `ADD ${kind}${name} (${columns})`;
       }
+      case 'addForeignKey': {
+        const {columns, referenced, onDelete, onUpdate} = foreignKeyParts(operation);
+        const name = operation.name?.trim() ? `CONSTRAINT ${mysql.escapeId(operation.name.trim())} ` : '';
+        return `ADD ${name}FOREIGN KEY (${mysql.escapeId(columns)}) REFERENCES ${MysqlDdlBuilder.tableName(operation.referencedTable)} `
+          + `(${mysql.escapeId(referenced)}) ON DELETE ${onDelete} ON UPDATE ${onUpdate}`;
+      }
+      case 'dropForeignKey':
+        return `DROP FOREIGN KEY ${mysql.escapeId(MysqlDdlBuilder.requireName(operation.name, 'Foreign key name'))}`;
       case 'dropIndex':
         return operation.name === 'PRIMARY'
           ? 'DROP PRIMARY KEY'

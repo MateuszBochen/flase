@@ -30,7 +30,19 @@ export type AlterOperationType =
   | {op: 'changeColumn', name: string, column: ColumnDefinitionInterface, position: ColumnPositionType}
   | {op: 'dropColumn', name: string}
   | {op: 'addIndex', name: string, kind: IndexKindType, columns: {name: string, length: number | null}[]}
-  | {op: 'dropIndex', name: string};
+  | {op: 'dropIndex', name: string}
+  /** name '' - name is chosen by database */
+  | {
+    op: 'addForeignKey',
+    name: string,
+    columns: string[],
+    referencedTable: TableInterface,
+    referencedColumns: string[],
+    /** RESTRICT, CASCADE, SET NULL, NO ACTION, SET DEFAULT */
+    onDelete: string,
+    onUpdate: string,
+  }
+  | {op: 'dropForeignKey', name: string};
 
 export type StructureChangeType =
   | {kind: 'alter', operations: AlterOperationType[]}

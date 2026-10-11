@@ -91,6 +91,78 @@ export interface SetVariableResultInterface {
   statements: string[];
 }
 
+export interface ReplicationSummaryItemInterface {
+  label: string;
+  value: string;
+  state: 'ok' | 'warning' | 'error' | null;
+}
+
+/** table of replication view - channels, connected replicas, slots, publications... */
+export interface ReplicationTableInterface {
+  id: string;
+  title: string;
+  columns: string[];
+  rows: (string | null)[][];
+  /** text when there are no rows */
+  empty: string;
+}
+
+export type ReplicationActionKindType = 'flushLogs' | 'purgeLogs' | 'startReplica' | 'stopReplica' | 'switchWal' | 'dropSlot';
+
+export type ReplicationActionType =
+  /** FLUSH BINARY LOGS - new binary log file */
+  | {kind: 'flushLogs'}
+  /** PURGE BINARY LOGS TO - logs before the file are deleted */
+  | {kind: 'purgeLogs', to: string}
+  | {kind: 'startReplica', channel?: string}
+  | {kind: 'stopReplica', channel?: string}
+  /** pg_switch_wal() */
+  | {kind: 'switchWal'}
+  | {kind: 'dropSlot', name: string};
+
+export interface ReplicationInterface {
+  tabId?: string;
+  /** source, replica, primary, standby, standalone */
+  role: string;
+  summary: ReplicationSummaryItemInterface[];
+  tables: ReplicationTableInterface[];
+  /** binary logs (MySQL) / WAL files (PostgreSQL), null when they cannot be read */
+  logs: {name: string, size: number | null, modified: string | null}[] | null;
+  logsTitle: string;
+  /** why logs are not shown (binary logging disabled, privileges) */
+  logsMessage: string | null;
+  /** events of log can be read (SHOW BINLOG EVENTS) */
+  logEvents: boolean;
+  actions: ReplicationActionKindType[];
+  warnings: string[];
+}
+
+export interface LogEventsRequestInterface {
+  tabId?: string;
+  file: string;
+  offset: number;
+  limit: number;
+}
+
+export interface LogEventsInterface {
+  tabId?: string;
+  file: string;
+  offset: number;
+  events: {position: number, type: string, serverId: string, endPosition: number, info: string}[];
+}
+
+export interface ReplicationActionRequestInterface {
+  tabId?: string;
+  action: ReplicationActionType;
+  dryRun: boolean;
+}
+
+export interface ReplicationActionResultInterface {
+  tabId?: string;
+  kind: string;
+  statements: string[];
+}
+
 /** status and configuration of server */
 export interface ServerAdminInterface {
   status(withAdvice: boolean): Promise<ServerStatusInterface>;
@@ -98,4 +170,8 @@ export interface ServerAdminInterface {
   info(): Promise<ServerInfoInterface>;
   buildSetVariable(request: SetVariableRequestInterface): Promise<string[]>;
   executeSetVariable(statements: string[]): Promise<void>;
+  replication(): Promise<ReplicationInterface>;
+  logEvents(request: LogEventsRequestInterface): Promise<LogEventsInterface>;
+  buildReplicationAction(action: ReplicationActionType): Promise<string[]>;
+  executeReplicationAction(statements: string[]): Promise<void>;
 }

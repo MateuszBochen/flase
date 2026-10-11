@@ -270,3 +270,33 @@
   margin-left: 0;
   padding: 0;
 }
+
+.cmp-structure-form .foreign-key-pairs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 118px;
+}
+
+.cmp-structure-form .foreign-key-pair {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cmp-structure-form .foreign-key-pair .arrow {
+  color: var(--text-muted);
+}
+
+.cmp-structure-form .foreign-key-pair button {
+  border: none;
+  color: var(--text-muted);
+  background: none;
+  cursor: pointer;
+}
+
+.cmp-structure-form .foreign-key-pairs .structure-section-action {
+  align-self: flex-start;
+  margin-left: 0;
+  padding: 0;
+}

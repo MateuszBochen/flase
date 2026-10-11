@@ -17,7 +17,15 @@ import ReadOnlyGuard from '../Driver/Query/ReadOnlyGuard';
 import {ChangeUserCommandHandler, GetUserGrantsCommandHandler, GetUsersCommandHandler} from './CommandHandler/UserCommandHandlers';
 import MessageType from './Enum/MessageType';
 import DatabaseOperationCommandHandler from './CommandHandler/DatabaseOperationCommandHandler';
-import {GetServerInfoCommandHandler, GetServerStatusCommandHandler, GetServerVariablesCommandHandler, SetServerVariableCommandHandler} from './CommandHandler/ServerCommandHandlers';
+import {
+  GetLogEventsCommandHandler,
+  GetReplicationCommandHandler,
+  GetServerInfoCommandHandler,
+  GetServerStatusCommandHandler,
+  GetServerVariablesCommandHandler,
+  ReplicationActionCommandHandler,
+  SetServerVariableCommandHandler,
+} from './CommandHandler/ServerCommandHandlers';
 import {GetDatabaseObjectsCommandHandler, GetObjectDdlCommandHandler, GetServerOptionsCommandHandler} from './CommandHandler/DatabaseObjectsCommandHandlers';
 import QueryErrorInterface from '../Driver/Interface/Data/QueryErrorInterface';
 
@@ -153,6 +161,15 @@ class WebsocketRequest {
         return;
       case CommandType.SET_SERVER_VARIABLE:
         new SetServerVariableCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
+        return;
+      case CommandType.GET_REPLICATION:
+        new GetReplicationCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
+        return;
+      case CommandType.GET_LOG_EVENTS:
+        new GetLogEventsCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
+        return;
+      case CommandType.REPLICATION_ACTION:
+        new ReplicationActionCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
         return;
       default:
         throw new Error(`Command ${command.command} not supported`);

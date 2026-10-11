@@ -33,6 +33,14 @@ versions follow [Semantic Versioning](https://semver.org/). A `v*` tag publishes
   - advisor - buffer pool / cache, connections, temporary tables, slow log, table cache, joins without indexes,
     deadlocks, idle in transaction, checkpoints, autovacuum... with link to the variable
   - character sets, collations and storage engines (MySQL), databases, collations, access methods and extensions (PostgreSQL)
+  - replication - role of server, replica channels with IO / SQL thread, lag and errors, connected replicas, binary log
+    position and GTID (MySQL / MariaDB); standbys, replication slots, WAL receiver, publications and subscriptions (PostgreSQL);
+    binary logs with their events, WAL files; new binary log, purge of old logs, start / stop replica, switch WAL, drop slot
+- Visual query builder: tables from list (click or drag), joins from foreign keys or drawn from column to column,
+  INNER / LEFT / RIGHT join, grid of columns with alias, aggregate, sort and filter (WHERE / HAVING, GROUP BY added),
+  DISTINCT, LIMIT, live SQL, run in console, create view, state restored after reload
+- Foreign keys: add (also composite, ON DELETE / ON UPDATE) and drop in structure of table and in ER diagram
+  (relation mode - click column, then referenced column; right click on relation drops it)
 
 ### Fixed
 - MySQL 8: sizes, rows and AUTO_INCREMENT of tables were read from statistics cached up to 24 hours

@@ -6,7 +6,12 @@ import {
   ServerStatusInterface,
   ServerVariablesInterface,
   SetVariableRequestInterface,
+  LogEventsInterface,
+  LogEventsRequestInterface,
+  ReplicationActionType,
+  ReplicationInterface,
 } from '../../Interface/Data/ServerInterface';
+import PostgresReplication from './PostgresReplication';
 import {formatBytesText, percentText} from '../ServerText';
 import PostgresSql from './PostgresSql';
 
@@ -292,6 +297,26 @@ class PostgresServerAdmin implements ServerAdminInterface {
     for (const statement of statements) {
       await this.queryRows(statement);
     }
+  }
+
+  private replicationAdmin() {
+    return new PostgresReplication(this.queryRows);
+  }
+
+  replication(): Promise<ReplicationInterface> {
+    return this.replicationAdmin().replication();
+  }
+
+  logEvents(request: LogEventsRequestInterface): Promise<LogEventsInterface> {
+    return this.replicationAdmin().logEvents(request);
+  }
+
+  buildReplicationAction(action: ReplicationActionType): Promise<string[]> {
+    return this.replicationAdmin().buildAction(action);
+  }
+
+  executeReplicationAction(statements: string[]): Promise<void> {
+    return this.replicationAdmin().executeAction(statements);
   }
 }
 

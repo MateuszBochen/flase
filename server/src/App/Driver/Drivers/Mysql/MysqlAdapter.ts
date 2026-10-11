@@ -860,6 +860,7 @@ class MysqlAdapter implements DriverInterface {
 
   private getReferencesColumns(databaseName:string, tableName:string):Promise<ReferenceTableInterface[]> {
     const sql = `SELECT
+          \`CONSTRAINT_NAME\`,
           \`COLUMN_NAME\`,
           \`REFERENCED_TABLE_SCHEMA\`,
           \`REFERENCED_TABLE_NAME\`,
@@ -882,6 +883,7 @@ class MysqlAdapter implements DriverInterface {
           return {
             columnName: result.REFERENCED_COLUMN_NAME,
             originColumnName: result.COLUMN_NAME,
+            constraintName: (result as any).CONSTRAINT_NAME,
             table: {
               // foreign key can point to other database
               databaseName: result.REFERENCED_TABLE_SCHEMA || databaseName,

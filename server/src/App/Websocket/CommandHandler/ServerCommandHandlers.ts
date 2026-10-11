@@ -7,6 +7,11 @@ import {
   ServerVariablesInterface,
   SetVariableRequestInterface,
   SetVariableResultInterface,
+  LogEventsInterface,
+  LogEventsRequestInterface,
+  ReplicationActionRequestInterface,
+  ReplicationActionResultInterface,
+  ReplicationInterface,
 } from '../../Driver/Interface/Data/ServerInterface';
 
 /** SHOW GLOBAL STATUS / pg_stat_* - client asks repeatedly for monitor, advice only when asked */
@@ -70,6 +75,58 @@ export class SetServerVariableCommandHandler extends AbstractCommandHandler<SetV
         this.command.connectionData.connection,
         data.dryRun ? MessageType.SERVER_VARIABLE_PREVIEW : MessageType.SERVER_VARIABLE_APPLIED,
         {tabId: data.tabId, name: data.name, statements},
+      ));
+    } catch (e) {
+      this.sendError(e, data?.tabId);
+    }
+  }
+}
+
+/** replication status, binary logs / WAL files */
+export class GetReplicationCommandHandler extends AbstractCommandHandler<{tabId?: string}> {
+  handle = async (data: {tabId?: string}): Promise<void> => {
+    try {
+      const replication = await this.driver.server().replication();
+      this.clientWebsocket.send<ReplicationInterface>(new WsMessage<ReplicationInterface>(
+        this.command.connectionData.connection,
+        MessageType.REPLICATION,
+        {...replication, tabId: data?.tabId},
+      ));
+    } catch (e) {
+      this.sendError(e, data?.tabId);
+    }
+  }
+}
+
+/** SHOW BINLOG EVENTS - page of events of binary log */
+export class GetLogEventsCommandHandler extends AbstractCommandHandler<LogEventsRequestInterface> {
+  handle = async (data: LogEventsRequestInterface): Promise<void> => {
+    try {
+      const events = await this.driver.server().logEvents(data);
+      this.clientWebsocket.send<LogEventsInterface>(new WsMessage<LogEventsInterface>(
+        this.command.connectionData.connection,
+        MessageType.LOG_EVENTS,
+        {...events, tabId: data?.tabId},
+      ));
+    } catch (e) {
+      this.sendError(e, data?.tabId);
+    }
+  }
+}
+
+/** FLUSH / PURGE BINARY LOGS, START / STOP REPLICA, pg_switch_wal, drop of slot - dryRun returns sql for preview */
+export class ReplicationActionCommandHandler extends AbstractCommandHandler<ReplicationActionRequestInterface> {
+  handle = async (data: ReplicationActionRequestInterface): Promise<void> => {
+    try {
+      const server = this.driver.server();
+      const statements = await server.buildReplicationAction(data?.action);
+      if (!data.dryRun) {
+        await server.executeReplicationAction(statements);
+      }
+      this.clientWebsocket.send<ReplicationActionResultInterface>(new WsMessage<ReplicationActionResultInterface>(
+        this.command.connectionData.connection,
+        data.dryRun ? MessageType.REPLICATION_ACTION_PREVIEW : MessageType.REPLICATION_ACTION_APPLIED,
+        {tabId: data.tabId, kind: data.action.kind, statements},
       ));
     } catch (e) {
       this.sendError(e, data?.tabId);

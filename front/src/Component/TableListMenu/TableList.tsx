@@ -7,12 +7,13 @@ import TableItem from './TableItem';
 import TabOpener from '../TabOpener/TabOpener';
 import DatabaseSearch, {DatabaseSearchPropsInterface} from '../Application/DatabaseSearch/DatabaseSearch';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
-import {faDiagramProject, faMagnifyingGlass, faRightLeft, faTerminal, faTableList, faSquarePlus} from '@fortawesome/free-solid-svg-icons';
+import {faDiagramProject, faMagnifyingGlass, faRightLeft, faTerminal, faTableList, faSquarePlus, faWandMagicSparkles} from '@fortawesome/free-solid-svg-icons';
 import ErDiagram, {ErDiagramPropsInterface} from '../Application/ErDiagram/ErDiagram';
 import TransferTab, {TransferTabPropsInterface} from '../Application/Transfer/TransferTab';
 import SqlConsole, {SqlConsolePropsInterface} from '../Application/SqlConsole/SqlConsole';
 import DatabaseOverview, {DatabaseOverviewPropsInterface} from '../Application/DatabaseOverview/DatabaseOverview';
 import CreateTable, {CreateTablePropsInterface} from '../Application/CreateTable/CreateTable';
+import QueryBuilder, {QueryBuilderPropsInterface} from '../Application/QueryBuilder/QueryBuilder';
 import ContextMenu, {ContextMenuItem} from '../../UI/ContextMenu/ContextMenu';
 import EventBus from '../../Library/EventBus/EventBus';
 import NewTabComponentWasSelected from '../ApplicationRenderer/Event/NewTabComponentWasSelected';
@@ -173,6 +174,17 @@ export default (props: TableListPropsInterface) => {
             }}
           >
             <FontAwesomeIcon icon={faRightLeft} />
+          </TabOpener>
+          <TabOpener<QueryBuilderPropsInterface>
+            tooltip={`Query builder for ${props.database.name}`}
+            tab={{
+              component: QueryBuilder,
+              props: {connection: props.connection, database: props.database.name},
+              tabName: `Query builder: ${props.database.name}`,
+              isActive: false,
+            }}
+          >
+            <FontAwesomeIcon icon={faWandMagicSparkles} />
           </TabOpener>
           <TabOpener<ErDiagramPropsInterface>
             tooltip={`ER diagram of ${props.database.name}`}

@@ -7,7 +7,12 @@ import {
   ServerVariableInterface,
   ServerVariablesInterface,
   SetVariableRequestInterface,
+  LogEventsInterface,
+  LogEventsRequestInterface,
+  ReplicationActionType,
+  ReplicationInterface,
 } from '../../Interface/Data/ServerInterface';
+import MysqlReplication from './MysqlReplication';
 import {formatBytesText, percentText} from '../ServerText';
 const mysql = require('mysql');
 
@@ -314,6 +319,26 @@ class MysqlServerAdmin implements ServerAdminInterface {
     for (const statement of statements) {
       await this.queryRows(statement);
     }
+  }
+
+  private replicationAdmin() {
+    return new MysqlReplication(this.queryRows, this.isMariaDb);
+  }
+
+  replication(): Promise<ReplicationInterface> {
+    return this.replicationAdmin().replication();
+  }
+
+  logEvents(request: LogEventsRequestInterface): Promise<LogEventsInterface> {
+    return this.replicationAdmin().logEvents(request);
+  }
+
+  buildReplicationAction(action: ReplicationActionType): Promise<string[]> {
+    return this.replicationAdmin().buildAction(action);
+  }
+
+  executeReplicationAction(statements: string[]): Promise<void> {
+    return this.replicationAdmin().executeAction(statements);
   }
 }
 

@@ -12,6 +12,7 @@ import {
   faTrashCan,
   faEraser,
   faScrewdriverWrench,
+  faWandMagicSparkles,
 } from '@fortawesome/free-solid-svg-icons';
 import ApplicationInterface from '../ApplicationInterface';
 import ConnectionDataInterface from '../../../Library/Connection/Interface/ConnectionDataInterface';
@@ -49,6 +50,7 @@ import {ObjectTypeType, OBJECT_LABELS} from '../../DatabaseOperations/objectTemp
 import openConsole from '../../DatabaseOperations/openConsole';
 import TransferTab, {TransferTabPropsInterface} from '../Transfer/TransferTab';
 import CreateTable, {CreateTablePropsInterface} from '../CreateTable/CreateTable';
+import QueryBuilder, {QueryBuilderPropsInterface} from '../QueryBuilder/QueryBuilder';
 import '../TableRecords/Structure/style.css';
 import './style.css';
 
@@ -287,6 +289,20 @@ const DatabaseOverview = (props: DatabaseOverviewPropsInterface) => {
         </button>
         <button type="button" onClick={() => openConsole(props.connection, props.database)} disabled={!!gone} title={`SQL console for ${props.database}`}>
           <FontAwesomeIcon icon={faTerminal} /> Console
+        </button>
+        <button
+          type="button"
+          disabled={!!gone}
+          title="Visual query builder"
+          onClick={() => EventBus.emit(new NewTabComponentWasSelected<QueryBuilderPropsInterface>({
+            component: QueryBuilder,
+            props: {connection: props.connection, database: props.database},
+            tabName: `Query builder: ${props.database}`,
+            isActive: false,
+            activate: true,
+          }))}
+        >
+          <FontAwesomeIcon icon={faWandMagicSparkles} /> Query builder
         </button>
         <button type="button" onClick={() => openTransfer(chosen)} disabled={!!gone} title="Import / export">
           <FontAwesomeIcon icon={faRightLeft} /> Import / export

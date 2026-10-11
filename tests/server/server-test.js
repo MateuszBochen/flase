@@ -17,7 +17,8 @@ const connect = async (connection, username, password) => {
   ws.on('message', (m) => messages.push(JSON.parse(m)));
   await new Promise((r) => ws.on('open', r));
   let seq = 0;
-  const done = ['SERVER_STATUS', 'SERVER_VARIABLES', 'SERVER_INFO', 'SERVER_VARIABLE_PREVIEW', 'SERVER_VARIABLE_APPLIED', 'QUERY_ERROR'];
+  const done = ['QUERY_FINISHED', 'SERVER_STATUS', 'SERVER_VARIABLES', 'SERVER_INFO', 'SERVER_VARIABLE_PREVIEW', 'SERVER_VARIABLE_APPLIED', 'REPLICATION', 'LOG_EVENTS',
+    'REPLICATION_ACTION_PREVIEW', 'REPLICATION_ACTION_APPLIED', 'QUERY_ERROR'];
   const request = async (command, payload = {}) => {
     const tabId = 's' + (++seq);
     ws.send(JSON.stringify({connectionData: {user, connection}, command, payload: {...payload, tabId}}));
@@ -30,13 +31,18 @@ const connect = async (connection, username, password) => {
   };
   return {
     ws,
+    raw: request,
     status: (withAdvice = false) => request('GET_SERVER_STATUS', {withAdvice}),
     variables: () => request('GET_SERVER_VARIABLES'),
     info: () => request('GET_SERVER_INFO'),
     set: (name, value, dryRun = false, persist = false) => request('SET_SERVER_VARIABLE', {name, value, dryRun, persist}),
+    replication: () => request('GET_REPLICATION'),
+    events: (file, offset = 0, limit = 20) => request('GET_LOG_EVENTS', {file, offset, limit}),
+    action: (action, dryRun = false) => request('REPLICATION_ACTION', {action, dryRun}),
   };
 };
 
+const request = (c, command, payload) => c.raw(command, payload);
 const metric = (status, key) => status.payload?.metrics?.find((item) => item.key === key);
 const variable = async (c, name) => (await c.variables()).payload?.variables?.find((item) => item.name === name);
 
@@ -90,6 +96,35 @@ const mysqlTests = async (dsn, isMaria) => {
   r = await c.set('version', 'x');
   check('read only variable reports error', r.message === 'QUERY_ERROR' && /read only/i.test(r.error), r.error);
 
+  // --- replication
+  r = await c.replication();
+  const summary = Object.fromEntries((r.payload?.summary || []).map((x) => [x.label, x.value]));
+  check('replication summary', summary.Role === 'standalone' && !!summary['Server ID'] && 'GTID' in summary, r.error || JSON.stringify(r.payload?.summary));
+  check('replication tables', ['channels', 'replicas', 'threads', 'settings'].every((id) => r.payload.tables.some((t) => t.id === id))
+    && r.payload.tables.find((t) => t.id === 'channels').rows.length === 0 && r.payload.tables.find((t) => t.id === 'settings').rows.some((row) => row[0] === 'server_id'), JSON.stringify(r.payload.tables.map((t) => t.id)));
+  if (isMaria) {
+    check('MariaDB without binary log', summary['Binary log'] === 'OFF' && r.payload.logs === null && /log_bin/.test(r.payload.logsMessage) && r.payload.actions.length === 0, JSON.stringify(r.payload));
+  } else {
+    check('MySQL binary logs listed', summary['Binary log'].startsWith('ON') && /binlog\.\d+:\d+/.test(summary['Current position']) && r.payload.logs.length > 0 && r.payload.logEvents
+      && r.payload.actions.join() === 'flushLogs,purgeLogs', JSON.stringify(r.payload.summary) + JSON.stringify(r.payload.logs?.slice(0, 2)));
+    const file = r.payload.logs[r.payload.logs.length - 1].name;
+    let e = await c.events(file, 0, 5);
+    check('binlog events', e.payload?.events?.length > 0 && e.payload.events[0].type === 'Format_desc' && e.payload.events[0].position === 4, e.error || JSON.stringify(e.payload?.events?.[0]));
+    e = await c.events(file, 1, 2);
+    check('binlog events paging', e.payload?.events?.length <= 2 && e.payload.events[0]?.position > 4, JSON.stringify(e.payload?.events));
+    e = await c.events("x'; DROP");
+    check('invalid log file refused', /Invalid log file/.test(e.error || ''), e.error);
+    let a = await c.action({kind: 'flushLogs'}, true);
+    check('flush preview', a.payload?.statements?.[0] === 'FLUSH BINARY LOGS', a.error);
+    a = await c.action({kind: 'flushLogs'});
+    const after = await c.replication();
+    check('flush creates new binary log', a.message === 'REPLICATION_ACTION_APPLIED' && after.payload.logs.length === r.payload.logs.length + 1, a.error || after.payload?.logs?.length);
+    a = await c.action({kind: 'purgeLogs', to: after.payload.logs[after.payload.logs.length - 1].name}, true);
+    check('purge preview', /^PURGE BINARY LOGS TO 'binlog\.\d+'$/.test(a.payload?.statements?.[0] || ''), a.error || a.payload?.statements?.[0]);
+    a = await c.action({kind: 'switchWal'}, true);
+    check('PostgreSQL action refused', /not available/.test(a.error || ''), a.error);
+  }
+
   const flase = await connect({...connection, id: 'srv-user-' + dsn, username: 'flase'}, 'flase', 'flase');
   r = await flase.set('max_connect_errors', '123');
   check('user without privilege gets error', r.message === 'QUERY_ERROR' && /privilege|denied/i.test(r.error), r.error);
@@ -139,6 +174,31 @@ const postgresTests = async () => {
   r = await c.set('work_mem', null);
   await sleep(500);
   check('setting reset', r.payload?.statements?.[0] === 'ALTER SYSTEM RESET "work_mem"' && (await variable(c, 'work_mem'))?.display === '4MB', r.error || JSON.stringify(await variable(c, 'work_mem')));
+  // --- replication
+  r = await c.replication();
+  let summary = Object.fromEntries((r.payload?.summary || []).map((x) => [x.label, x.value]));
+  check('replication summary', summary.Role === 'standalone' && summary['WAL level'] === 'replica' && /^[0-9A-F]+\/[0-9A-F]+$/.test(summary['Current WAL']), r.error || JSON.stringify(r.payload?.summary));
+  check('WAL files listed', r.payload.logs?.length > 0 && /^[0-9A-F]{24}$/.test(r.payload.logs[0].name) && r.payload.logs[0].size > 0 && r.payload.logEvents === false, JSON.stringify(r.payload.logs?.[0]) + r.payload.logsMessage);
+  const slot = await request(c, 'SEND_SELECT_QUERY', {query: "SELECT pg_create_physical_replication_slot('flase_test_slot')", database: {name: 'public'}});
+  r = await c.replication();
+  const slots = r.payload.tables.find((t) => t.id === 'slots');
+  summary = Object.fromEntries((r.payload?.summary || []).map((x) => [x.label, x]));
+  check('replication slot listed, inactive warning', slots.rows.some((row) => row[0] === 'flase_test_slot' && row[4] === 'no') && summary['Replication slots'].state === 'warning'
+    && r.payload.actions.includes('dropSlot') && r.payload.actions.includes('switchWal'), JSON.stringify(slots.rows) + slot.error);
+  let a = await c.action({kind: 'dropSlot', name: 'flase_test_slot'}, true);
+  check('drop slot preview', a.payload?.statements?.[0] === "SELECT pg_drop_replication_slot('flase_test_slot')", a.error || a.payload?.statements?.[0]);
+  a = await c.action({kind: 'dropSlot', name: "x'); DROP"}, true);
+  check('invalid slot name refused', /Invalid slot name/.test(a.error || ''), a.error);
+  a = await c.action({kind: 'dropSlot', name: 'flase_test_slot'});
+  r = await c.replication();
+  check('slot dropped', a.message === 'REPLICATION_ACTION_APPLIED' && !r.payload.tables.find((t) => t.id === 'slots').rows.length, a.error);
+  a = await c.action({kind: 'switchWal'});
+  check('WAL switched', a.message === 'REPLICATION_ACTION_APPLIED', a.error);
+  a = await c.action({kind: 'flushLogs'}, true);
+  check('MySQL action refused', /not available/.test(a.error || ''), a.error);
+  r = await c.events('000000010000000000000001');
+  check('WAL records not available', /pg_walinspect/.test(r.error || ''), r.error);
+
   r = await c.set('work_mem', '1', false, true);
   check('persist option refused', /not needed/.test(r.error || ''), r.error);
   r = await c.set('work_mem', 'lots');

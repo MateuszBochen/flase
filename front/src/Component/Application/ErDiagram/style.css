@@ -132,3 +132,33 @@
   text-align: center;
   color: var(--text-muted);
 }
+
+.cmp-er-diagram .er-toolbar button.active {
+  color: #ffffff;
+  border-color: var(--primary);
+  background-color: var(--primary);
+}
+
+.cmp-er-diagram .er-relation-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 10;
+  pointer-events: stroke;
+  cursor: context-menu;
+}
+
+.cmp-er-diagram .er-column-hit {
+  fill: transparent;
+}
+
+.cmp-er-diagram .er-column-row.linkable {
+  cursor: crosshair;
+}
+
+.cmp-er-diagram .er-column-row.linkable:hover .er-column-hit {
+  fill: rgba(53, 116, 240, 0.18);
+}
+
+.cmp-er-diagram .er-column-hit.selected {
+  fill: rgba(53, 116, 240, 0.35);
+}

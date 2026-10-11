@@ -15,6 +15,7 @@ import StatusVariablesView from './StatusVariablesView';
 import VariablesView from './VariablesView';
 import AdvisorView from './AdvisorView';
 import ServerInfoView from './ServerInfoView';
+import ReplicationView from './ReplicationView';
 import {formatDuration} from './format';
 import '../TableRecords/Structure/style.css';
 import './style.css';
@@ -23,13 +24,14 @@ export interface ServerStatusPropsInterface extends ApplicationInterface {
   connection: ConnectionDataInterface;
 }
 
-type ViewType = 'monitor' | 'status' | 'variables' | 'advisor' | 'info';
+type ViewType = 'monitor' | 'status' | 'variables' | 'advisor' | 'replication' | 'info';
 
 const VIEWS: {view: ViewType, label: string}[] = [
   {view: 'monitor', label: 'Monitor'},
   {view: 'status', label: 'Status variables'},
   {view: 'variables', label: 'Variables'},
   {view: 'advisor', label: 'Advisor'},
+  {view: 'replication', label: 'Replication'},
   {view: 'info', label: 'Charsets & engines'},
 ];
 
@@ -119,6 +121,11 @@ const ServerStatus = (props: ServerStatusPropsInterface) => {
                 show('variables');
               }}
             />
+          </div>
+        )}
+        {visited.has('replication') && (
+          <div style={{display: view === 'replication' ? undefined : 'none'}}>
+            <ReplicationView connection={props.connection} tabId={tabId} readOnly={!!connection.readOnly} />
           </div>
         )}
         {visited.has('info') && <div style={{display: view === 'info' ? undefined : 'none'}}><ServerInfoView connection={props.connection} tabId={tabId} dialect={driver.dialect} /></div>}

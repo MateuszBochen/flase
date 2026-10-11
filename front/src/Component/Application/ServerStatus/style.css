@@ -336,3 +336,41 @@
   margin-top: 2px;
   color: var(--text-muted);
 }
+
+/* replication */
+.cmp-server-status .server-card-value.small {
+  overflow: hidden;
+  font-size: 1rem;
+  text-overflow: ellipsis;
+}
+
+.cmp-server-status .server-card.state-ok {
+  border-left-color: #5fa84f;
+}
+
+.cmp-server-status .server-card.state-warning {
+  border-left-color: #e5a50a;
+}
+
+.cmp-server-status .server-card.state-error {
+  border-left-color: var(--danger-text);
+}
+
+.cmp-server-status .server-logs tr.selected td {
+  background-color: var(--inset-soft);
+}
+
+.cmp-server-status .server-events td.code {
+  max-width: 700px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.cmp-server-status .server-view-toolbar button svg {
+  margin-right: 4px;
+  font-size: 0.75rem;
+}
+
+.cmp-server-status .server-view-toolbar button[aria-label] svg {
+  margin-right: 0;
+}

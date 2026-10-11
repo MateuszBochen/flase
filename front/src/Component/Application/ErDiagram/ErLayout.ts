@@ -11,7 +11,7 @@ const MAX_COLUMN_HEIGHT = 1400;
 export type BoxType = {x: number, y: number, width: number, height: number};
 
 /** one relation line - column of table points to column of referenced table */
-export type RelationType = {from: string, fromColumn: string, to: string, toColumn: string};
+export type RelationType = {from: string, fromColumn: string, to: string, toColumn: string, constraint?: string};
 
 export const tableHeight = (table: TableInformationInterface): number => HEADER_HEIGHT + Math.max(1, table.columns.length) * ROW_HEIGHT + 6;
 
@@ -28,7 +28,13 @@ export const relationsOf = (tables: TableInformationInterface[]): RelationType[]
   const names = new Set(tables.map((table) => table.tableName));
   return tables.flatMap((table) => table.columns
     .filter((column) => column.reference && column.reference.table.databaseName === table.dataBaseName && names.has(column.reference.table.name))
-    .map((column) => ({from: table.tableName, fromColumn: column.name, to: column.reference!.table.name, toColumn: column.reference!.columnName})));
+    .map((column) => ({
+      from: table.tableName,
+      fromColumn: column.name,
+      to: column.reference!.table.name,
+      toColumn: column.reference!.columnName,
+      constraint: column.reference!.constraintName,
+    })));
 };
 
 /**

@@ -309,6 +309,7 @@ class PostgresAdapter implements DriverInterface {
         reference: key ? {
           columnName: key.referencedColumns[0],
           originColumnName: column.name,
+          constraintName: key.name,
           table: {databaseName: key.referencedTable.databaseName, name: key.referencedTable.name},
         } : undefined,
       });

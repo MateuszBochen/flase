@@ -114,6 +114,12 @@ const login = async (connection, username, password) => (await fetch(`${BASE}/ap
     && await server().getByLabel('Filter variables').inputValue() === 'slow_query_log');
   await popup().getByRole('button', {name: 'Cancel'}).click();
 
+  // --- replication of MariaDB without binary log
+  await view('Replication');
+  const mariaReplication = await server().locator('.server-replication').innerText();
+  check('MariaDB replication: standalone, binary log disabled', /Role\s*standalone/.test(mariaReplication) && /Binary logging is disabled/.test(mariaReplication)
+    && /This server does not replicate/.test(mariaReplication), mariaReplication.slice(0, 300));
+
   // --- charsets and engines
   await view('Charsets & engines');
   const info = await server().locator('.server-info').innerText();
@@ -141,10 +147,40 @@ const login = async (connection, username, password) => (await fetch(`${BASE}/ap
   await server().getByLabel('Filter variables').fill('shared_buffers');
   await page.waitForTimeout(300);
   check('restart badge', /restart/.test(await server().locator('.server-variables tbody tr', {hasText: 'shared_buffers'}).first().innerText()));
+  await view('Replication');
+  const pgReplication = await server().locator('.server-replication').innerText();
+  check('PostgreSQL replication: WAL files, slots, publications', /WAL level\s*replica/.test(pgReplication) && /WAL files/.test(pgReplication)
+    && await server().locator('.server-logs tbody tr').count() > 0 && /No replication slot/.test(pgReplication) && /Switch WAL/.test(pgReplication), pgReplication.slice(0, 300));
   await view('Charsets & engines');
   const pgInfo = await server().locator('.server-info').innerText();
   check('PostgreSQL databases, extensions, access methods', /Databases/.test(pgInfo) && /shop/.test(pgInfo) && /plpgsql/.test(pgInfo) && /Access methods/.test(pgInfo) && /heap/.test(pgInfo), pgInfo.slice(0, 200));
   await page.screenshot({path: `${OUT}/server-03-postgres.png`});
+
+  // --- MySQL: binary logs and their events
+  const my = {id: 'ui-server-my', dsn: 'mysql://mysql', username: 'root', displayName: 'UI mysql', changeConfirmationRequired: false};
+  await open(my, await login(my, 'root', 'root'), 'UI mysql');
+  await view('Replication');
+  await page.waitForTimeout(800);
+  const myReplication = await server().locator('.server-replication').innerText();
+  const logs = await server().locator('.server-logs tbody tr').count();
+  check('MySQL binary logs', /Binary log\s*ON/.test(myReplication) && /Current position\s*binlog\.\d+:\d+/.test(myReplication) && logs > 0, myReplication.slice(0, 300));
+  await server().locator('.server-logs tbody tr').last().click();
+  await page.waitForTimeout(1000);
+  const events = await server().locator('.server-events tbody tr').count();
+  check('events of binary log', events > 0 && /Format_desc/.test(await server().locator('.server-events tbody tr').first().innerText()), events);
+  await server().getByRole('button', {name: 'New binary log'}).click();
+  await page.waitForTimeout(600);
+  check('flush preview', (await popup().locator('.cmp-sql-preview').innerText()) === 'FLUSH BINARY LOGS;');
+  await popup().getByRole('button', {name: 'Execute'}).click();
+  await page.waitForTimeout(1500);
+  check('new binary log listed', await server().locator('.server-logs tbody tr').count() === logs + 1);
+  await server().locator('.server-logs tbody tr').last().click({button: 'right'});
+  await page.getByRole('menuitem', {name: 'Delete logs before this one…'}).click();
+  await page.waitForTimeout(600);
+  check('purge preview needs hold', /^PURGE BINARY LOGS TO 'binlog\.\d+';$/.test(await popup().locator('.cmp-sql-preview').innerText())
+    && await popup().getByRole('button', {name: 'Hold to execute'}).count() === 1);
+  await popup().getByRole('button', {name: 'Cancel'}).click();
+  await page.screenshot({path: `${OUT}/server-04-replication.png`, fullPage: true});
 
   check('no page errors', errors.length === 0, errors.join(' | '));
   await browser.close();

@@ -40,7 +40,7 @@ import and export dumps, draw ER diagrams and manage users - all from one self-h
 ### Structure
 - Columns, indexes, foreign keys, triggers and DDL of tables and views
 - **Create table** form - columns, primary key, indexes, engine, collation, comment
-- Add, change and drop columns, indexes and foreign keys - **every DDL statement is previewed** before execution
+- Add, change and drop columns, indexes and **foreign keys** - **every DDL statement is previewed** before execution
 - Table options - engine, collation (with conversion of columns), comment, AUTO_INCREMENT
 - Rename, copy, truncate and drop tables
 
@@ -70,9 +70,11 @@ import and export dumps, draw ER diagrams and manage users - all from one self-h
 - **Status variables** and **server variables** with change (SET GLOBAL / SET PERSIST / ALTER SYSTEM) and SQL preview
 - **Advisor** - checks of buffer pool, connections, temporary tables, slow log, idle transactions, checkpoints...
 - Character sets, collations, storage engines; PostgreSQL databases, access methods and extensions
+- **Replication** - replicas / standbys, lag, slots, publications, binary logs with events, WAL files
 
 ### More
-- **ER diagram** of a database with movable layout and SVG export
+- **Visual query builder** - tables and joins on canvas, columns with filters, sort and aggregates, live SQL
+- **ER diagram** of a database with movable layout, SVG export and drawing of relations (foreign keys)
 - **Users and privileges** - accounts, roles and GRANTs of MySQL, MariaDB and PostgreSQL
 - Processlist with kill of queries, search across all tables of a database
 - **Dark and light theme**, keyboard shortcuts (F1 shows all of them)

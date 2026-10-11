@@ -14,7 +14,7 @@ interface SqlConfirmPopupPropsInterface {
 /** changes which lose data - Execute must be held */
 export const isDestructive = (change: StructureChangeType): boolean => {
   if (change.kind === 'drop' || change.kind === 'truncate') return true;
-  return change.kind === 'alter' && change.operations.some((operation) => operation.op === 'dropColumn' || operation.op === 'dropIndex');
+  return change.kind === 'alter' && change.operations.some((operation) => operation.op === 'dropColumn' || operation.op === 'dropIndex' || operation.op === 'dropForeignKey');
 };
 
 /** SqlConfirmPopup - sql of structure change, executed only after confirmation */

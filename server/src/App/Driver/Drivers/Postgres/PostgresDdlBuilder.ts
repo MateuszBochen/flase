@@ -8,6 +8,7 @@ import {
 } from '../../Interface/Data/StructureChangeInterface';
 import PostgresSql from './PostgresSql';
 import PostgresCatalog, {CatalogColumnInterface} from './PostgresCatalog';
+import {foreignKeyParts} from '../ForeignKey';
 
 /**
  * Builds DDL for PostgreSQL. Names and values are escaped,
@@ -143,6 +144,16 @@ class PostgresDdlBuilder {
           after.push(`CREATE ${operation.kind === 'UNIQUE' ? 'UNIQUE ' : ''}INDEX${indexName} ON ${tableName} (${indexColumns})`);
           break;
         }
+        case 'addForeignKey': {
+          const {columns: keyColumns, referenced, onDelete, onUpdate} = foreignKeyParts(operation);
+          const constraint = operation.name?.trim() ? `CONSTRAINT ${PostgresSql.identifier(operation.name.trim())} ` : '';
+          clauses.push(`ADD ${constraint}FOREIGN KEY (${PostgresSql.identifiers(keyColumns)}) REFERENCES ${PostgresDdlBuilder.tableName(operation.referencedTable)} `
+            + `(${PostgresSql.identifiers(referenced)}) ON DELETE ${onDelete} ON UPDATE ${onUpdate}`);
+          break;
+        }
+        case 'dropForeignKey':
+          clauses.push(`DROP CONSTRAINT ${PostgresSql.identifier(PostgresDdlBuilder.requireName(operation.name, 'Foreign key name'))}`);
+          break;
         case 'dropIndex': {
           const name = PostgresDdlBuilder.requireName(operation.name, 'Index name');
           const index = (await this.catalog.indexes(table.databaseName, table.name)).find((item) => item.name === name);

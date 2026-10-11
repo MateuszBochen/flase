@@ -22,6 +22,7 @@ import {createTableTab, overviewTab} from '../Application/DatabaseOverview/Datab
 import TransferTab from '../Application/Transfer/TransferTab';
 import DatabaseSearch from '../Application/DatabaseSearch/DatabaseSearch';
 import ErDiagram from '../Application/ErDiagram/ErDiagram';
+import QueryBuilder from '../Application/QueryBuilder/QueryBuilder';
 
 const connectionManger = ConnectionManager.getInstance();
 const databaseManger = DatabaseManger.getInstance();
@@ -88,6 +89,7 @@ export default (props: DatabaseListMenuPropsInterface) => {
       {label: 'SQL console', onClick: () => openConsole(props.connection, database)},
       {label: 'Import / export', onClick: () => openTab({component: TransferTab, props: {connection: props.connection, database}, tabName: `Import / export: ${database}`})},
       {label: 'Search in data', onClick: () => openTab({component: DatabaseSearch, props: {connection: props.connection, database: {name: database}}, tabName: `Search: ${database}`})},
+      {label: 'Query builder', onClick: () => openTab({component: QueryBuilder, props: {connection: props.connection, database}, tabName: `Query builder: ${database}`})},
       {label: 'ER diagram', onClick: () => openTab({component: ErDiagram, props: {connection: props.connection, database}, tabName: `ER: ${database}`})},
       'separator',
       {label: 'Reload tables', onClick: () => TableManager.getInstance().askForTableList(props.connection, {name: database}, true)},
