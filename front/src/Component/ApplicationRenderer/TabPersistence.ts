@@ -17,6 +17,7 @@ import UserManager from '../Application/Users/UserManager';
 import ProcessList from '../Application/ProcessList/ProcessList';
 import DatabaseOverview from '../Application/DatabaseOverview/DatabaseOverview';
 import CreateTable from '../Application/CreateTable/CreateTable';
+import ServerStatus from '../Application/ServerStatus/ServerStatus';
 
 /**
  * Open tabs are remembered in browser and opened again after reload of page.
@@ -38,6 +39,7 @@ const TAB_TYPES: {type: string, component: FC<any>}[] = [
   {type: 'processes', component: ProcessList},
   {type: 'database-overview', component: DatabaseOverview},
   {type: 'create-table', component: CreateTable},
+  {type: 'server-status', component: ServerStatus},
 ];
 
 type StoredTabType = {id: string, type: string, tabName: string, props: {[key: string]: any} | null, connectionId?: string};

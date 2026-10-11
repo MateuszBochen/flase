@@ -36,6 +36,8 @@ import {deserializeBinaryValue} from '../BinaryValue';
 import {nodeTlsOptions, tlsOfDsn} from '../../Tls/DsnTls';
 import {installMysqlTlsIdentityCheck} from './MysqlTlsIdentity';
 import MysqlDatabaseOperations from './MysqlDatabaseOperations';
+import MysqlServerAdmin from './MysqlServerAdmin';
+import {ServerAdminInterface} from '../../Interface/Data/ServerInterface';
 import {DatabaseObjectsInterface, ObjectRefInterface, ServerOptionsInterface} from '../../Interface/Data/DatabaseObjectsInterface';
 import {DatabaseOperationType, MaintenanceResultInterface} from '../../Interface/Data/DatabaseOperationInterface';
 const mysql = require('mysql');
@@ -84,6 +86,10 @@ class MysqlAdapter implements DriverInterface {
 
   users(): UserManagerInterface {
     return new MysqlUsers((sql, params) => this.queryRows(sql, params));
+  }
+
+  server(): ServerAdminInterface {
+    return new MysqlServerAdmin((sql, params) => this.queryRows(sql, params), () => this.isMariaDb());
   }
 
   disconnect(): void {

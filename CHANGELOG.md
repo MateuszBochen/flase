@@ -23,6 +23,17 @@ versions follow [Semantic Versioning](https://semver.org/). A `v*` tag publishes
 - Context menus: database in sidebar (overview, new table, console, import / export, search, ER diagram, collation,
   rename, drop) and table in sidebar (rename, copy, truncate, drop, maintenance, export)
 
+- Server tab (gauge icon of connection):
+  - live monitor - uptime, connections, queries (transactions) per second, statements (rows) per second, traffic,
+    buffer pool / cache hit ratio, slow queries, deadlocks, temporary tables / files; charts of last readings,
+    refresh interval and pause
+  - status variables (SHOW GLOBAL STATUS, pg_stat_*) with change since previous reading and average per second
+  - variables with filter, default value, source, description, restart flags; change by SET GLOBAL / SET PERSIST
+    (MySQL 8) / ALTER SYSTEM + reload (PostgreSQL), reset to default, SQL preview
+  - advisor - buffer pool / cache, connections, temporary tables, slow log, table cache, joins without indexes,
+    deadlocks, idle in transaction, checkpoints, autovacuum... with link to the variable
+  - character sets, collations and storage engines (MySQL), databases, collations, access methods and extensions (PostgreSQL)
+
 ### Fixed
 - MySQL 8: sizes, rows and AUTO_INCREMENT of tables were read from statistics cached up to 24 hours
 

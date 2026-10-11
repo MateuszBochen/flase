@@ -29,6 +29,8 @@ import {UserManagerInterface} from '../../Interface/Data/UserInterface';
 import {deserializeBinaryValue} from '../BinaryValue';
 import {nodeTlsOptions, tlsOfDsn} from '../../Tls/DsnTls';
 import PostgresDatabaseOperations from './PostgresDatabaseOperations';
+import PostgresServerAdmin from './PostgresServerAdmin';
+import {ServerAdminInterface} from '../../Interface/Data/ServerInterface';
 import {DatabaseObjectsInterface, ObjectRefInterface, ServerOptionsInterface} from '../../Interface/Data/DatabaseObjectsInterface';
 import {DatabaseOperationType, MaintenanceResultInterface} from '../../Interface/Data/DatabaseOperationInterface';
 const { Parser } = require('node-sql-parser');
@@ -74,6 +76,10 @@ class PostgresAdapter implements DriverInterface {
 
   users(): UserManagerInterface {
     return new PostgresUsers((sql, params) => this.queryRows(sql, params));
+  }
+
+  server(): ServerAdminInterface {
+    return new PostgresServerAdmin((sql, params) => this.queryRows(sql, params));
   }
 
   disconnect(): void {

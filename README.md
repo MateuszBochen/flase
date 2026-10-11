@@ -65,6 +65,12 @@ import and export dumps, draw ER diagrams and manage users - all from one self-h
 - SQL and **CSV import** with progress, column mapping and preview, stop on error
 - Export as text in the browser (like phpMyAdmin "view output as text") and import of pasted text
 
+### Server
+- **Live monitor** - connections, queries per second, traffic, cache hit ratio, slow queries with charts
+- **Status variables** and **server variables** with change (SET GLOBAL / SET PERSIST / ALTER SYSTEM) and SQL preview
+- **Advisor** - checks of buffer pool, connections, temporary tables, slow log, idle transactions, checkpoints...
+- Character sets, collations, storage engines; PostgreSQL databases, access methods and extensions
+
 ### More
 - **ER diagram** of a database with movable layout and SVG export
 - **Users and privileges** - accounts, roles and GRANTs of MySQL, MariaDB and PostgreSQL

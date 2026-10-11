@@ -17,6 +17,7 @@ import ReadOnlyGuard from '../Driver/Query/ReadOnlyGuard';
 import {ChangeUserCommandHandler, GetUserGrantsCommandHandler, GetUsersCommandHandler} from './CommandHandler/UserCommandHandlers';
 import MessageType from './Enum/MessageType';
 import DatabaseOperationCommandHandler from './CommandHandler/DatabaseOperationCommandHandler';
+import {GetServerInfoCommandHandler, GetServerStatusCommandHandler, GetServerVariablesCommandHandler, SetServerVariableCommandHandler} from './CommandHandler/ServerCommandHandlers';
 import {GetDatabaseObjectsCommandHandler, GetObjectDdlCommandHandler, GetServerOptionsCommandHandler} from './CommandHandler/DatabaseObjectsCommandHandlers';
 import QueryErrorInterface from '../Driver/Interface/Data/QueryErrorInterface';
 
@@ -140,6 +141,18 @@ class WebsocketRequest {
         return;
       case CommandType.DATABASE_OPERATION:
         new DatabaseOperationCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
+        return;
+      case CommandType.GET_SERVER_STATUS:
+        new GetServerStatusCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
+        return;
+      case CommandType.GET_SERVER_VARIABLES:
+        new GetServerVariablesCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
+        return;
+      case CommandType.GET_SERVER_INFO:
+        new GetServerInfoCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
+        return;
+      case CommandType.SET_SERVER_VARIABLE:
+        new SetServerVariableCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
         return;
       default:
         throw new Error(`Command ${command.command} not supported`);

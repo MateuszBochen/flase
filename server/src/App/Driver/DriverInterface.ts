@@ -16,6 +16,7 @@ import {StructureChangeType} from './Interface/Data/StructureChangeInterface';
 import {DatabaseSearchResultInterface, SearchModeType} from './Interface/Data/DatabaseSearchInterface';
 import {DatabaseObjectsInterface, ObjectRefInterface, ServerOptionsInterface} from './Interface/Data/DatabaseObjectsInterface';
 import {DatabaseOperationType, MaintenanceResultInterface} from './Interface/Data/DatabaseOperationInterface';
+import {ServerAdminInterface} from './Interface/Data/ServerInterface';
 
 interface DriverInterface {
   /** syntax of SQL - splitting of imported scripts, quoting */
@@ -30,6 +31,11 @@ interface DriverInterface {
    * User accounts and privileges
    */
   users(): UserManagerInterface;
+
+  /**
+   * Status, variables, character sets and engines of server
+   */
+  server(): ServerAdminInterface;
 
   /**
    * Close all connections of driver

@@ -1,6 +1,6 @@
 import ConnectionMenuPropsInterface from './Interface/ConnectionMenuPropsInterface';
 import InvisibleButton from '../../UI/Button/InvisibleButton';
-import {faDatabase, faSatelliteDish, faInfoCircle, faMicrochip, faUsersRectangle, faSquarePlus} from '@fortawesome/free-solid-svg-icons';
+import {faDatabase, faSatelliteDish, faInfoCircle, faMicrochip, faUsersRectangle, faSquarePlus, faGauge} from '@fortawesome/free-solid-svg-icons';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import React, {useCallback, useEffect, useState} from 'react';
 import HorizontalButtonList from '../../UI/Button/HorizontalButtonList';
@@ -25,6 +25,7 @@ import DriverFactory from '../../Library/Database/Driver/DriverFactory';
 import NewTabComponentWasSelected from '../ApplicationRenderer/Event/NewTabComponentWasSelected';
 import {overviewTab} from '../Application/DatabaseOverview/DatabaseOverview';
 import useConnectionSettings from '../../Library/Connection/useConnectionSettings';
+import ServerStatus, {ServerStatusPropsInterface} from '../Application/ServerStatus/ServerStatus';
 
 /** Connection manger */
 const connectionManger = ConnectionManager.getInstance();
@@ -103,6 +104,12 @@ export default (props: ConnectionMenuPropsInterface) => {
           tab={{component: UserManager, props: {connection: props.connectionData}, tabName: `Users: ${props.connectionData.displayName}`, isActive: false}}
         >
           <FontAwesomeIcon icon={faUsersRectangle} />
+        </TabOpener>
+        <TabOpener<ServerStatusPropsInterface>
+          tooltip={"Server status, variables and advisor"}
+          tab={{component: ServerStatus, props: {connection: props.connectionData}, tabName: `Server: ${props.connectionData.displayName}`, isActive: false}}
+        >
+          <FontAwesomeIcon icon={faGauge} />
         </TabOpener>
         <TabOpener<ProcessListPropsInterface>
           tooltip={"Processlist"}
