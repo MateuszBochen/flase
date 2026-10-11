@@ -19,19 +19,25 @@ import ConnectionWasRemoved from '../../Library/Connection/Event/ConnectionWasRe
 import ConnectionDataInterface from '../../Library/Connection/Interface/ConnectionDataInterface';
 import {SHORTCUT_HELP_EVENT} from '../../Library/Shortcuts/Shortcuts';
 import SqlConsole, {SqlConsolePropsInterface} from '../Application/SqlConsole/SqlConsole';
+import TabPersistence from './TabPersistence';
 
 /**
  * ApplicationRenderer
  * @author Mateusz Bochen
  */
 export default (props: ApplicationRendererPropsInterface) => {
-  const [context, setContext] = useState<ApplicationRendererContextInterface>({
+  // tabs of last visit (reload of page), otherwise the default one
+  const [context, setContext] = useState<ApplicationRendererContextInterface>(() => TabPersistence.restore() || {
     ...defaultApplicationRendererContext,
     tabs: [{
         ...props.defaultTab,
         id: uuidv4(),
     }],
   });
+
+  useEffect(() => {
+    TabPersistence.save(context);
+  }, [context]);
 
   useEffect(() => {
 

@@ -30,6 +30,13 @@ const check = (name, ok, info = '') => {
       await page.getByText(name, {exact: true}).first().click();
     }
   };
+  // open database is remembered - after reload it can already be open, click would close it
+  const openDatabase = async (name) => {
+    await page.waitForTimeout(500);
+    if (await page.locator('.table-list-menu-root:visible').count() === 0) {
+      await page.getByText(name, {exact: true}).first().click();
+    }
+  };
   await page.goto('http://localhost:3000');
   await page.evaluate(([connection, user]) => {
     localStorage.removeItem('query_history'); localStorage.removeItem('saved_queries'); localStorage.removeItem('connections'); localStorage.removeItem('established_connections');
@@ -220,8 +227,8 @@ const check = (name, ok, info = '') => {
   await waitIdle();
   check('console query ended after kill', (await logs())[0]?.startsWith('✓') || /interrupted/i.test((await logs())[0] || ''), JSON.stringify(await logs()));
 
-  // data tab: explain + cancel (sidebar was collapsed by reload)
-  await page.getByText('shop', {exact: true}).first().click();
+  // data tab: explain + cancel
+  await openDatabase('shop');
   await page.waitForTimeout(1000);
   await page.getByText('orders', {exact: true}).first().dispatchEvent('mousedown');
   await page.waitForTimeout(1500);

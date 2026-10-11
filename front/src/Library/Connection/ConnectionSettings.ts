@@ -7,6 +7,7 @@ import ConnectionWasUpdated from './Event/ConnectionWasUpdated';
 import ConnectionWasRemoved from './Event/ConnectionWasRemoved';
 import EstablishedConnectionInterface from './Interface/EstablishedConnectionInterface';
 import ConnectionListWasChanged from './Event/ConnectionListWasChanged';
+import PasswordVault from './PasswordVault';
 
 
 class ConnectionSettings {
@@ -115,6 +116,8 @@ class ConnectionSettings {
       delete this.establishedConnections[id];
       SettingsAPI.setSettings<{[key:string]: EstablishedConnectionInterface}>(this.SETTINGS_KEY_ESTABLISHED_NAME, this.establishedConnections);
     }
+    // remembered password of the connection
+    PasswordVault.remove(id).catch(() => undefined);
     // remembered positions of ER diagrams
     try {
       Object.keys(localStorage).filter((key) => key.startsWith(`er_positions:${id}:`)).forEach((key) => localStorage.removeItem(key));

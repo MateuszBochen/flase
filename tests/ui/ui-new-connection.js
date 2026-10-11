@@ -74,6 +74,29 @@ const check = (name, ok, info = '') => {
   await form.getByRole('button', {name: 'Test connection'}).click();
   await page.waitForFunction(() => /\bok\b/.test(document.querySelector('.cmp-new-connection .test-result')?.className || ''), null, {timeout: 10000});
   check('test with right password', /Connected as flase/.test(await status()), await status());
+  // --- TLS: DSN with sslmode, encrypted test, self-signed certificate refused by verify-ca
+  const tlsOption = (label) => form.getByRole('radio', {name: new RegExp(`^${label}`)});
+  await tlsOption('Required').click();
+  check('TLS in DSN', await preview() === 'postgresql://postgres:5432/shop?sslmode=require', await preview());
+  await form.getByRole('button', {name: 'Test connection'}).click();
+  await page.waitForFunction(() => /\b(ok|error)\b/.test(document.querySelector('.cmp-new-connection .test-result')?.className || ''), null, {timeout: 10000});
+  check('test over TLS', /Connected as flase/.test(await status()), await status());
+  await tlsOption('Verify CA').first().click();
+  await fieldStarting('CA certificate').fill('');
+  await form.getByRole('button', {name: 'Test connection'}).click();
+  await page.waitForFunction(() => /\b(ok|error)\b/.test(document.querySelector('.cmp-new-connection .test-result')?.className || ''), null, {timeout: 10000});
+  check('verify-ca without CA: self-signed certificate refused', /self-signed|certificate/i.test(await status()), await status());
+  await form.getByRole('button', {name: 'DSN', exact: true}).click();
+  await fieldStarting('DSN').fill('postgresql://postgres:5432/shop?ssl-mode=VERIFY_IDENTITY&ssl-ca=ca.pem');
+  await form.getByRole('button', {name: /Host/}).click();
+  check('TLS of pasted DSN in fields', await tlsOption('Verify CA and host').getAttribute('aria-checked') === 'true'
+    && await fieldStarting('CA certificate').inputValue() === 'ca.pem'
+    && await preview() === 'postgresql://postgres:5432/shop?sslmode=verify-full&sslrootcert=ca.pem', await preview());
+  await page.screenshot({path: `${OUT}/new-connection-tls.png`});
+  await tlsOption('Disabled').click();
+  check('TLS disabled - DSN without query', await preview() === 'postgresql://postgres:5432/shop', await preview());
+  await fieldStarting('Password').fill('flase');
+
   check('test does not save connection', await page.evaluate(() => JSON.parse(localStorage.getItem('connections') || '[]').length) === 0);
 
   // --- options, color, save & connect

@@ -17,9 +17,30 @@ import SqlConsole, {SqlConsolePropsInterface} from '../Application/SqlConsole/Sq
 import {faTerminal} from '@fortawesome/free-solid-svg-icons';
 import ConnectionSettingsPopup from '../ConnectionSettings/ConnectionSettingsPopup';
 import UserManager, {UserManagerPropsInterface} from '../Application/Users/UserManager';
+import EventBus from '../../Library/EventBus/EventBus';
+import ConnectionWasEstablished from '../../Library/Connection/Event/ConnectionWasEstablished';
 
 /** Connection manger */
 const connectionManger = ConnectionManager.getInstance();
+
+/** connections with loaded list of databases - loaded again after reload of page */
+const LOADED_KEY = 'loaded-database-lists';
+const loadedLists = (): string[] => {
+  try {
+    const stored = JSON.parse(localStorage.getItem(LOADED_KEY) || '[]');
+    return Array.isArray(stored) ? stored : [];
+  } catch (e) {
+    return [];
+  }
+};
+const rememberLoaded = (id: string) => {
+  try {
+    const list = loadedLists();
+    if (!list.includes(id)) localStorage.setItem(LOADED_KEY, JSON.stringify([...list, id]));
+  } catch (e) {
+    // not remembered
+  }
+};
 
 
 /** ConnectionMenu */
@@ -28,10 +49,29 @@ export default (props: ConnectionMenuPropsInterface) => {
   const handleLoadDatabaseList = useCallback(() => {
     try {
       DatabaseManger.getInstance().aksForDatabaseList(connectionManger.getEstablishedConnection(props.connectionData));
+      rememberLoaded(props.connectionData.id);
     } catch (e) {
       toast.error('Unable to load database list');
     }
   }, [props.connectionData]);
+
+  // list of databases was shown before reload of page - loaded again now or when connection is established
+  useEffect(() => {
+    const restore = () => {
+      if (!loadedLists().includes(props.connectionData.id)) return;
+      try {
+        const established = connectionManger.getEstablishedConnection(props.connectionData);
+        if (!DatabaseManger.getInstance().getListOfDatabaseForConnection(established).length) {
+          DatabaseManger.getInstance().aksForDatabaseList(established);
+        }
+      } catch (e) {
+        // not connected yet
+      }
+    };
+    restore();
+    const eventId = EventBus.subscribe(ConnectionWasEstablished.name, restore);
+    return () => EventBus.unSub(eventId);
+  }, [props.connectionData.id]);
 
   return (
     <Box maxPossibleHeight={true}>

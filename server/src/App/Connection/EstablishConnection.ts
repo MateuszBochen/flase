@@ -34,7 +34,8 @@ class EstablishConnection {
       return Promise.resolve(EstablishConnection.failed(e));
     }
 
-    return driver.connect().then(() => {
+    // errors thrown synchronously (e.g. invalid sslmode of DSN) are reported like failed login
+    return Promise.resolve().then(() => driver.connect()).then(() => {
       return {
         driver: driver,
         username: connectionData.userData.username,

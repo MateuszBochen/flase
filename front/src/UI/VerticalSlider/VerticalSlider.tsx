@@ -57,14 +57,16 @@ export default (props: VerticalSliderPropsInterface) => {
   }, [props.items]);
 
   const itemClickHandler = useCallback((index: number) => {
-      if (props.multiple) {
+      // open items kept by id (multiple, or remembered accordion)
+      if (props.multiple || props.storageKey) {
         const id = itemId(state[index]);
         setOpen((previous) => {
-          const next = new Set(previous);
-          if (next.has(id)) {
-            next.delete(id);
+          let next: Set<string>;
+          if (previous.has(id)) {
+            next = new Set(previous);
+            if (props.multiple || props.allowClose) next.delete(id);
           } else {
-            next.add(id);
+            next = props.multiple ? new Set(previous).add(id) : new Set([id]);
           }
           saveOpen(props.storageKey, next);
           return next;
@@ -95,7 +97,7 @@ export default (props: VerticalSliderPropsInterface) => {
               key={itemId(slideItem)}
               index={index}
               onClick={itemClickHandler}
-              slider={props.multiple ? {...slideItem, isActive: open.has(itemId(slideItem))} : slideItem}
+              slider={props.multiple || props.storageKey ? {...slideItem, isActive: open.has(itemId(slideItem))} : slideItem}
             />
           );
         })}

@@ -27,6 +27,7 @@ import PostgresDumper from './PostgresDumper';
 import PostgresUsers from './PostgresUsers';
 import {UserManagerInterface} from '../../Interface/Data/UserInterface';
 import {deserializeBinaryValue} from '../BinaryValue';
+import {nodeTlsOptions, tlsOfDsn} from '../../Tls/DsnTls';
 const { Parser } = require('node-sql-parser');
 
 /** types without = operator - rows are identified by text form of value */
@@ -85,7 +86,8 @@ class PostgresAdapter implements DriverInterface {
   }
 
   private createPool(): Pool {
-    const sslMode = String(this.dsnOptions.params?.sslmode || '');
+    // throws for invalid sslmode / certificate - login reports it
+    const tlsOptions = nodeTlsOptions(tlsOfDsn(this.dsnOptions.params));
     const pool = new Pool({
       host: this.dsnOptions.host,
       port: this.dsnOptions.port || 5432,
@@ -93,7 +95,7 @@ class PostgresAdapter implements DriverInterface {
       password: this.connectionData.userData.password,
       // connection is always made to one database
       database: this.dsnOptions.db || 'postgres',
-      ssl: ['require', 'verify-ca', 'verify-full'].includes(sslMode) ? {rejectUnauthorized: sslMode !== 'require'} : undefined,
+      ssl: tlsOptions,
       max: 5,
       keepAlive: true,
       application_name: 'Flase',

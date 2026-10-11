@@ -61,6 +61,9 @@ import and export dumps, draw ER diagrams and manage users - all from one self-h
 - Processlist with kill of queries, search across all tables of a database
 - **Dark and light theme**, keyboard shortcuts (F1 shows all of them)
 - Several servers open at once in the sidebar, tabs colored by connection
+- **State survives reload** - open tabs (with query, sort and filter of tables and text of SQL console), open servers and databases
+- **Remember password** in the browser - encrypted (AES-GCM) with a key the page cannot read, never stored on the server
+- **TLS / SSL** connections to the database (`sslmode` in DSN, own CA, client certificates)
 
 ![New connection](docs/screenshot-new-connection.png)
 
@@ -71,7 +74,8 @@ docker run -d --name flase -p 3001:3001 -e JWT_SECRET=$(openssl rand -hex 32) ba
 ```
 
 Open http://localhost:3001 and add a connection, for example `mysql://db-host:3306`, `mariadb://db-host:3306`
-or `postgresql://db-host:5432/database`. Passwords are never stored - they are asked when connecting.
+or `postgresql://db-host:5432/database`. Passwords are not stored on the server; optionally they can be remembered in the browser
+(encrypted with a non-extractable key of the browser, available over HTTPS or localhost).
 
 ### docker compose
 
@@ -91,6 +95,29 @@ services:
       FLASE_ALLOW_CUSTOM_CONNECTIONS: "false"
 ```
 
+## Secure connection (TLS / SSL)
+
+Encryption of the connection between Flase server and the database is set in the query of DSN
+(the new connection form has a section for it):
+
+| `sslmode` | Meaning |
+|---|---|
+| `disable` (default) | not encrypted - only for local / private network |
+| `require` | encrypted, certificate of the database server is not checked |
+| `verify-ca` | encrypted, certificate must be signed by a trusted CA |
+| `verify-full` | `verify-ca` and host name of DSN must match the certificate - the safest |
+
+```text
+postgresql://db.example.com:5432/shop?sslmode=verify-full
+mysql://db.example.com:3306?sslmode=verify-ca&sslrootcert=company-ca.pem
+mysql://db.example.com:3306?ssl-mode=REQUIRED                                  # MySQL names work too
+postgresql://db:5432/shop?sslmode=verify-full&sslrootcert=ca.pem&sslcert=client.pem&sslkey=client.key
+```
+
+Without `sslrootcert` the CAs trusted by Node.js are used (enough for most cloud databases with public certificates).
+Certificate files are read only from `FLASE_CERT_DIR` (`/app/certs` in the image: `-v ./certs:/app/certs:ro`),
+so a DSN typed in the browser cannot read other files of the server.
+
 ## Configuration
 
 | Variable | Default | Description |
@@ -101,6 +128,7 @@ services:
 | `IDLE_CONNECTION_RELEASE_SECONDS` | `30` | Database connections of a closed browser are released after this time |
 | `FLASE_CONNECTIONS` | - | JSON array of predefined connections: a DSN string or an object with `name`, `dsn`, `username`, `readOnly`, `color`, `confirmChanges` |
 | `FLASE_ALLOW_CUSTOM_CONNECTIONS` | `true` | `false` = users can use only predefined connections |
+| `FLASE_CERT_DIR` | `/app/certs` | Directory of CA / client certificates for TLS of database connections |
 
 Predefined connections are resolved by the server: the address is never taken from the browser and `readOnly`
 is enforced for the whole session. Credentials written in a predefined DSN are never sent to the browser.

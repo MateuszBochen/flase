@@ -1,0 +1,30 @@
+.connection-form-remember {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 4px 0 12px;
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.connection-form-remember input {
+  margin: 2px 0 0;
+  accent-color: var(--primary);
+}
+
+.connection-form-remember span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.connection-form-remember small {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.connection-form-remember.unavailable {
+  cursor: default;
+  opacity: 0.75;
+}

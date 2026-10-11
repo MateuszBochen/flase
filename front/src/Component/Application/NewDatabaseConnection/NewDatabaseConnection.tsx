@@ -11,6 +11,7 @@ import DisconnectRequest from '../../../Library/API/Request/DisconnectRequest';
 import EventBus from '../../../Library/EventBus/EventBus';
 import ConnectionFormWasSubmitted from '../../ConnectionForm/Event/ConnectionFormWasSubmitted';
 import {useServerConfig} from '../../../Library/Config/ServerConfig';
+import PasswordVault from '../../../Library/Connection/PasswordVault';
 import './style.css';
 
 type EngineType = 'mysql' | 'mariadb' | 'postgresql';
@@ -23,7 +24,50 @@ const ENGINES: {value: EngineType, label: string, port: string, hint: string}[] 
   {value: 'postgresql', label: 'PostgreSQL', port: '5432', hint: '12 and newer'},
 ];
 
-const DSN_PATTERN = /^(mysql|mariadb|postgresql|postgres|pgsql):\/\/([^/:?#\s]+)(?::(\d+))?(?:\/([^?#\s]*))?$/i;
+const DSN_PATTERN = /^(mysql|mariadb|postgresql|postgres|pgsql):\/\/([^/:?#\s]+)(?::(\d+))?(?:\/([^?#\s]*))?(?:\?(\S*))?$/i;
+
+type TlsModeType = 'disable' | 'require' | 'verify-ca' | 'verify-full';
+type TlsType = {mode: TlsModeType, ca: string, cert: string, key: string};
+const NO_TLS: TlsType = {mode: 'disable', ca: '', cert: '', key: ''};
+
+const TLS_MODES: {value: TlsModeType, label: string, hint: string}[] = [
+  {value: 'disable', label: 'Disabled', hint: 'Not encrypted - only for local or private network'},
+  {value: 'require', label: 'Required', hint: 'Encrypted, certificate of server is not checked'},
+  {value: 'verify-ca', label: 'Verify CA', hint: 'Encrypted, certificate signed by trusted CA'},
+  {value: 'verify-full', label: 'Verify CA and host', hint: 'Encrypted, trusted certificate issued for this host name - the safest'},
+];
+
+/** sslmode of DSN (also MySQL names) - the same values as server accepts */
+const TLS_ALIASES: {[value: string]: TlsModeType} = {
+  'disable': 'disable', 'disabled': 'disable', 'false': 'disable', '0': 'disable',
+  'require': 'require', 'required': 'require', 'true': 'require', '1': 'require',
+  'verify-ca': 'verify-ca', 'verify_ca': 'verify-ca', 'verify-full': 'verify-full', 'verify_full': 'verify-full', 'verify_identity': 'verify-full', 'verify-identity': 'verify-full',
+};
+
+const tlsOfQuery = (query: string | undefined): TlsType => {
+  const params = new URLSearchParams(query || '');
+  const get = (...names: string[]) => {
+    for (const [key, value] of Array.from(params.entries())) {
+      if (names.includes(key.toLowerCase())) return value;
+    }
+    return '';
+  };
+  return {
+    mode: TLS_ALIASES[get('sslmode', 'ssl-mode', 'ssl_mode', 'ssl').toLowerCase()] || 'disable',
+    ca: get('sslrootcert', 'ssl-ca', 'ssl_ca', 'sslca'),
+    cert: get('sslcert', 'ssl-cert', 'ssl_cert'),
+    key: get('sslkey', 'ssl-key', 'ssl_key'),
+  };
+};
+
+const queryOfTls = (tls: TlsType): string => {
+  if (tls.mode === 'disable') return '';
+  const params = new URLSearchParams({sslmode: tls.mode});
+  if (tls.ca.trim()) params.set('sslrootcert', tls.ca.trim());
+  if (tls.cert.trim()) params.set('sslcert', tls.cert.trim());
+  if (tls.key.trim()) params.set('sslkey', tls.key.trim());
+  return `?${params.toString()}`;
+};
 
 /** postgres:// and pgsql:// are PostgreSQL */
 const engineOf = (scheme: string): EngineType => {
@@ -31,9 +75,9 @@ const engineOf = (scheme: string): EngineType => {
   return lower === 'mysql' || lower === 'mariadb' ? lower : 'postgresql';
 };
 
-const buildDsn = (engine: EngineType, host: string, port: string, database: string): string => {
+const buildDsn = (engine: EngineType, host: string, port: string, database: string, tls: TlsType = NO_TLS): string => {
   const defaultPort = ENGINES.find((item) => item.value === engine)!.port;
-  return `${engine}://${host.trim() || 'localhost'}:${port.trim() || defaultPort}${database.trim() ? `/${database.trim()}` : ''}`;
+  return `${engine}://${host.trim() || 'localhost'}:${port.trim() || defaultPort}${database.trim() ? `/${database.trim()}` : ''}${queryOfTls(tls)}`;
 };
 
 /** NewDatabaseConnection - engine, address (host / port / database or DSN), user, color and safety options */
@@ -45,16 +89,18 @@ export default () => {
   const [port, setPort] = useState<string>('3306');
   const [database, setDatabase] = useState<string>('');
   const [dsnText, setDsnText] = useState<string>('');
+  const [tls, setTls] = useState<TlsType>(NO_TLS);
   const [username, setUsername] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [name, setName] = useState<string>('');
   const [color, setColor] = useState<string>('');
   const [readOnly, setReadOnly] = useState<boolean>(false);
   const [confirm, setConfirm] = useState<boolean>(false);
+  const [rememberPassword, setRememberPassword] = useState<boolean>(false);
   const [test, setTest] = useState<TestStateType>({status: 'idle'});
   const [submitted, setSubmitted] = useState<boolean>(false);
 
-  const dsn = mode === 'host' ? buildDsn(engine, host, port, database) : dsnText.trim();
+  const dsn = mode === 'host' ? buildDsn(engine, host, port, database, tls) : dsnText.trim();
   const dsnValid = DSN_PATTERN.test(dsn);
   const parsed = DSN_PATTERN.exec(dsn);
   const suggestedName = parsed ? `${parsed[2]}${parsed[4] ? ` · ${parsed[4]}` : ''}` : '';
@@ -91,12 +137,18 @@ export default () => {
       setHost(match[2]);
       setPort(match[3] || ENGINES.find((item) => item.value === engineOf(match[1]))!.port);
       setDatabase(match[4] || '');
+      setTls(tlsOfQuery(match[5]));
     }
+  };
+
+  const changeTls = (changes: Partial<TlsType>) => {
+    setTls((previous) => ({...previous, ...changes}));
+    setTest({status: 'idle'});
   };
 
   const changeMode = (value: ModeType) => {
     if (value === 'dsn' && !dsnText.trim()) {
-      setDsnText(buildDsn(engine, host, port, database));
+      setDsnText(buildDsn(engine, host, port, database, tls));
     }
     setMode(value);
   };
@@ -131,16 +183,19 @@ export default () => {
     const data = connectionData();
     ConnectionSettings.getInstance().addNewConnection(data);
     if (connect) {
-      EventBus.emit(new ConnectionFormWasSubmitted({userData: {username: data.username, password}, connectionData: data}));
+      EventBus.emit(new ConnectionFormWasSubmitted({userData: {username: data.username, password}, connectionData: data,
+        rememberPassword: PasswordVault.isAvailable() && rememberPassword ? true : undefined}));
     }
     // ready for next connection
     setName('');
     setPassword('');
     setDatabase('');
     setDsnText('');
+    setTls(NO_TLS);
     setColor('');
     setReadOnly(false);
     setConfirm(false);
+    setRememberPassword(false);
     setTest({status: 'idle'});
     setSubmitted(false);
   };
@@ -175,7 +230,7 @@ export default () => {
           <div className="new-connection-mark"><FontAwesomeIcon icon={faPlug} /></div>
           <div>
             <h1>New connection</h1>
-            <p>MySQL, MariaDB or PostgreSQL server. Connection is saved in this browser, password never.</p>
+            <p>MySQL, MariaDB or PostgreSQL server. Connection is saved in this browser, password only when you choose to remember it.</p>
           </div>
         </div>
 
@@ -233,6 +288,50 @@ export default () => {
           {mode === 'host' ? shown(errors.dsn && host.trim() ? errors.dsn : null) : shown(errors.dsn)}
         </section>
 
+        {mode === 'host' && (
+          <section>
+            <h2>Security (TLS)</h2>
+            <div className="tls-options" role="radiogroup">
+              {TLS_MODES.map((item) => (
+                <button
+                  key={item.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={tls.mode === item.value}
+                  className={`tls-option ${tls.mode === item.value ? 'selected' : ''} ${item.value === 'disable' ? 'insecure' : ''}`}
+                  title={item.hint}
+                  onClick={() => changeTls({mode: item.value})}
+                >
+                  <span className="tls-name">{item.label}</span>
+                  <span className="tls-hint">{item.hint}</span>
+                </button>
+              ))}
+            </div>
+            {tls.mode !== 'disable' && (
+              <>
+                <div className="field-row">
+                  <label className="field grow">
+                    <span>CA certificate <em>optional</em></span>
+                    <input value={tls.ca} onChange={(e) => changeTls({ca: e.target.value})} placeholder="e.g. rds-ca.pem" spellCheck={false} />
+                  </label>
+                  <label className="field grow">
+                    <span>Client certificate <em>optional</em></span>
+                    <input value={tls.cert} onChange={(e) => changeTls({cert: e.target.value})} placeholder="client-cert.pem" spellCheck={false} />
+                  </label>
+                  <label className="field grow">
+                    <span>Client key <em>with certificate</em></span>
+                    <input value={tls.key} onChange={(e) => changeTls({key: e.target.value})} placeholder="client-key.pem" spellCheck={false} />
+                  </label>
+                </div>
+                <div className="field-hint">
+                  Certificates are files in the certificate directory of Flase server (<code>FLASE_CERT_DIR</code>) - only names are written here.
+                  {tls.mode === 'require' ? ' CA given with Required turns on verification of certificate.' : ' Without CA the authorities trusted by Node.js are used (public CAs of cloud databases).'}
+                </div>
+              </>
+            )}
+          </section>
+        )}
+
         <section>
           <h2>Authentication</h2>
           <div className="field-row">
@@ -242,10 +341,15 @@ export default () => {
               {shown(errors.username)}
             </label>
             <label className="field grow">
-              <span>Password <em>not saved</em></span>
+              <span>Password <em>not saved unless remembered</em></span>
               <input type="password" value={password} onChange={(e) => { setPassword(e.target.value); setTest({status: 'idle'}); }} autoComplete="current-password" />
             </label>
           </div>
+          <label className={`remember-password ${PasswordVault.isAvailable() ? '' : 'unavailable'}`}
+            title={PasswordVault.isAvailable() ? undefined : 'Available only over HTTPS (or localhost)'}>
+            <input type="checkbox" checked={rememberPassword} disabled={!PasswordVault.isAvailable()} onChange={(e) => setRememberPassword(e.target.checked)} />
+            Remember password in this browser (encrypted, used by Save &amp; connect)
+          </label>
         </section>
 
         <section>

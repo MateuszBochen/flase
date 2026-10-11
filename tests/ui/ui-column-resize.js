@@ -30,6 +30,13 @@ const near = (a, b, tolerance = 1.5) => Math.abs(a - b) <= tolerance;
       await page.getByText(name, {exact: true}).first().click();
     }
   };
+  // open database is remembered - after reload it can already be open, click would close it
+  const openDatabase = async (name) => {
+    await page.waitForTimeout(500);
+    if (await page.locator('.table-list-menu-root:visible').count() === 0) {
+      await page.getByText(name, {exact: true}).first().click();
+    }
+  };
   await page.goto('http://localhost:3000');
   await page.evaluate(([connection, user]) => {
     localStorage.clear();
@@ -131,7 +138,7 @@ const near = (a, b, tolerance = 1.5) => Math.abs(a - b) <= tolerance;
   await page.waitForTimeout(300);
   await page.locator('button[title="Load database list"]').first().dispatchEvent('mousedown');
   await page.waitForTimeout(800);
-  await page.getByText('shop', {exact: true}).first().click();
+  await openDatabase('shop');
   await page.waitForTimeout(1000);
   await openCustomers();
   check('widths restored after reload of page', near(await headerWidth('email'), fitted) && near(await headerWidth('first_name'), 40),
