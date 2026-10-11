@@ -10,6 +10,9 @@ import ConnectionForm from '../ConnectionForm/ConnectionForm';
 import Popup from '../../UI/Popup/Popup';
 import EventBus from '../../Library/EventBus/EventBus';
 import ConnectionWasEstablished from '../../Library/Connection/Event/ConnectionWasEstablished';
+import ConnectionRequestWasRejected from '../../Library/Connection/Event/ConnectionRequestWasRejected';
+import ConnectionFormWasSubmitted from '../ConnectionForm/Event/ConnectionFormWasSubmitted';
+import PasswordVault from '../../Library/Connection/PasswordVault';
 
 const connectionManger = ConnectionManager.getInstance();
 
@@ -69,9 +72,25 @@ export default (props: ConnectionControlIconPropsInterface) => {
 
   }, [connectPopup]);
 
+  /** remembered password: connect at once, form only when the server refuses it (e.g. password was changed) */
   const handleOpenConnectionDialog = useCallback(() => {
-    setConnectPopup(true);
-  }, [connectPopup]);
+    PasswordVault.load(props.connectionData.id).then((credentials) => {
+      if (!credentials) {
+        setConnectPopup(true);
+        return;
+      }
+      const rejected = EventBus.subscribe(ConnectionRequestWasRejected.name, () => {
+        EventBus.unSub(rejected);
+        EventBus.unSub(established);
+        setConnectPopup(true);
+      });
+      const established = EventBus.subscribe(ConnectionWasEstablished.name, () => {
+        EventBus.unSub(rejected);
+        EventBus.unSub(established);
+      });
+      EventBus.emit(new ConnectionFormWasSubmitted({userData: credentials, connectionData: props.connectionData}));
+    }).catch(() => setConnectPopup(true));
+  }, [props.connectionData]);
 
   return (
     <>

@@ -23,6 +23,7 @@ import WebsocketConnectionWasLost from '../WebSocket/Event/WebsocketConnectionWa
 import WebsocketConnectionWasRestored from '../WebSocket/Event/WebsocketConnectionWasRestored';
 import RefreshTokenRequest from '../API/Request/RefreshTokenRequest';
 import JwtExpiration from './JwtExpiration';
+import PasswordVault from './PasswordVault';
 
 /** next try when token refresh failed because of network */
 const REFRESH_RETRY_MS = 10 * 1000;
@@ -68,7 +69,14 @@ class ConnectionManager {
 
     /** Event subscriber for handle event of connection of api was closed */
     EventBus.subscribe<EstablishedConnectionInterface>(WebsocketConnectionWasClosed.name, (event: EventInterface<EstablishedConnectionInterface>) => {
-      this.disconnect(event.getData());
+      const established = event.getData();
+      this.disconnect(established);
+      // session expired (e.g. server was restarted) - log in again with remembered password
+      PasswordVault.load(established.connection.id).then((credentials) => {
+        if (!credentials || this.checkIfConnectionIsActive(established.connection)) return;
+        toast(`Logging in again to ${established.connection.displayName} with saved password`, {id: `relogin-${established.connection.id}`});
+        this.connect({userData: credentials, connectionData: established.connection});
+      }).catch(() => undefined);
     });
 
     /** connection to server was lost, client reconnects automatically */
@@ -100,9 +108,18 @@ class ConnectionManager {
   }
 
   /** connect function */
-  connect(data: ConnectionRequestInterface) {
+  connect(request: ConnectionRequestInterface) {
+    // option of form, not for server
+    const {rememberPassword, ...data} = request;
     new LoginRequest().login(data).then((establishedUser: EstablishedUser) => {
       toast.success('Connection was Established successfully');
+      // only password which logged in successfully is remembered
+      if (rememberPassword === true) {
+        PasswordVault.save(data.connectionData.id, {username: data.userData.username, password: data.userData.password})
+          .catch(() => toast.error('Password could not be saved in this browser'));
+      } else if (rememberPassword === false) {
+        PasswordVault.remove(data.connectionData.id).catch(() => undefined);
+      }
 
       const establishedConnection = {
         user: establishedUser,

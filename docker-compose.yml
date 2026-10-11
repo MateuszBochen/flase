@@ -65,6 +65,8 @@ services:
   postgres:
     image: postgres:17
     container_name: flase_postgres
+    # TLS for tests of sslmode (self-signed snakeoil certificate of the image, CN=localhost)
+    command: ["postgres", "-c", "ssl=on", "-c", "ssl_cert_file=/etc/ssl/certs/ssl-cert-snakeoil.pem", "-c", "ssl_key_file=/etc/ssl/private/ssl-cert-snakeoil.key"]
     environment:
       POSTGRES_USER: flase
       POSTGRES_PASSWORD: flase

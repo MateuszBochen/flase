@@ -25,13 +25,16 @@ import {CompletionTableType} from '../../../../UI/Editor/SqlCompletion';
 import FilterWasRequested, {FilterRequestType} from '../Event/FilterWasRequested';
 import QueryStore from '../../../../Library/Console/QueryStore';
 import toast from 'react-hot-toast';
+import TabState from '../../../../Library/Tabs/TabState';
 
 /** QueryPlace */
 export default (props: QueryPlacePropsInterface) => {
 
   const [currentQuery, setCurrentQuery] = useState<QueryInterface>(() => {
     const defaultQuery = DriverFactory.getDriver(props.connection).getDefaultQuery(props.table);
-    return props.initialQuery ? defaultQuery.changeQuery(props.initialQuery) : defaultQuery;
+    // query of the tab before reload of page (filter, sort, page), otherwise the one it was opened with
+    const query = TabState.get(props.tabId).query || props.initialQuery;
+    return query ? defaultQuery.changeQuery(query) : defaultQuery;
   });
   const [hints, setHints] = useState<string[]>([]);
   const tableManager = TableManager.getInstance();
@@ -153,7 +156,7 @@ export default (props: QueryPlacePropsInterface) => {
     if (props.queryRef) {
       props.queryRef.current = query;
     }
-    console.log('new Query', query.query);
+    TabState.update(props.tabId, {query: query.query});
 
     const queryRequest: QueryRequestDataInterface = {
       query: query,

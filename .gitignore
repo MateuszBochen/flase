@@ -6,3 +6,6 @@ frontend/backup/node_modules/
 
 # build of server (made by tsc -w in development, by docker/production/Dockerfile in image)
 server/dist/
+
+# certificates for TLS of database connections in development (FLASE_CERT_DIR)
+server/certs/

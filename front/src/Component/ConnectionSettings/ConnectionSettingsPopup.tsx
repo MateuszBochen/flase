@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import Popup from '../../UI/Popup/Popup';
 import Button from '../../UI/Button/Button';
 import ConnectionDataInterface from '../../Library/Connection/Interface/ConnectionDataInterface';
@@ -6,6 +6,7 @@ import ConnectionSettings from '../../Library/Connection/ConnectionSettings';
 import ConnectionManager from '../../Library/Connection/ConnectionManager';
 import {CONNECTION_COLORS} from '../../Library/Connection/ConnectionColors';
 import toast from 'react-hot-toast';
+import PasswordVault from '../../Library/Connection/PasswordVault';
 import './style.css';
 
 interface ConnectionSettingsPopupPropsInterface {
@@ -25,6 +26,20 @@ export default (props: ConnectionSettingsPopupPropsInterface) => {
   const [color, setColor] = useState<string>(props.connection.color || '');
   const [readOnly, setReadOnly] = useState<boolean>(!!props.connection.readOnly);
   const [confirm, setConfirm] = useState<boolean>(props.connection.changeConfirmationRequired);
+  const [passwordSaved, setPasswordSaved] = useState<boolean>(false);
+
+  useEffect(() => {
+    PasswordVault.has(props.connection.id).then(setPasswordSaved);
+  }, [props.connection.id]);
+
+  const forgetPassword = () => {
+    PasswordVault.remove(props.connection.id)
+      .then(() => {
+        setPasswordSaved(false);
+        toast.success('Saved password was forgotten');
+      })
+      .catch(() => toast.error('Password could not be removed'));
+  };
 
   const save = () => {
     if (!displayName.trim()) {
@@ -77,6 +92,7 @@ export default (props: ConnectionSettingsPopupPropsInterface) => {
         buttons={[
           <Button key="close" size="small" label="Close" onClick={props.onClose} />,
           ...(connected ? [<Button key="disconnect" size="small" label="Disconnect" onClick={disconnect} />] : []),
+          ...(passwordSaved ? [<Button key="forget" size="small" label="Forget saved password" onClick={forgetPassword} />] : []),
         ]}
       >
         <div className="cmp-connection-settings managed">
@@ -102,6 +118,7 @@ export default (props: ConnectionSettingsPopupPropsInterface) => {
         <Button key="save" size="small" colorVariant="success" label="Save" onClick={save} />,
         <Button key="cancel" size="small" label="Cancel" onClick={props.onClose} />,
         ...(connected ? [<Button key="disconnect" size="small" label="Disconnect" onClick={disconnect} />] : []),
+        ...(passwordSaved ? [<Button key="forget" size="small" label="Forget saved password" onClick={forgetPassword} />] : []),
         <Button key="delete" size="small" colorVariant="danger" label="Hold to delete connection" onClick={remove} />,
       ]}
     >

@@ -7,7 +7,7 @@ interface VerticalSliderPropsInterface {
   automateOpenFirst?: boolean;
   /** every item is opened / closed by user independently (otherwise opening one closes the others) */
   multiple?: boolean;
-  /** multiple: open items are remembered in browser under this key */
+  /** open items are remembered in browser under this key (also one open item of accordion) */
   storageKey?: string;
 }
 

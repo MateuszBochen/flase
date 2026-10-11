@@ -19,6 +19,11 @@ class Settings {
     return Settings.generatedSecret as string;
   }
 
+  /** certificates for TLS of database connections (sslrootcert, sslcert, sslkey of DSN) are read only from here */
+  public static getCertDirectory(): string {
+    return process.env.FLASE_CERT_DIR || require('path').resolve(process.cwd(), 'certs');
+  }
+
   /** built front (index.html and assets) served by this server - production image */
   public static getFrontDirectory(): string | null {
     return process.env.FLASE_FRONT_DIR || null;

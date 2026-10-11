@@ -19,6 +19,7 @@ import ConsoleResult from './ConsoleResult';
 import QueryLibrary from './QueryLibrary';
 import './style.css';
 import useConnectionSettings from '../../../Library/Connection/useConnectionSettings';
+import TabState from '../../../Library/Tabs/TabState';
 
 export interface SqlConsolePropsInterface extends ApplicationInterface {
   connection: ConnectionDataInterface;
@@ -150,6 +151,12 @@ export default (props: SqlConsolePropsInterface) => {
     editorRef.current = editor;
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => handlers.current.runCurrent());
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.Enter, () => handlers.current.runAll());
+    // text of console survives reload of page
+    const draft = TabState.get(props.tabId).draft;
+    if (typeof draft === 'string' && draft) {
+      editor.setValue(draft);
+    }
+    editor.onDidChangeModelContent(() => TabState.update(props.tabId, {draft: editor.getValue()}));
     editor.focus();
   };
 

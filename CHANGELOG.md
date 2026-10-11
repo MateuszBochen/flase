@@ -3,11 +3,21 @@
 All notable changes of Flase are documented here. Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versions follow [Semantic Versioning](https://semver.org/). A `v*` tag publishes the Docker image of the version.
 
-## [Unreleased]
+## [0.0.2] - 2026-10-10
 
 ### Added
+- TLS / SSL of database connections: `sslmode` in DSN (`disable`, `require`, `verify-ca`, `verify-full`, also MySQL names),
+  own CA (`sslrootcert`) and client certificate (`sslcert`, `sslkey`) from `FLASE_CERT_DIR`; section in new connection form
+- Remember password in browser - encrypted by AES-GCM with a non-extractable key (HTTPS / localhost), connect without form,
+  login again with saved password after expired session, "Forget saved password" in connection settings
+- State restored after reload of page: open tabs with their order and active tab, query of table (filter, sort, page),
+  text of SQL console, loaded list of databases and open database
 - License: GNU Affero General Public License v3 or later (`AGPL-3.0-or-later`)
 - Support links (Buy Me a Coffee, buycoffee.to) and badges in README
+
+### Fixed
+- `verify-full` of MySQL / MariaDB checks host name of certificate (driver `mysql` checked only the chain)
+- `verify-ca` of PostgreSQL does not require host name match (it was the same as `verify-full`)
 
 ## [0.0.1] - 2026-10-10
 

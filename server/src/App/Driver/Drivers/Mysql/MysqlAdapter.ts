@@ -33,6 +33,8 @@ import TableStructureInterface, {
   StructureTriggerInterface,
 } from '../../Interface/Data/TableStructureInterface';
 import {deserializeBinaryValue} from '../BinaryValue';
+import {nodeTlsOptions, tlsOfDsn} from '../../Tls/DsnTls';
+import {installMysqlTlsIdentityCheck} from './MysqlTlsIdentity';
 const mysql = require('mysql');
 const { Parser } = require('node-sql-parser');
 
@@ -98,8 +100,15 @@ class MysqlAdapter implements DriverInterface {
   }
 
   private createPool(): Pool {
+    // throws for invalid sslmode / certificate - login reports it
+    const dsnTls = tlsOfDsn(this.dsnOptions.params);
+    const tlsOptions = nodeTlsOptions(dsnTls);
+    if (dsnTls.mode === 'verify-full') {
+      installMysqlTlsIdentityCheck();
+    }
     return mysql.createPool({
       host: this.dsnOptions.host,
+      ssl: tlsOptions ? {...tlsOptions, ...(dsnTls.mode === 'verify-full' ? {verifyIdentity: this.dsnOptions.host} : {})} : undefined,
       // undefined falls back to the driver default (3306)
       port: this.dsnOptions.port,
       user: this.connectionData.userData.username,

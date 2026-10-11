@@ -58,6 +58,8 @@ export default (props: DatabaseListMenuPropsInterface) => {
         items={state}
         allowClose={true}
         automateOpenFirst={false}
+        // opened database survives reload of page
+        storageKey={`open-database:${props.connection.id}`}
       />
     </Box>
   );
