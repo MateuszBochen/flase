@@ -3,7 +3,9 @@
 All notable changes of Flase are documented here. Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versions follow [Semantic Versioning](https://semver.org/). A `v*` tag publishes the Docker image of the version.
 
-## [Unreleased]
+
+
+## [0.1.0] - 2026-10-11
 
 ### Added
 - Database overview (phpMyAdmin "Structure" of database): tables and views with rows, sizes, engine, collation and comment,
@@ -125,5 +127,7 @@ First public version - web database manager for MySQL, MariaDB and PostgreSQL, a
 - Production Docker image (`docker/production/Dockerfile`): application, API and websocket on one port
 - GitHub Actions workflow publishing the image to Docker Hub on a `v*` tag
 
-[Unreleased]: https://github.com/MateuszBochen/flase/compare/v0.0.1...HEAD
+[Unreleased]: https://github.com/MateuszBochen/flase/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/MateuszBochen/flase/compare/v0.0.2...v0.1.0
+[0.0.2]: https://github.com/MateuszBochen/flase/compare/v0.0.1...v0.0.2
 [0.0.1]: https://github.com/MateuszBochen/flase/releases/tag/v0.0.1
