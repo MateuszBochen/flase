@@ -1,0 +1,154 @@
+.cmp-result-map {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cmp-result-map .map-toolbar,
+.cmp-result-chart .chart-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.cmp-result-map .map-toolbar label,
+.cmp-result-chart .chart-toolbar label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-muted);
+}
+
+.cmp-result-map select,
+.cmp-result-chart select {
+  height: 22px;
+  border: solid 1px var(--border-strong);
+  border-radius: 3px;
+  color: var(--text-strong);
+  background-color: var(--input-bg);
+  font: inherit;
+}
+
+.cmp-result-map .map-count {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.cmp-result-map .map-zoom {
+  display: flex;
+  gap: 2px;
+  margin-left: auto;
+}
+
+.cmp-result-map .map-zoom button,
+.cmp-result-chart .chart-toolbar button {
+  min-width: 24px;
+  height: 22px;
+  border: solid 1px var(--border-strong);
+  border-radius: 3px;
+  color: var(--text-strong);
+  background-color: var(--bg);
+  font: inherit;
+  cursor: pointer;
+}
+
+.cmp-result-map .map-body {
+  position: relative;
+  display: flex;
+  gap: 8px;
+}
+
+.cmp-result-map .map-canvas {
+  flex: none;
+  max-width: 70vw;
+  height: auto;
+  border: solid 1px var(--border-strong);
+  border-radius: 4px;
+  background-color: #f2efe9;
+  cursor: grab;
+  user-select: none;
+}
+
+.cmp-result-map .map-grid {
+  stroke: #ddd;
+}
+
+.cmp-result-map .map-feature.point {
+  fill: #3574f0;
+  stroke: #ffffff;
+  stroke-width: 1.5;
+}
+
+.cmp-result-map .map-feature.line {
+  fill: none;
+  stroke: #d9534f;
+  stroke-width: 2.5;
+}
+
+.cmp-result-map .map-feature.polygon {
+  fill: rgba(53, 116, 240, 0.25);
+  stroke: #3574f0;
+  stroke-width: 1.5;
+}
+
+.cmp-result-map .map-feature.active.point {
+  fill: #e5a50a;
+}
+
+.cmp-result-map .map-feature.active.line,
+.cmp-result-map .map-feature.active.polygon {
+  stroke: #e5a50a;
+  stroke-width: 3.5;
+}
+
+.cmp-result-map .map-item {
+  cursor: pointer;
+}
+
+.cmp-result-map .map-label {
+  fill: #222222;
+  font: 12px sans-serif;
+  paint-order: stroke;
+  stroke: #ffffff;
+  stroke-width: 3px;
+  pointer-events: none;
+}
+
+.cmp-result-map .map-attribution {
+  position: absolute;
+  left: 4px;
+  bottom: 4px;
+  padding: 0 4px;
+  color: #333333;
+  background: rgba(255, 255, 255, 0.75);
+  font-size: 0.7rem;
+}
+
+.cmp-result-map .map-empty {
+  position: absolute;
+  top: 45%;
+  left: 0;
+  width: 880px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.cmp-result-map .map-details {
+  width: 260px;
+  max-height: 500px;
+  overflow: auto;
+  font-size: 0.85rem;
+}
+
+.cmp-result-map .map-details th {
+  padding-right: 8px;
+  color: var(--text-muted);
+  font-weight: normal;
+  text-align: left;
+  vertical-align: top;
+}
+
+.cmp-result-map .map-details td {
+  word-break: break-all;
+}

@@ -585,7 +585,11 @@
   font: inherit;
   cursor: pointer;
 }
-.cmp-records-view-pager-root .pager-export:hover {
+.cmp-records-view-pager-root .pager-export:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.cmp-records-view-pager-root .pager-export:hover:not(:disabled) {
   color: var(--text-strong);
   background-color: var(--tab-bg);
 }

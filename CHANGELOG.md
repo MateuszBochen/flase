@@ -39,6 +39,12 @@ versions follow [Semantic Versioning](https://semver.org/). A `v*` tag publishes
 - Visual query builder: tables from list (click or drag), joins from foreign keys or drawn from column to column,
   INNER / LEFT / RIGHT join, grid of columns with alias, aggregate, sort and filter (WHERE / HAVING, GROUP BY added),
   DISTINCT, LIMIT, live SQL, run in console, create view, state restored after reload
+- Export of rows (current page or all rows) as Excel (XLSX), OpenDocument (ODS), XML (format of mysqldump --xml),
+  HTML, LaTeX and PDF (printable page, "Save as PDF" of browser); copy of selection also as XML, HTML table and LaTeX
+- Chart of loaded rows - bar, line, pie, scatter; label column, more value columns, grouping (sum, average, count,
+  min, max), sorting, export as PNG / SVG
+- Map of spatial values - MySQL / MariaDB geometries, PostgreSQL geometric types, WKT and GeoJSON values; points, lines
+  and polygons, OpenStreetMap background for longitude / latitude, labels, values of clicked row, zoom, export as SVG
 - Foreign keys: add (also composite, ON DELETE / ON UPDATE) and drop in structure of table and in ER diagram
   (relation mode - click column, then referenced column; right click on relation drops it)
 

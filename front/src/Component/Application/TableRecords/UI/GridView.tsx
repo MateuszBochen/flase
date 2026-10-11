@@ -1,3 +1,4 @@
+import exportRows, {ExportFormatType} from '../../../../Library/Export/ExportRows';
 import RecordsView from '../../../Table/RecordsView';
 import GridViewPropsInterface from '../Interface/GridViewPropsInterface';
 import React, {useCallback, useEffect, useRef, useState} from 'react';
@@ -32,8 +33,6 @@ import {CellValueType, QuickFilterOperatorType} from '../../../Table/Interface/R
 import FilterWasRequested from '../Event/FilterWasRequested';
 import DriverFactory from '../../../../Library/Database/Driver/DriverFactory';
 import openTableTab from '../openTableTab';
-import {CopyFormatType, EXPORT_FILE, formatCopy} from '../../../Table/Copy/CopyFormats';
-import downloadText from '../../../../Library/File/downloadText';
 import ConsoleApi from '../../../../Library/Console/ConsoleApi';
 import {SingleRowType} from '../../../Table/Interface/RecordsViewPropsInterface';
 import useConnectionSettings from '../../../../Library/Connection/useConnectionSettings';
@@ -252,7 +251,7 @@ export default (props: GridViewPropsInterface) => {
    * all rows of current query as file - the query is run again without LIMIT,
    * rows are collected by own tabId so the grid is not touched
    */
-  const onExportAll = useCallback((format: CopyFormatType, fileName: string) => {
+  const onExportAll = useCallback((format: ExportFormatType, fileName: string) => {
     const currentQuery = props.queryRef?.current;
     if (!currentQuery) {
       toast.error('Query is not loaded yet');
@@ -265,6 +264,9 @@ export default (props: GridViewPropsInterface) => {
     const rows: SingleRowType[] = [];
 
     toast.loading('Exporting…', {id: toastId});
+    // window must be opened by the click - after loading of rows browser would block it
+    const printWindow = format === 'pdf' ? window.open('', '_blank') : null;
+    printWindow?.document.write('<p style="font-family: sans-serif">Loading rows…</p>');
     const eventId = EventBus.subscribe<MessageInterface<any>>(WebsocketReceivedAMessage.name, (event) => {
       const message = event.getData();
       if (message.payload?.tabId !== exportTabId) {
@@ -283,14 +285,17 @@ export default (props: GridViewPropsInterface) => {
           break;
         case MessageType.QUERY_FINISHED: {
           EventBus.unSub(eventId);
-          const file = EXPORT_FILE[format];
-          downloadText(`${fileName}.${file.extension}`, formatCopy(format, columns, rows, table, DriverFactory.getDriver(props.connection).sql), file.mimeType);
-          toast.success(`Exported ${rows.length.toLocaleString()} row(s)`, {id: toastId});
+          if (exportRows(format, columns, rows, fileName, table, DriverFactory.getDriver(props.connection).sql, printWindow)) {
+            toast.success(format === 'pdf' ? 'Print dialog opened - choose "Save as PDF"' : `Exported ${rows.length.toLocaleString()} row(s)`, {id: toastId});
+          } else {
+            toast.error('Window for printing was blocked by browser', {id: toastId});
+          }
           break;
         }
         case MessageType.QUERY_ERROR:
           EventBus.unSub(eventId);
           toast.error(`Export failed: ${message.payload.error}`, {id: toastId});
+          printWindow?.close();
           break;
       }
     });

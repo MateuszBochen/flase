@@ -18,8 +18,10 @@ import GridEditInterface, {
   SelectModeType,
   selectedRowsAndColumns,
 } from './Interface/GridEditInterface';
-import {COPY_FORMATS, CopyFormatType, EXPORT_FILE, formatCopy} from './Copy/CopyFormats';
-import downloadText from '../../Library/File/downloadText';
+import {COPY_FORMATS, CopyFormatType, formatCopy} from './Copy/CopyFormats';
+import exportRows, {EXPORT_FORMATS, ExportFormatType} from '../../Library/Export/ExportRows';
+import ChartPopup from './Chart/ChartPopup';
+import MapPopup, {spatialColumns} from './Map/MapPopup';
 import {
   buildRowChanges,
   countChanges,
@@ -80,6 +82,8 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
   /** "Edit cell…" from context menu - popup with bigger editor than inline one */
   const [cellPopup, setCellPopup] = useState<{rowIndex: number, column: ColumnInterface} | null>(null);
   const [exportMenu, setExportMenu] = useState<{x: number, y: number} | null>(null);
+  /** chart / map of loaded rows */
+  const [visual, setVisual] = useState<{kind: 'chart' | 'map', rows: SingleRowType[]} | null>(null);
   const [selection, setSelection] = useState<SelectionType | null>(null);
   /** mouse button is held on cell - moving over cells extends selection */
   const selecting = useRef<boolean>(false);
@@ -98,6 +102,13 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
   const canEdit = !!editable && !!props.onSubmitChanges;
 
   const getRecords = (): SingleRowType[] => dataGridViewRef.current?.getRecords() || [];
+  /** rows as shown - with pending changes */
+  const loadedRows = (): SingleRowType[] => {
+    const records = getRecords();
+    return Array.from({length: records.length + changes.inserted.length}, (value, index) => getDisplayedRow(changes, records, index));
+  };
+  // spatial columns are known when rows are loaded
+  const hasSpatial = useMemo(() => !status.loading && spatialColumns(columns, getRecords().slice(0, 50)).length > 0, [columns, status]);
 
   const clearEditing = () => {
     pendingCountRef.current = 0;
@@ -303,19 +314,20 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
   };
 
   /** rows loaded in grid (current page, with pending changes) as file */
-  const exportPage = (format: CopyFormatType) => {
-    const rowsCount = getRecords().length + changes.inserted.length;
-    const rowIndexes = Array.from({length: rowsCount}, (value, index) => index);
-    const text = formatRows(format, rowIndexes, columns.map((column, index) => index));
-    const file = EXPORT_FILE[format];
-    downloadText(`${props.exportName || 'export'}.${file.extension}`, text, file.mimeType);
-    toast.success(`Exported ${rowsCount} row(s)`);
+  const exportPage = (format: ExportFormatType) => {
+    const records = getRecords();
+    const rowsCount = records.length + changes.inserted.length;
+    const rows = Array.from({length: rowsCount}, (value, index) => getDisplayedRow(changes, records, index));
+    if (!exportRows(format, columns, rows, props.exportName || 'export', editable?.table.name, props.sqlLiteral)) {
+      toast.error('Window for printing was blocked by browser');
+      return;
+    }
+    toast.success(format === 'pdf' ? 'Print dialog opened - choose "Save as PDF"' : `Exported ${rowsCount} row(s)`);
   };
 
   const exportMenuItems = (): ContextMenuItem[] => {
-    const formats = (onClick: (format: CopyFormatType) => void): ContextMenuItem[] => COPY_FORMATS
-      .filter(({format}) => format !== 'tsv')
-      .map(({format, label}) => ({label: label === 'TSV with header' ? 'TSV' : label, onClick: () => onClick(format)}));
+    const formats = (onClick: (format: ExportFormatType) => void): ContextMenuItem[] => EXPORT_FORMATS
+      .map(({format, label}) => ({label, onClick: () => onClick(format)}));
     const items: ContextMenuItem[] = [
       {label: 'Current page as', disabled: !columns.length, children: formats(exportPage)},
     ];
@@ -571,6 +583,25 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
           >
             Export
           </button>
+          <button
+            type="button"
+            className="pager-export"
+            title="Chart of loaded rows"
+            disabled={!columns.length || status.loading}
+            onClick={() => setVisual({kind: 'chart', rows: loadedRows()})}
+          >
+            Chart
+          </button>
+          {hasSpatial && (
+            <button
+              type="button"
+              className="pager-export"
+              title="Geometries of loaded rows on map"
+              onClick={() => setVisual({kind: 'map', rows: loadedRows()})}
+            >
+              Map
+            </button>
+          )}
           <PendingChangesBar
             canEdit={canEdit}
             readOnlyReason={readOnlyReason}
@@ -615,6 +646,8 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
           onClose={() => setValueEditor(null)}
         />
       )}
+      {visual?.kind === 'chart' && <ChartPopup columns={columns} rows={visual.rows} name={props.exportName || 'result'} onClose={() => setVisual(null)} />}
+      {visual?.kind === 'map' && <MapPopup columns={columns} rows={visual.rows} name={props.exportName || 'result'} onClose={() => setVisual(null)} />}
       {exportMenu && (
         <ContextMenu x={exportMenu.x} y={exportMenu.y} items={exportMenuItems()} onClose={() => setExportMenu(null)} />
       )}

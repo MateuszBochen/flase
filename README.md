@@ -30,7 +30,9 @@ import and export dumps, draw ER diagrams and manage users - all from one self-h
 - Inline cell editing (double click) and **Edit cell** popup with big text area for long texts and JSON
 - Multi selection (drag, Shift + click, Ctrl + click), delete of selected rows, add / clone / edit row in a form
 - Pending changes with **SQL preview**, submit with Ctrl + S, optional confirmation of every change
-- Copy selection or whole selected rows as **TSV, CSV, JSON, Markdown or SQL INSERT**
+- Copy selection or whole selected rows as **TSV, CSV, JSON, XML, Markdown, HTML, LaTeX or SQL INSERT**
+- Export rows as **CSV, Excel (XLSX), OpenDocument (ODS), JSON, XML, SQL, HTML, LaTeX or PDF**
+- **Charts** of results (bar, line, pie, scatter, grouping) and **map** of spatial values (OpenStreetMap background)
 - Foreign key navigation (open referenced row in the same or a new tab)
 - Quick filters from cell values, sorting, paging, query bar with history and SQL completion
 - Resizable columns (drag the header edge, double click to fit content) remembered per table
@@ -151,7 +153,8 @@ so a DSN typed in the browser cannot read other files of the server.
 Predefined connections are resolved by the server: the address is never taken from the browser and `readOnly`
 is enforced for the whole session. Credentials written in a predefined DSN are never sent to the browser.
 
-The browser of the user needs access to `cdn.jsdelivr.net` (SQL editor) and Google Fonts; the database is accessed only
+The browser of the user needs access to `cdn.jsdelivr.net` (SQL editor), Google Fonts and `tile.openstreetmap.org`
+(background of maps, optional); the database is accessed only
 by the server.
 
 ## Development

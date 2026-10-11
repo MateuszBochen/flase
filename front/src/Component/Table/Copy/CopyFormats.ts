@@ -4,7 +4,7 @@ import SqlLiteral from '../../../Library/Database/Driver/Adapter/MySql/SqlLitera
 import SqlLiteralInterface from '../../../Library/Database/Driver/SqlLiteralInterface';
 import {isBinaryValue} from '../../../Library/Record/BinaryValue';
 
-export type CopyFormatType = 'tsv' | 'tsv-header' | 'csv' | 'markdown' | 'insert' | 'json';
+export type CopyFormatType = 'tsv' | 'tsv-header' | 'csv' | 'markdown' | 'insert' | 'json' | 'xml' | 'html' | 'latex';
 
 export const COPY_FORMATS: {format: CopyFormatType, label: string}[] = [
   {format: 'tsv', label: 'TSV'},
@@ -13,6 +13,9 @@ export const COPY_FORMATS: {format: CopyFormatType, label: string}[] = [
   {format: 'markdown', label: 'Markdown'},
   {format: 'insert', label: 'SQL INSERT'},
   {format: 'json', label: 'JSON'},
+  {format: 'xml', label: 'XML'},
+  {format: 'html', label: 'HTML table'},
+  {format: 'latex', label: 'LaTeX'},
 ];
 
 /** file name extension and mime type of export */
@@ -23,6 +26,9 @@ export const EXPORT_FILE: {[format in CopyFormatType]: {extension: string, mimeT
   'markdown': {extension: 'md', mimeType: 'text/markdown'},
   'insert': {extension: 'sql', mimeType: 'application/sql'},
   'json': {extension: 'json', mimeType: 'application/json'},
+  'xml': {extension: 'xml', mimeType: 'application/xml'},
+  'html': {extension: 'html', mimeType: 'text/html'},
+  'latex': {extension: 'tex', mimeType: 'application/x-tex'},
 };
 
 /** binary values come from server as preview, they are copied as text when possible */
@@ -43,6 +49,22 @@ const csvCell = (value: CellValueType): string => {
   if (value === null) return '';
   const text = String(value);
   return text === '' || /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+};
+
+/** characters not allowed in XML 1.0 are left out */
+export const xmlText = (value: string): string => value
+  // eslint-disable-next-line no-control-regex
+  .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]/g, '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;');
+
+const latexCell = (value: CellValueType): string => {
+  if (value === null) return '\\textit{NULL}';
+  const special: {[char: string]: string} = {'\\': '\\textbackslash{}', '~': '\\textasciitilde{}', '^': '\\textasciicircum{}', '\n': ' ', '\r': ''};
+  // one pass - replacement of backslash must not be escaped again
+  return String(value).replace(/[\\~^\n\r&%$#_{}]/g, (char) => special[char] ?? `\\${char}`);
 };
 
 const markdownCell = (value: CellValueType): string => {
@@ -81,5 +103,37 @@ export const formatCopy = (format: CopyFormatType, columns: ColumnInterface[], r
     case 'json':
       // key is unique also when name repeats (JOIN)
       return JSON.stringify(values.map((row) => Object.fromEntries(columns.map((column, index) => [column.key, row[index]]))), null, 2);
+    case 'xml':
+      // format of mysqldump --xml - NULL is xsi:nil
+      return [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        `<resultset name="${xmlText(table || columns.find((column) => column.table?.name)?.table.name || 'result')}" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">`,
+        ...values.map((row) => [
+          '  <row>',
+          ...row.map((value, index) => value === null
+            ? `    <field name="${xmlText(names[index])}" xsi:nil="true" />`
+            : `    <field name="${xmlText(names[index])}">${xmlText(String(value))}</field>`),
+          '  </row>',
+        ].join('\n')),
+        '</resultset>',
+      ].join('\n');
+    case 'html':
+      return [
+        '<table>',
+        `  <thead><tr>${names.map((name) => `<th>${xmlText(name)}</th>`).join('')}</tr></thead>`,
+        '  <tbody>',
+        ...values.map((row) => `    <tr>${row.map((value) => value === null ? '<td class="null">NULL</td>' : `<td>${xmlText(String(value))}</td>`).join('')}</tr>`),
+        '  </tbody>',
+        '</table>',
+      ].join('\n');
+    case 'latex':
+      return [
+        `\\begin{longtable}{|${names.map(() => 'l').join('|')}|}`,
+        '\\hline',
+        `${names.map((name) => `\\textbf{${latexCell(name)}}`).join(' & ')} \\\\ \\hline`,
+        '\\endhead',
+        ...values.map((row) => `${row.map(latexCell).join(' & ')} \\\\ \\hline`),
+        '\\end{longtable}',
+      ].join('\n');
   }
 };

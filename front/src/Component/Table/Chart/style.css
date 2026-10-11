@@ -1,0 +1,98 @@
+.cmp-result-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cmp-result-chart .chart-kinds {
+  display: flex;
+  padding: 2px;
+  border: solid 1px var(--border);
+  border-radius: 6px;
+  background-color: var(--bg);
+}
+
+.cmp-result-chart .chart-kinds button {
+  border: none;
+  background: none;
+  text-transform: capitalize;
+}
+
+.cmp-result-chart .chart-kinds button.active {
+  color: var(--text-strong);
+  background-color: var(--panel);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.cmp-result-chart .chart-series {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  color: var(--text-muted);
+}
+
+.cmp-result-chart .chart-series input {
+  margin: 0;
+  accent-color: var(--primary);
+}
+
+.cmp-result-chart .chart-canvas {
+  max-width: 80vw;
+  height: auto;
+  border: solid 1px var(--border);
+  border-radius: 4px;
+  background-color: var(--panel);
+}
+
+.cmp-result-chart .chart-canvas text {
+  fill: var(--text-muted);
+  font-size: 11px;
+}
+
+.cmp-result-chart .chart-canvas .chart-legend-text {
+  fill: var(--text);
+  font-size: 12px;
+}
+
+.cmp-result-chart .chart-grid {
+  stroke: var(--border);
+}
+
+.cmp-result-chart .chart-axis {
+  stroke: var(--text-muted);
+}
+
+.cmp-result-chart .chart-line {
+  fill: none;
+  stroke-width: 2;
+}
+
+.cmp-result-chart .chart-bar:hover,
+.cmp-result-chart .chart-slice:hover {
+  opacity: 0.8;
+}
+
+.cmp-result-chart .chart-slice {
+  stroke: var(--panel);
+  stroke-width: 1;
+}
+
+.cmp-result-chart .chart-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 0.85rem;
+}
+
+.cmp-result-chart .chart-footer i {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 4px;
+  border-radius: 2px;
+}
+
+.cmp-result-chart .chart-muted {
+  color: var(--text-muted);
+}

@@ -129,3 +129,19 @@ CREATE TABLE uuid_bin_test (
 INSERT INTO uuid_bin_test (id, name) VALUES
   (UNHEX('3F2C1A9E6B7D4E8F9A0B1C2D3E4F5A01'), 'first'),
   (UNHEX('7A8B9C0D1E2F4A3B8C4D5E6F7A8B9C02'), 'second');
+-- spatial values for map of results
+DROP TABLE IF EXISTS gis_test;
+CREATE TABLE gis_test (
+  id INT PRIMARY KEY,
+  name VARCHAR(50) NOT NULL,
+  population INT NOT NULL,
+  location POINT NULL,
+  area POLYGON NULL,
+  route LINESTRING NULL
+);
+INSERT INTO gis_test VALUES
+  (1, 'Warszawa', 1860000, ST_GeomFromText('POINT(21.0122 52.2297)'), ST_GeomFromText('POLYGON((20.85 52.10, 21.27 52.10, 21.27 52.37, 20.85 52.37, 20.85 52.10))'), ST_GeomFromText('LINESTRING(21.0122 52.2297, 19.9450 50.0647)')),
+  (2, 'Kraków', 800000, ST_GeomFromText('POINT(19.9450 50.0647)'), NULL, NULL),
+  (3, 'Gdańsk', 486000, ST_GeomFromText('POINT(18.6466 54.3520)'), NULL, ST_GeomFromText('LINESTRING(18.6466 54.3520, 21.0122 52.2297)')),
+  (4, 'Wrocław', 674000, ST_GeomFromText('POINT(17.0385 51.1079)'), NULL, NULL),
+  (5, 'Nowhere', 0, NULL, NULL, NULL);
