@@ -2,6 +2,7 @@ import {MutableRefObject} from 'react';
 import GridEditInterface from './GridEditInterface';
 import ColumnInterface from '../../../Library/Table/Interface/ColumnInterface';
 import {CellValueType} from './RecordsViewPropsInterface';
+import {GridDisplayInterface} from '../Display/GridDisplay';
 
 interface DataGridPropsInterface {
   tabIndex: number; //PropTypes.number,
@@ -9,6 +10,8 @@ interface DataGridPropsInterface {
   parentRef: MutableRefObject<HTMLDivElement | null>;
   edit?: GridEditInterface;
   onOpenReference?: (column: ColumnInterface, value: CellValueType, newTab: boolean) => void;
+  /** transformations and labels of referenced rows */
+  display?: GridDisplayInterface;
 }
 
 export default DataGridPropsInterface;

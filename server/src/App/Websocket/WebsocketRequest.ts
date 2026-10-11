@@ -17,6 +17,7 @@ import ReadOnlyGuard from '../Driver/Query/ReadOnlyGuard';
 import {ChangeUserCommandHandler, GetUserGrantsCommandHandler, GetUsersCommandHandler} from './CommandHandler/UserCommandHandlers';
 import MessageType from './Enum/MessageType';
 import DatabaseOperationCommandHandler from './CommandHandler/DatabaseOperationCommandHandler';
+import {FindReplaceCommandHandler, GetBinaryValueCommandHandler} from './CommandHandler/CellToolsCommandHandlers';
 import {
   GetLogEventsCommandHandler,
   GetReplicationCommandHandler,
@@ -170,6 +171,12 @@ class WebsocketRequest {
         return;
       case CommandType.REPLICATION_ACTION:
         new ReplicationActionCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
+        return;
+      case CommandType.FIND_REPLACE:
+        new FindReplaceCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
+        return;
+      case CommandType.GET_BINARY_VALUE:
+        new GetBinaryValueCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
         return;
       default:
         throw new Error(`Command ${command.command} not supported`);

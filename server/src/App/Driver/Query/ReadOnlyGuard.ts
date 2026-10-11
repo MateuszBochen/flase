@@ -25,6 +25,7 @@ class ReadOnlyGuard {
       case CommandType.DATABASE_OPERATION:
       case CommandType.SET_SERVER_VARIABLE:
       case CommandType.REPLICATION_ACTION:
+      case CommandType.FIND_REPLACE:
         // preview of SQL is allowed
         return payload.dryRun ? null : 'Connection is read only - changes are not allowed';
       case CommandType.KILL_PROCESS:

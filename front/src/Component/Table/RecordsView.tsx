@@ -22,6 +22,10 @@ import {COPY_FORMATS, CopyFormatType, formatCopy} from './Copy/CopyFormats';
 import exportRows, {EXPORT_FORMATS, ExportFormatType} from '../../Library/Export/ExportRows';
 import ChartPopup from './Chart/ChartPopup';
 import MapPopup, {spatialColumns} from './Map/MapPopup';
+import useGridDisplay from './Display/useGridDisplay';
+import {GridDisplayContext} from './Display/GridDisplay';
+import Popup from '../../UI/Popup/Popup';
+import Button from '../../UI/Button/Button';
 import {
   buildRowChanges,
   countChanges,
@@ -107,6 +111,10 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
     const records = getRecords();
     return Array.from({length: records.length + changes.inserted.length}, (value, index) => getDisplayedRow(changes, records, index));
   };
+  /** image of cell shown big */
+  const [image, setImage] = useState<{url: string, title: string} | null>(null);
+  const openImage = useCallback((url: string, title: string) => setImage({url, title}), []);
+  const gridDisplay = useGridDisplay(props.connection, columns, getRecords, !status.loading, editable, openImage);
   // spatial columns are known when rows are loaded
   const hasSpatial = useMemo(() => !status.loading && spatialColumns(columns, getRecords().slice(0, 50)).length > 0, [columns, status]);
 
@@ -461,6 +469,14 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
       items.push({label: 'Clear filter', onClick: filter('clear')});
     }
 
+    if (column) {
+      const displayItems = gridDisplay.menuItems(column);
+      if (displayItems.length) {
+        if (items.length) items.push('separator');
+        items.push(...displayItems);
+      }
+    }
+
     if (columnsViewRef.current?.hasWidths()) {
       if (items.length) items.push('separator');
       items.push({label: 'Reset column widths', onClick: () => columnsViewRef.current?.resetWidths()});
@@ -549,14 +565,17 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
            parentRef={dataGridRef}
            widthsKey={props.columnWidthsKey}
          />
-         <DataGrid
-           ref={dataGridViewRef}
-           cellRender={props.cellRender}
-           tabIndex={0}
-           parentRef={dataGridRef}
-           edit={edit}
-           onOpenReference={props.onOpenReference}
-         />
+         <GridDisplayContext.Provider value={gridDisplay.actions}>
+           <DataGrid
+             ref={dataGridViewRef}
+             cellRender={props.cellRender}
+             tabIndex={0}
+             parentRef={dataGridRef}
+             edit={edit}
+             onOpenReference={props.onOpenReference}
+             display={gridDisplay.display}
+           />
+         </GridDisplayContext.Provider>
        </div>
        {status.error && (
          <div className="cmp-records-view-message cmp-records-view-message-error">{status.error}</div>
@@ -645,6 +664,11 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
           }}
           onClose={() => setValueEditor(null)}
         />
+      )}
+      {image && (
+        <Popup isOpen={true} label={image.title} onClickOk={() => setImage(null)} buttons={[<Button key="close" size="small" label="Close" onClick={() => setImage(null)} />]}>
+          <div className="cmp-image-preview"><img src={image.url} alt={image.title} /></div>
+        </Popup>
       )}
       {visual?.kind === 'chart' && <ChartPopup columns={columns} rows={visual.rows} name={props.exportName || 'result'} onClose={() => setVisual(null)} />}
       {visual?.kind === 'map' && <MapPopup columns={columns} rows={visual.rows} name={props.exportName || 'result'} onClose={() => setVisual(null)} />}

@@ -653,3 +653,50 @@ body.column-resizing * {
   cursor: col-resize !important;
   user-select: none !important;
 }
+
+/* transformations and labels of referenced rows */
+.data-table-cell .dtc-label {
+  margin-left: 6px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.data-table-cell .dtc-image {
+  display: inline-block;
+  max-width: 120px;
+  max-height: 18px;
+  vertical-align: middle;
+  border-radius: 2px;
+  cursor: zoom-in;
+}
+
+.data-table-cell .dtc-link {
+  color: #589df6;
+  text-decoration: underline;
+}
+
+.data-table-cell .dtc-transformed {
+  color: var(--accent);
+}
+
+.data-table-cell .dtc-bool.yes {
+  color: #5fa84f;
+  font-weight: bold;
+}
+
+.data-table-cell .dtc-bool.no {
+  color: var(--danger-text);
+  font-weight: bold;
+}
+
+.cmp-image-preview {
+  max-width: 80vw;
+  max-height: 70vh;
+  overflow: auto;
+  text-align: center;
+}
+
+.cmp-image-preview img {
+  max-width: 100%;
+  background: repeating-conic-gradient(#ddd 0% 25%, #fff 0% 50%) 50% / 16px 16px;
+}

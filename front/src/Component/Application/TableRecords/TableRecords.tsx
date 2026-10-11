@@ -19,6 +19,7 @@ import NewTabComponentWasSelected from '../../ApplicationRenderer/Event/NewTabCo
 import TransferTab, {TransferTabPropsInterface} from '../Transfer/TransferTab';
 import QueryInterface from '../../../Library/Database/Interface/QueryInterface';
 import useConnectionSettings from '../../../Library/Connection/useConnectionSettings';
+import FindReplacePopup from './UI/FindReplacePopup';
 
 /** TableRecords */
 const TableRecords = (props: TableRecordsPropsInterface) => {
@@ -32,6 +33,7 @@ const TableRecords = (props: TableRecordsPropsInterface) => {
   const queryRef = useRef<QueryInterface | null>(null);
   /** query shown in EXPLAIN popup */
   const [explainQuery, setExplainQuery] = useState<string | null>(null);
+  const [findReplace, setFindReplace] = useState<boolean>(false);
 
   const tabId = props.tabId || '';
   const table: TableInterface = {databaseName: props.database.name, name: props.table.tableName};
@@ -88,6 +90,7 @@ const TableRecords = (props: TableRecordsPropsInterface) => {
         tableOperationsDisabled={!!gone}
         readOnly={!!connection.readOnly}
         onExplain={() => queryRef.current && setExplainQuery(queryRef.current.query)}
+        onFindReplace={() => setFindReplace(true)}
         onTransfer={() => EventBus.emit(new NewTabComponentWasSelected<TransferTabPropsInterface>({
           component: TransferTab,
           props: {connection: props.connection, database: table.databaseName, table: table.name},
@@ -127,6 +130,20 @@ const TableRecords = (props: TableRecordsPropsInterface) => {
           query={explainQuery}
           tabId={tabId}
           onClose={() => setExplainQuery(null)}
+        />
+      )}
+      {findReplace && (
+        <FindReplacePopup
+          connection={props.connection}
+          table={table}
+          columns={TableManager.getInstance().getTablesListForDatabase(props.connection, props.database).find((item) => item.tableName === table.name)?.columns || props.table.columns}
+          tabId={`${tabId}:find-replace`}
+          readOnly={!!connection.readOnly}
+          onClose={() => setFindReplace(false)}
+          onApplied={() => {
+            setFindReplace(false);
+            EventBus.emit<string>(new QueryRefreshWasRequested(tabId));
+          }}
         />
       )}
       <TableOperations

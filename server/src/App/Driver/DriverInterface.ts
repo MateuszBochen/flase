@@ -17,6 +17,12 @@ import {DatabaseSearchResultInterface, SearchModeType} from './Interface/Data/Da
 import {DatabaseObjectsInterface, ObjectRefInterface, ServerOptionsInterface} from './Interface/Data/DatabaseObjectsInterface';
 import {DatabaseOperationType, MaintenanceResultInterface} from './Interface/Data/DatabaseOperationInterface';
 import {ServerAdminInterface} from './Interface/Data/ServerInterface';
+import {
+  BinaryValueRequestInterface,
+  BinaryValueResultInterface,
+  FindReplaceRequestInterface,
+  FindReplaceResultInterface,
+} from './Interface/Data/CellToolsInterface';
 
 interface DriverInterface {
   /** syntax of SQL - splitting of imported scripts, quoting */
@@ -147,6 +153,16 @@ interface DriverInterface {
    * Execute statements built for operation - messages of maintenance (OPTIMIZE, VACUUM...) are returned
    */
   executeDatabaseOperation(operation: DatabaseOperationType, statements: string[]): Promise<MaintenanceResultInterface[]>;
+
+  /**
+   * Find and replace of text in column - dryRun counts changed rows and returns sample of them
+   */
+  findReplace(request: FindReplaceRequestInterface): Promise<FindReplaceResultInterface>;
+
+  /**
+   * Whole binary value of cell (grid has only preview)
+   */
+  getBinaryValue(request: BinaryValueRequestInterface): Promise<BinaryValueResultInterface>;
 
   /**
    * Search term in all searchable columns of all tables of database.

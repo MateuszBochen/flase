@@ -2,6 +2,7 @@ import ColumnInterface from '../../../Library/Table/Interface/ColumnInterface';
 import {SingleRowType} from './RecordsViewPropsInterface';
 import {GridHandlersInterface} from './GridEditInterface';
 import {RowState} from '../Edit/PendingChanges';
+import {GridDisplayInterface} from '../Display/GridDisplay';
 
 /** only primitive values and stable objects - row is memoized */
 interface RowPropsInterface {
@@ -28,6 +29,7 @@ interface RowPropsInterface {
   editingColumnKey: string | null;
   hasReference: boolean;
   handlers: GridHandlersInterface;
+  display?: GridDisplayInterface;
 }
 
 export default RowPropsInterface;

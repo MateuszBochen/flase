@@ -38,6 +38,14 @@ import {installMysqlTlsIdentityCheck} from './MysqlTlsIdentity';
 import MysqlDatabaseOperations from './MysqlDatabaseOperations';
 import MysqlServerAdmin from './MysqlServerAdmin';
 import {ServerAdminInterface} from '../../Interface/Data/ServerInterface';
+import {
+  BinaryValueRequestInterface,
+  BinaryValueResultInterface,
+  FindReplaceRequestInterface,
+  FindReplaceResultInterface,
+  MAX_BINARY_VALUE_BYTES,
+  mimeTypeOf,
+} from '../../Interface/Data/CellToolsInterface';
 import {DatabaseObjectsInterface, ObjectRefInterface, ServerOptionsInterface} from '../../Interface/Data/DatabaseObjectsInterface';
 import {DatabaseOperationType, MaintenanceResultInterface} from '../../Interface/Data/DatabaseOperationInterface';
 const mysql = require('mysql');
@@ -417,6 +425,64 @@ class MysqlAdapter implements DriverInterface {
       ? await this.operations().charsetOf(change.collation)
       : undefined;
     return MysqlDdlBuilder.build(table, change, {copyColumns, charset});
+  }
+
+  async findReplace(request: FindReplaceRequestInterface): Promise<FindReplaceResultInterface> {
+    const db = request?.table?.databaseName;
+    const name = request?.table?.name;
+    const columns = await this.getColumnsOfTable(db, {table: name});
+    const column = columns.find((item) => item.name === request.column);
+    if (!column) {
+      throw new Error(`Column ${request.column} does not exist`);
+    }
+    if (!/char|text/i.test(column.type || '') || /binary|blob/i.test(column.type || '')) {
+      throw new Error('Find and replace works with text columns (CHAR, VARCHAR, TEXT)');
+    }
+    if (typeof request.find !== 'string' || request.find === '') {
+      throw new Error('Text to find is required');
+    }
+    const replace = String(request.replace ?? '');
+    const table = mysql.format('??.??', [db, name]);
+    const id = mysql.escapeId(column.name);
+    const next = mysql.format(request.regex ? 'REGEXP_REPLACE(??, ?, ?)' : 'REPLACE(??, ?, ?)', [column.name, request.find, replace]);
+    // comparison of bytes - case of letters counts also with case insensitive collation
+    const found = request.regex ? mysql.format('?? REGEXP ?', [column.name, request.find]) : mysql.format('LOCATE(CAST(? AS BINARY), CAST(?? AS BINARY)) > 0', [request.find, column.name]);
+    const changed = `${found} AND CAST(${next} AS BINARY) <> CAST(${id} AS BINARY)`;
+    const statement = `UPDATE ${table} SET ${id} = ${next} WHERE ${changed}`;
+    const keyColumns = columns.filter((item) => item.primaryKey).map((item) => item.name);
+    const keyText = (value: any): string | null => value === null || value === undefined ? null : Buffer.isBuffer(value) ? `0x${value.toString('hex')}` : String(value);
+
+    if (!request.dryRun) {
+      const result: any = await this.queryRows(statement);
+      return {tabId: request.tabId, dryRun: false, statement, count: Number(result.affectedRows), affected: Number(result.affectedRows), keyColumns, rows: []};
+    }
+    const [[counted], rows] = await Promise.all([
+      this.queryRows(`SELECT COUNT(*) AS \`count\` FROM ${table} WHERE ${changed}`),
+      this.queryRows(`SELECT ${keyColumns.map((key) => mysql.escapeId(key)).concat([`${id} AS \`__before\``, `${next} AS \`__after\``]).join(', ')} FROM ${table} WHERE ${changed} LIMIT 50`),
+    ]);
+    return {
+      tabId: request.tabId,
+      dryRun: true,
+      statement,
+      count: Number(counted.count),
+      keyColumns,
+      rows: rows.map((row) => ({key: keyColumns.map((key) => keyText(row[key])), before: keyText(row.__before), after: keyText(row.__after)})),
+    };
+  }
+
+  async getBinaryValue(request: BinaryValueRequestInterface): Promise<BinaryValueResultInterface> {
+    const [row] = await this.queryRows(
+      mysql.format('SELECT ?? AS `value` FROM ??.?? WHERE ', [request.column, request.table.databaseName, request.table.name])
+        + MysqlAdapter.buildWhere(request.where) + ' LIMIT 1',
+    );
+    if (!row) {
+      throw new Error('Row does not exist anymore');
+    }
+    const data: Buffer = Buffer.isBuffer(row.value) ? row.value : Buffer.from(String(row.value ?? ''), 'utf8');
+    if (data.length > MAX_BINARY_VALUE_BYTES) {
+      throw new Error(`Value has ${data.length} bytes - more than ${MAX_BINARY_VALUE_BYTES} bytes are not shown`);
+    }
+    return {tabId: request.tabId, column: request.column, size: data.length, base64: data.toString('base64'), mimeType: mimeTypeOf(data)};
   }
 
   private operations(): MysqlDatabaseOperations {

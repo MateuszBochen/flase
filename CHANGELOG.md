@@ -45,6 +45,13 @@ versions follow [Semantic Versioning](https://semver.org/). A `v*` tag publishes
   min, max), sorting, export as PNG / SVG
 - Map of spatial values - MySQL / MariaDB geometries, PostgreSQL geometric types, WKT and GeoJSON values; points, lines
   and polygons, OpenStreetMap background for longitude / latitude, labels, values of clicked row, zoom, export as SVG
+- Find and replace in column of table - plain text (exact letter case) or regular expression, count and sample of changed
+  rows with marked difference, UPDATE previewed, whole table is changed
+- Value of referenced row next to foreign key in grid - display column guessed (name, title, email...) or chosen in
+  context menu ("Show from ..."), remembered per referenced table
+- Transformations of columns in grid ("Display column as") - image from binary value (whole value is loaded when it is
+  longer than preview), image from URL, link (URL, e-mail), Unix time as date, size in bytes, yes / no, hexadecimal;
+  remembered per column
 - Foreign keys: add (also composite, ON DELETE / ON UPDATE) and drop in structure of table and in ER diagram
   (relation mode - click column, then referenced column; right click on relation drops it)
 

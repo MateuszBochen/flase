@@ -342,6 +342,7 @@ export default (props: GridViewPropsInterface) => {
     <div className="cmp-table-data-content">
       <RecordsView
         ref={recordsRef}
+        connection={props.connection}
         sqlLiteral={DriverFactory.getDriver(props.connection).sql}
         onPageChange={onPageChangeHandler}
         onSort={onSortHandler}

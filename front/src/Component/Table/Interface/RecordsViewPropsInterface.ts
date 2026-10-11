@@ -4,12 +4,15 @@ import ColumnInterface from '../../../Library/Table/Interface/ColumnInterface';
 import {DirectionOrder} from '../Enum/DirectionOrder';
 import EditableResultInterface from '../../../Library/Record/Interface/EditableResultInterface';
 import RowChangeInterface from '../../../Library/Record/Interface/RowChangeInterface';
+import ConnectionDataInterface from '../../../Library/Connection/Interface/ConnectionDataInterface';
 
 export type CellValueType = string|number|null;
 export type QuickFilterOperatorType = '=' | '<>' | 'IS NULL' | 'IS NOT NULL' | 'clear';
 export type SingleRowType = {[key:string]: CellValueType};
 
 interface RecordsViewPropsInterface {
+  /** connection of rows - labels of referenced rows, display settings of columns, whole binary values */
+  connection?: ConnectionDataInterface;
   /** quoting for copy as INSERT - dialect of connection */
   sqlLiteral?: SqlLiteralInterface;
   /*tabIndex: PropTypes.number,*/
