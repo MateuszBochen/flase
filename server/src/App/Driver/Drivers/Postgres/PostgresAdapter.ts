@@ -28,6 +28,19 @@ import PostgresUsers from './PostgresUsers';
 import {UserManagerInterface} from '../../Interface/Data/UserInterface';
 import {deserializeBinaryValue} from '../BinaryValue';
 import {nodeTlsOptions, tlsOfDsn} from '../../Tls/DsnTls';
+import PostgresDatabaseOperations from './PostgresDatabaseOperations';
+import PostgresServerAdmin from './PostgresServerAdmin';
+import {ServerAdminInterface} from '../../Interface/Data/ServerInterface';
+import {
+  BinaryValueRequestInterface,
+  BinaryValueResultInterface,
+  FindReplaceRequestInterface,
+  FindReplaceResultInterface,
+  MAX_BINARY_VALUE_BYTES,
+  mimeTypeOf,
+} from '../../Interface/Data/CellToolsInterface';
+import {DatabaseObjectsInterface, ObjectRefInterface, ServerOptionsInterface} from '../../Interface/Data/DatabaseObjectsInterface';
+import {DatabaseOperationType, MaintenanceResultInterface} from '../../Interface/Data/DatabaseOperationInterface';
 const { Parser } = require('node-sql-parser');
 
 /** types without = operator - rows are identified by text form of value */
@@ -71,6 +84,10 @@ class PostgresAdapter implements DriverInterface {
 
   users(): UserManagerInterface {
     return new PostgresUsers((sql, params) => this.queryRows(sql, params));
+  }
+
+  server(): ServerAdminInterface {
+    return new PostgresServerAdmin((sql, params) => this.queryRows(sql, params));
   }
 
   disconnect(): void {
@@ -300,6 +317,7 @@ class PostgresAdapter implements DriverInterface {
         reference: key ? {
           columnName: key.referencedColumns[0],
           originColumnName: column.name,
+          constraintName: key.name,
           table: {databaseName: key.referencedTable.databaseName, name: key.referencedTable.name},
         } : undefined,
       });
@@ -461,11 +479,122 @@ class PostgresAdapter implements DriverInterface {
     return new PostgresDdlBuilder(this.catalog()).build(table, change);
   }
 
+  async findReplace(request: FindReplaceRequestInterface): Promise<FindReplaceResultInterface> {
+    const schema = request?.table?.databaseName;
+    const name = request?.table?.name;
+    const catalog = this.catalog();
+    const [columns, primaryKeys] = await Promise.all([catalog.columns(schema, [name]), catalog.primaryKeys(schema, [name])]);
+    const column = columns.find((item) => item.name === request.column);
+    if (!column) {
+      throw new Error(`Column ${request.column} does not exist`);
+    }
+    if (!/^(varchar|char|text|citext|name|character)\b/i.test(column.type)) {
+      throw new Error('Find and replace works with text columns (CHAR, VARCHAR, TEXT)');
+    }
+    if (typeof request.find !== 'string' || request.find === '') {
+      throw new Error('Text to find is required');
+    }
+    const table = PostgresSql.table(schema, name);
+    const id = PostgresSql.identifier(column.name);
+    const find = PostgresSql.literal(request.find);
+    const replace = PostgresSql.literal(String(request.replace ?? ''));
+    const next = request.regex ? `regexp_replace(${id}, ${find}, ${replace}, 'g')` : `replace(${id}, ${find}, ${replace})`;
+    const found = request.regex ? `${id} ~ ${find}` : `strpos(${id}, ${find}) > 0`;
+    const changed = `${found} AND ${next} IS DISTINCT FROM ${id}`;
+    const statement = `UPDATE ${table} SET ${id} = ${next} WHERE ${changed}`;
+    const keyColumns = primaryKeys.filter((item) => item.table === name).map((item) => item.column);
+    const keyText = (value: any): string | null => value === null || value === undefined ? null : Buffer.isBuffer(value) ? `\\x${value.toString('hex')}` : String(value);
+
+    if (!request.dryRun) {
+      const result = await this.getPool().query(statement);
+      return {tabId: request.tabId, dryRun: false, statement, count: result.rowCount || 0, affected: result.rowCount || 0, keyColumns, rows: []};
+    }
+    const [[counted], rows] = await Promise.all([
+      this.queryRows(`SELECT COUNT(*) AS count FROM ${table} WHERE ${changed}`),
+      this.queryRows(`SELECT ${keyColumns.map((key) => PostgresSql.identifier(key)).concat([`${id} AS "__before"`, `${next} AS "__after"`]).join(', ')} FROM ${table} WHERE ${changed} LIMIT 50`),
+    ]);
+    return {
+      tabId: request.tabId,
+      dryRun: true,
+      statement,
+      count: Number(counted.count),
+      keyColumns,
+      rows: rows.map((row) => ({key: keyColumns.map((key) => keyText(row[key])), before: keyText(row.__before), after: keyText(row.__after)})),
+    };
+  }
+
+  async getBinaryValue(request: BinaryValueRequestInterface): Promise<BinaryValueResultInterface> {
+    const table = PostgresSql.table(request.table.databaseName, request.table.name);
+    // types of columns are needed for WHERE (json, point...)
+    if (!this.columnTypes.has(`${request.table.databaseName}.${request.table.name}`)) {
+      await this.loadColumns(request.table.databaseName, [request.table.name]);
+    }
+    const types = this.columnTypes.get(`${request.table.databaseName}.${request.table.name}`);
+    const [row] = await this.queryRows(`SELECT ${PostgresSql.identifier(request.column)} AS value FROM ${table} WHERE ${PostgresAdapter.buildWhere(request.where, types)} LIMIT 1`);
+    if (!row) {
+      throw new Error('Row does not exist anymore');
+    }
+    const data: Buffer = Buffer.isBuffer(row.value) ? row.value : Buffer.from(String(row.value ?? ''), 'utf8');
+    if (data.length > MAX_BINARY_VALUE_BYTES) {
+      throw new Error(`Value has ${data.length} bytes - more than ${MAX_BINARY_VALUE_BYTES} bytes are not shown`);
+    }
+    return {tabId: request.tabId, column: request.column, size: data.length, base64: data.toString('base64'), mimeType: mimeTypeOf(data)};
+  }
+
+  private operations(): PostgresDatabaseOperations {
+    return new PostgresDatabaseOperations(this.catalog(), (sql, params) => this.queryRows(sql, params));
+  }
+
+  getDatabaseObjects(schema: string): Promise<DatabaseObjectsInterface> {
+    return this.operations().getDatabaseObjects(schema);
+  }
+
+  getServerOptions(): Promise<ServerOptionsInterface> {
+    return this.operations().getServerOptions();
+  }
+
+  getObjectDdl(schema: string, object: ObjectRefInterface): Promise<string> {
+    return this.operations().getObjectDdl(schema, object);
+  }
+
+  buildDatabaseOperationStatements(operation: DatabaseOperationType): Promise<string[]> {
+    return this.operations().build(operation);
+  }
+
+  async executeDatabaseOperation(operation: DatabaseOperationType, statements: string[]): Promise<MaintenanceResultInterface[]> {
+    if (operation.kind !== 'maintenance') {
+      // CREATE of function / trigger without schema name is created in the schema
+      await this.executeStatements(statements, 'database' in operation ? operation.database : null);
+      return [];
+    }
+    // VACUUM cannot run in transaction - every table separately, error of one table does not stop the others
+    const client = await this.getPool().connect();
+    const results: MaintenanceResultInterface[] = [];
+    try {
+      for (let index = 0; index < statements.length; index++) {
+        const table = operation.tables[index] || '';
+        const command = statements[index].replace(/\s+".*$/, '');
+        try {
+          await client.query(statements[index]);
+          results.push({table, operation: command, type: 'status', message: 'OK'});
+        } catch (e: any) {
+          results.push({table, operation: command, type: 'error', message: e?.message || String(e)});
+        }
+      }
+    } finally {
+      client.release();
+    }
+    return results;
+  }
+
   /** DDL of PostgreSQL is transactional - all statements are executed or none */
-  async executeStatements(statements: string[]): Promise<void> {
+  async executeStatements(statements: string[], schema: string | null = null): Promise<void> {
     const client = await this.getPool().connect();
     try {
       await client.query('BEGIN');
+      if (schema) {
+        await client.query(`SET LOCAL search_path TO ${PostgresSql.identifier(schema)}, public`);
+      }
       for (let index = 0; index < statements.length; index++) {
         try {
           await client.query(statements[index]);

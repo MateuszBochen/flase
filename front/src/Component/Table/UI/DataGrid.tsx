@@ -290,6 +290,7 @@ export default forwardRef<DataGridRefInterface|null, DataGridPropsInterface>((pr
         editingColumnKey={edit?.editingCell?.rowIndex === index ? edit.editingCell.columnKey : null}
         hasReference={!!props.onOpenReference}
         handlers={handlers}
+        display={props.display}
       />
     );
   };

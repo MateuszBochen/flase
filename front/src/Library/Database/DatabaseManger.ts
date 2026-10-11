@@ -11,6 +11,7 @@ import DatabaseWasReceived from './Event/DatabaseWasReceived';
 import LoopThrough from '../Loop/LoopThrough';
 import ConnectionDataInterface from '../Connection/Interface/ConnectionDataInterface';
 import {DatabaseSearchRequestInterface} from './Interface/DatabaseSearchInterface';
+import DatabaseListWasReloaded from './Event/DatabaseListWasReloaded';
 
 
 class DatabaseManger {
@@ -70,6 +71,17 @@ class DatabaseManger {
       this.connectionManager.getClientForConnection(connectionData).sendCommand(command);
     } catch (e) {
       console.error('Connection not found');
+    }
+  }
+
+  /** list is loaded again without removed databases - after create, rename or drop of database */
+  reloadDatabaseList(connection: ConnectionDataInterface): void {
+    delete this.databaseList[connection.id];
+    EventBus.emit(new DatabaseListWasReloaded(connection));
+    try {
+      this.aksForDatabaseList(this.connectionManager.getEstablishedConnection(connection));
+    } catch (e) {
+      console.error('Connection not found', e);
     }
   }
 

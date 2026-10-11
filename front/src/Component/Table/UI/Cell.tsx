@@ -5,6 +5,7 @@ import {faArrowUpRightFromSquare} from '@fortawesome/free-solid-svg-icons';
 import {binaryLabel, isBinaryValue} from '../../../Library/Record/BinaryValue';
 import CellEditor from '../Edit/CellEditor';
 import {CellValueType} from '../Interface/RecordsViewPropsInterface';
+import {renderTransformed} from '../Display/GridDisplay';
 
 const renderValue = (value: CellValueType | undefined, placeholder?: string) => {
   if (value === undefined && placeholder) {
@@ -95,7 +96,8 @@ export default memo((props: CellPropsInterface) => {
                 <FontAwesomeIcon icon={faArrowUpRightFromSquare} />
               </button>
             )}
-            {renderValue(props.value, props.placeholder)}
+            {(props.transform && renderTransformed(props.value, props.transform, column, rowIndex)) || renderValue(props.value, props.placeholder)}
+            {props.label !== undefined && <span className="dtc-label" title={props.label}>{props.label}</span>}
           </div>
         )}
       </div>

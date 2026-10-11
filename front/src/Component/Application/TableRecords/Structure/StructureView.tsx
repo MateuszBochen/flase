@@ -25,6 +25,8 @@ import useStructureChange from './useStructureChange';
 import SqlConfirmPopup from './SqlConfirmPopup';
 import './style.css';
 import useConnectionSettings from '../../../../Library/Connection/useConnectionSettings';
+import TableOptionsForm from './TableOptionsForm';
+import ForeignKeyForm from './ForeignKeyForm';
 
 interface StructureViewPropsInterface {
   connection: ConnectionDataInterface;
@@ -47,9 +49,11 @@ export interface StructureViewRefInterface {
 type FormState =
   | {type: 'column', column?: StructureColumnInterface, after?: string}
   | {type: 'index'}
+  | {type: 'options'}
+  | {type: 'foreignKey'}
   | null;
 
-type MenuState = {x: number, y: number, kind: 'column' | 'index', name: string} | null;
+type MenuState = {x: number, y: number, kind: 'column' | 'index' | 'foreignKey', name: string} | null;
 
 
 const formatBytes = (bytes: number | null): string => {
@@ -146,7 +150,7 @@ export default forwardRef<StructureViewRefInterface, StructureViewPropsInterface
       .catch(() => toast.error('Unable to copy'));
   };
 
-  const openMenu = (event: MouseEvent, kind: 'column' | 'index', name: string) => {
+  const openMenu = (event: MouseEvent, kind: 'column' | 'index' | 'foreignKey', name: string) => {
     event.preventDefault();
     setMenu({x: event.clientX, y: event.clientY, kind, name});
   };
@@ -161,6 +165,13 @@ export default forwardRef<StructureViewRefInterface, StructureViewPropsInterface
     };
     if (!canChange) {
       return [copyName];
+    }
+    if (state.kind === 'foreignKey') {
+      return [
+        copyName,
+        'separator',
+        {label: 'Drop foreign key', danger: true, onClick: () => sendChange({kind: 'alter', operations: [{op: 'dropForeignKey', name: state.name}]})},
+      ];
     }
     if (state.kind === 'index') {
       return [
@@ -193,7 +204,7 @@ export default forwardRef<StructureViewRefInterface, StructureViewPropsInterface
   };
 
   const foreignKeyRows = (keys: StructureForeignKeyInterface[], incoming: boolean) => keys.map((key) => (
-    <tr key={`${key.table.databaseName}.${key.table.name}.${key.name}`}>
+    <tr key={`${key.table.databaseName}.${key.table.name}.${key.name}`} className="structure-row" onContextMenu={incoming ? undefined : (event) => openMenu(event, 'foreignKey', key.name)}>
       <td>{key.name}</td>
       {incoming && <td><TableLink table={key.table} current={props.table} onOpen={props.onOpenTable} /></td>}
       <td>{key.columns.join(', ')}</td>
@@ -233,6 +244,11 @@ export default forwardRef<StructureViewRefInterface, StructureViewPropsInterface
               {structure.info.createTime && <div><span>Created</span>{structure.info.createTime}</div>}
               {structure.info.updateTime && <div><span>Updated</span>{structure.info.updateTime}</div>}
               {structure.info.comment && <div className="wide"><span>Comment</span>{structure.info.comment}</div>}
+              {canChange && (
+                <div>
+                  <button type="button" className="structure-section-action options" onClick={() => setForm({type: 'options'})}>Table options…</button>
+                </div>
+              )}
             </div>
           )}
 
@@ -286,7 +302,7 @@ export default forwardRef<StructureViewRefInterface, StructureViewPropsInterface
           )}
 
           {isTable && (
-            <Section title="Foreign keys" count={structure.foreignKeys.length} empty={!structure.foreignKeys.length}>
+            <Section title="Foreign keys" count={structure.foreignKeys.length} empty={!structure.foreignKeys.length} action={addButton('+ Add foreign key', () => setForm({type: 'foreignKey'}))}>
               <table className="structure-table">
                 <thead><tr><th>Name</th><th>Columns</th><th>References</th><th>Columns</th><th>On update</th><th>On delete</th></tr></thead>
                 <tbody>{foreignKeyRows(structure.foreignKeys, false)}</tbody>
@@ -359,6 +375,27 @@ export default forwardRef<StructureViewRefInterface, StructureViewPropsInterface
           busy={change.busy}
           onCancel={() => setForm(null)}
           onPreview={(name, kind, columns) => sendChange({kind: 'alter', operations: [{op: 'addIndex', name, kind, columns}]})}
+        />
+      )}
+
+      {form?.type === 'foreignKey' && structure && (
+        <ForeignKeyForm
+          connection={props.connection}
+          table={props.table}
+          columns={structure.columns.map((column) => column.name)}
+          busy={change.busy}
+          onCancel={() => setForm(null)}
+          onPreview={(operation) => sendChange({kind: 'alter', operations: [operation]})}
+        />
+      )}
+
+      {form?.type === 'options' && structure?.info && (
+        <TableOptionsForm
+          connection={props.connection}
+          info={structure.info}
+          busy={change.busy}
+          onCancel={() => setForm(null)}
+          onPreview={sendChange}
         />
       )}
 

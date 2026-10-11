@@ -8,7 +8,14 @@ import TableInformationInterface from '../../../Library/Table/Interface/TableInf
 import NewTabComponentWasSelected from '../../ApplicationRenderer/Event/NewTabComponentWasSelected';
 import TableRecords from '../TableRecords/TableRecords';
 import TableRecordsPropsInterface from '../TableRecords/Interface/TableRecordsPropsInterface';
-import {autoLayout, BoxType, HEADER_HEIGHT, relationsOf, ROW_HEIGHT} from './ErLayout';
+import {autoLayout, BoxType, HEADER_HEIGHT, relationsOf, RelationType, ROW_HEIGHT} from './ErLayout';
+import ContextMenu, {ContextMenuItem} from '../../../UI/ContextMenu/ContextMenu';
+import useConnectionSettings from '../../../Library/Connection/useConnectionSettings';
+import useStructureChange from '../TableRecords/Structure/useStructureChange';
+import SqlConfirmPopup from '../TableRecords/Structure/SqlConfirmPopup';
+import ForeignKeyForm from '../TableRecords/Structure/ForeignKeyForm';
+import openTableTab from '../TableRecords/openTableTab';
+import '../TableRecords/Structure/style.css';
 import './style.css';
 
 export interface ErDiagramPropsInterface extends ApplicationInterface {
@@ -32,6 +39,7 @@ const loadPositions = (key: string): PositionsType => {
 
 /** ErDiagram - tables of database with foreign keys, tables can be moved, positions are remembered */
 export default (props: ErDiagramPropsInterface) => {
+  const connection = useConnectionSettings(props.connection);
   const tableManager = TableManager.getInstance();
   const key = storageKey(props.connection, props.database);
   const listTables = () => tableManager.getTablesListForDatabase(props.connection, {name: props.database})
@@ -45,6 +53,53 @@ export default (props: ErDiagramPropsInterface) => {
   const drag = useRef<DragType | null>(null);
   const moved = useRef<boolean>(false);
   const svgRef = useRef<SVGSVGElement | null>(null);
+  /** click on column starts relation, click on column of other table finishes it */
+  const [linkMode, setLinkMode] = useState<boolean>(false);
+  const [linkSource, setLinkSource] = useState<{table: string, column: string} | null>(null);
+  const [foreignKey, setForeignKey] = useState<{table: string, column: string, referencedTable: string, referencedColumn: string} | null>(null);
+  const [menu, setMenu] = useState<{x: number, y: number, items: ContextMenuItem[]} | null>(null);
+  /** table changed by relation form or drop of relation */
+  const [changedTable, setChangedTable] = useState<string>('');
+  const change = useStructureChange(props.connection, {databaseName: props.database, name: changedTable}, `${props.tabId}:er-change`, () => {
+    setForeignKey(null);
+    tableManager.askForTableList(props.connection, {name: props.database}, true);
+  });
+
+  const onColumnClick = (event: React.MouseEvent, table: string, column: string) => {
+    if (!linkMode) return;
+    event.stopPropagation();
+    if (!linkSource) {
+      setLinkSource({table, column});
+    } else if (linkSource.table === table && linkSource.column === column) {
+      setLinkSource(null);
+    } else {
+      setChangedTable(linkSource.table);
+      setForeignKey({table: linkSource.table, column: linkSource.column, referencedTable: table, referencedColumn: column});
+      setLinkSource(null);
+    }
+  };
+
+  const relationMenu = (event: React.MouseEvent, relation: RelationType) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setMenu({x: event.clientX, y: event.clientY, items: [
+      {label: `Open ${relation.from}`, onClick: () => openTableTab(props.connection, {databaseName: props.database, name: relation.from}, {newTab: true})},
+      {label: `Open ${relation.to}`, onClick: () => openTableTab(props.connection, {databaseName: props.database, name: relation.to}, {newTab: true})},
+      'separator',
+      {
+        label: relation.constraint ? `Drop foreign key ${relation.constraint}…` : 'Drop foreign key…',
+        danger: true,
+        disabled: !relation.constraint || !!connection.readOnly,
+        onClick: () => {
+          setChangedTable(relation.from);
+          // hook is bound to table of the change - request after it was rendered for the table
+          setTimeout(() => pendingDrop.current?.(relation.constraint!));
+        },
+      },
+    ]});
+  };
+  const pendingDrop = useRef<((name: string) => void) | null>(null);
+  pendingDrop.current = (name: string) => change.requestPreview({kind: 'alter', operations: [{op: 'dropForeignKey', name}]});
 
   useEffect(() => {
     const eventId = EventBus.subscribe(TableInformationWasReceived.name, () => setTables(listTables()));
@@ -89,6 +144,11 @@ export default (props: ErDiagramPropsInterface) => {
 
   const onMouseDown = (event: React.MouseEvent, table?: string) => {
     if (event.button !== 0) return;
+    // tables are not moved while relation is drawn
+    if (linkMode && table) {
+      event.stopPropagation();
+      return;
+    }
     event.stopPropagation();
     moved.current = false;
     drag.current = table
@@ -201,7 +261,21 @@ export default (props: ErDiagramPropsInterface) => {
         <button type="button" onClick={() => { setZoom(1); setPan({x: 0, y: 0}); }}>100%</button>
         <button type="button" title="Forget moved positions" onClick={() => savePositions({})}>Auto layout</button>
         <button type="button" onClick={exportSvg}>Export SVG</button>
-        <span className="er-hint">Drag tables or background, wheel zooms, click opens table</span>
+        {!connection.readOnly && (
+          <button
+            type="button"
+            className={linkMode ? 'active' : ''}
+            onClick={() => { setLinkMode(!linkMode); setLinkSource(null); }}
+            title="Click column of table with foreign key, then referenced column of other table"
+          >
+            {linkMode ? 'Cancel relation' : 'Add relation'}
+          </button>
+        )}
+        <span className="er-hint">
+          {linkMode
+            ? (linkSource ? `${linkSource.table}.${linkSource.column} → click referenced column` : 'Click column which will reference other table')
+            : 'Drag tables or background, wheel zooms, click opens table, right click on relation drops it'}
+        </span>
       </div>
       <svg
         ref={svgRef}
@@ -226,15 +300,19 @@ export default (props: ErDiagramPropsInterface) => {
             if (!from || !to) return null;
             const fromRow = Math.max(0, fromTable.columns.findIndex((column) => column.name === relation.fromColumn));
             const toRow = Math.max(0, toTable.columns.findIndex((column) => column.name === relation.toColumn));
+            const path = relationPath(from, fromRow, to, toRow);
             return (
-              <path
-                key={index}
-                className={`er-relation ${isRelatedToHovered(relation) ? 'highlight' : ''} ${hovered && !isRelatedToHovered(relation) ? 'dimmed' : ''}`}
-                d={relationPath(from, fromRow, to, toRow)}
-                markerEnd="url(#er-arrow)"
-              >
-                <title>{`${relation.from}.${relation.fromColumn} → ${relation.to}.${relation.toColumn}`}</title>
-              </path>
+              <g key={index} onContextMenu={(event) => relationMenu(event, relation)}>
+                <path
+                  className={`er-relation ${isRelatedToHovered(relation) ? 'highlight' : ''} ${hovered && !isRelatedToHovered(relation) ? 'dimmed' : ''}`}
+                  d={path}
+                  markerEnd="url(#er-arrow)"
+                />
+                {/* wide invisible line - easier to hit with mouse */}
+                <path className="er-relation-hit" d={path} data-relation={`${relation.from}.${relation.fromColumn}`}>
+                  <title>{`${relation.from}.${relation.fromColumn} → ${relation.to}.${relation.toColumn}${relation.constraint ? ` (${relation.constraint})` : ''}`}</title>
+                </path>
+              </g>
             );
           })}
           {shownTables.map((table) => {
@@ -248,13 +326,25 @@ export default (props: ErDiagramPropsInterface) => {
                 onMouseDown={(event) => onMouseDown(event, table.tableName)}
                 onMouseEnter={() => setHovered(table.tableName)}
                 onMouseLeave={() => setHovered(null)}
-                onClick={() => !moved.current && openTable(table)}
+                onClick={() => !moved.current && !linkMode && openTable(table)}
               >
                 <rect className="er-table-bg" width={box.width} height={box.height} rx={4} />
                 <rect className="er-header" width={box.width} height={HEADER_HEIGHT} rx={4} />
                 <text className="er-title" x={8} y={17}>{table.tableName}</text>
                 {table.columns.map((column, index) => (
-                  <g key={column.name} transform={`translate(0 ${HEADER_HEIGHT + index * ROW_HEIGHT})`}>
+                  <g
+                    key={column.name}
+                    transform={`translate(0 ${HEADER_HEIGHT + index * ROW_HEIGHT})`}
+                    className={`er-column-row ${linkMode ? 'linkable' : ''}`}
+                    data-column={`${table.tableName}.${column.name}`}
+                    onClick={(event) => onColumnClick(event, table.tableName, column.name)}
+                  >
+                    <rect
+                      className={`er-column-hit ${linkSource?.table === table.tableName && linkSource.column === column.name ? 'selected' : ''}`}
+                      x={1}
+                      width={box.width - 2}
+                      height={ROW_HEIGHT}
+                    />
                     <text className={column.primaryKey ? 'er-pk' : column.reference ? 'er-fk' : 'er-column'} x={8} y={13}>
                       {column.primaryKey ? '🔑 ' : column.reference ? '↗ ' : '   '}{column.name}{column.nullable ? '' : ' *'}
                     </text>
@@ -267,6 +357,27 @@ export default (props: ErDiagramPropsInterface) => {
         </g>
       </svg>
       {!tables.length && <div className="er-empty">Loading tables…</div>}
+      {menu && <ContextMenu x={menu.x} y={menu.y} items={menu.items} onClose={() => setMenu(null)} />}
+      {foreignKey && (
+        <ForeignKeyForm
+          connection={props.connection}
+          table={{databaseName: props.database, name: foreignKey.table}}
+          columns={tables.find((table) => table.tableName === foreignKey.table)?.columns.map((column) => column.name) || []}
+          initial={{columns: [foreignKey.column], referencedTable: foreignKey.referencedTable, referencedColumns: [foreignKey.referencedColumn]}}
+          busy={change.busy}
+          onCancel={() => setForeignKey(null)}
+          onPreview={(operation) => change.requestPreview({kind: 'alter', operations: [operation]})}
+        />
+      )}
+      {change.preview && (
+        <SqlConfirmPopup
+          statements={change.preview.statements}
+          change={change.preview.change}
+          busy={change.busy}
+          onExecute={change.execute}
+          onCancel={change.closePreview}
+        />
+      )}
     </div>
   );
 }

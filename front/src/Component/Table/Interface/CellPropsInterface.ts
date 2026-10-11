@@ -1,6 +1,7 @@
 import ColumnInterface from '../../../Library/Table/Interface/ColumnInterface';
 import {CellValueType} from './RecordsViewPropsInterface';
 import {GridHandlersInterface} from './GridEditInterface';
+import {TransformType} from '../../../Library/CellTools/ColumnDisplay';
 
 /** only primitive values and stable objects - cell is memoized */
 interface CellPropsInterface {
@@ -25,6 +26,10 @@ interface CellPropsInterface {
   /** value is foreign key - open referenced row */
   reference: boolean;
   handlers: GridHandlersInterface;
+  /** value shown as image, link, date... */
+  transform?: TransformType;
+  /** value of display column of referenced row */
+  label?: string;
 }
 
 export default CellPropsInterface;

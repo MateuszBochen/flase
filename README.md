@@ -30,17 +30,31 @@ import and export dumps, draw ER diagrams and manage users - all from one self-h
 - Inline cell editing (double click) and **Edit cell** popup with big text area for long texts and JSON
 - Multi selection (drag, Shift + click, Ctrl + click), delete of selected rows, add / clone / edit row in a form
 - Pending changes with **SQL preview**, submit with Ctrl + S, optional confirmation of every change
-- Copy selection or whole selected rows as **TSV, CSV, JSON, Markdown or SQL INSERT**
+- Copy selection or whole selected rows as **TSV, CSV, JSON, XML, Markdown, HTML, LaTeX or SQL INSERT**
+- Export rows as **CSV, Excel (XLSX), OpenDocument (ODS), JSON, XML, SQL, HTML, LaTeX or PDF**
+- **Charts** of results (bar, line, pie, scatter, grouping) and **map** of spatial values (OpenStreetMap background)
 - Foreign key navigation (open referenced row in the same or a new tab)
 - Quick filters from cell values, sorting, paging, query bar with history and SQL completion
+- **Find and replace** in column (text or regular expression) with preview of changed rows
+- Value of **referenced row next to foreign key** (display column) and **transformations** - image, link, date from Unix time, size, yes / no
 - Resizable columns (drag the header edge, double click to fit content) remembered per table
 - Value editor for JSON (format / minify), long texts and binary values (hex / text)
 - UUID and binary (BINARY(16), bytea) primary keys, tables without primary key
 
 ### Structure
 - Columns, indexes, foreign keys, triggers and DDL of tables and views
-- Add, change and drop columns, indexes and foreign keys - **every DDL statement is previewed** before execution
+- **Create table** form - columns, primary key, indexes, engine, collation, comment
+- Add, change and drop columns, indexes and **foreign keys** - **every DDL statement is previewed** before execution
+- Table options - engine, collation (with conversion of columns), comment, AUTO_INCREMENT
 - Rename, copy, truncate and drop tables
+
+### Databases
+- **Database overview** - tables and views with rows and sizes, procedures, functions, triggers and events
+- Operations on **selected tables**: export, truncate, drop, **OPTIMIZE / ANALYZE / CHECK / REPAIR**
+  (MySQL, MariaDB) or **VACUUM / ANALYZE / REINDEX** (PostgreSQL)
+- Create, rename and drop databases (schemas), change collation of database and its tables
+- **Stored procedures, functions, triggers, events and views** - create from template, edit in SQL editor, drop,
+  execute procedure with parameters, create view from query
 
 ### SQL console
 - Many statements in one run, results in tabs, messages with timing and affected rows
@@ -55,8 +69,16 @@ import and export dumps, draw ER diagrams and manage users - all from one self-h
 - SQL and **CSV import** with progress, column mapping and preview, stop on error
 - Export as text in the browser (like phpMyAdmin "view output as text") and import of pasted text
 
+### Server
+- **Live monitor** - connections, queries per second, traffic, cache hit ratio, slow queries with charts
+- **Status variables** and **server variables** with change (SET GLOBAL / SET PERSIST / ALTER SYSTEM) and SQL preview
+- **Advisor** - checks of buffer pool, connections, temporary tables, slow log, idle transactions, checkpoints...
+- Character sets, collations, storage engines; PostgreSQL databases, access methods and extensions
+- **Replication** - replicas / standbys, lag, slots, publications, binary logs with events, WAL files
+
 ### More
-- **ER diagram** of a database with movable layout and SVG export
+- **Visual query builder** - tables and joins on canvas, columns with filters, sort and aggregates, live SQL
+- **ER diagram** of a database with movable layout, SVG export and drawing of relations (foreign keys)
 - **Users and privileges** - accounts, roles and GRANTs of MySQL, MariaDB and PostgreSQL
 - Processlist with kill of queries, search across all tables of a database
 - **Dark and light theme**, keyboard shortcuts (F1 shows all of them)
@@ -133,7 +155,8 @@ so a DSN typed in the browser cannot read other files of the server.
 Predefined connections are resolved by the server: the address is never taken from the browser and `readOnly`
 is enforced for the whole session. Credentials written in a predefined DSN are never sent to the browser.
 
-The browser of the user needs access to `cdn.jsdelivr.net` (SQL editor) and Google Fonts; the database is accessed only
+The browser of the user needs access to `cdn.jsdelivr.net` (SQL editor), Google Fonts and `tile.openstreetmap.org`
+(background of maps, optional); the database is accessed only
 by the server.
 
 ## Development

@@ -10,6 +10,8 @@ export interface TransferTabPropsInterface extends ApplicationInterface {
   database: string;
   /** opened from table - export / CSV import of this table */
   table?: string;
+  /** tables selected for export at start (database overview) */
+  tables?: string[];
 }
 
 /** TransferTab - import and export of database */
@@ -18,7 +20,7 @@ export default (props: TransferTabPropsInterface) => (
     <div className="transfer-title">
       {props.database}{props.table ? `.${props.table}` : ''} <span>import / export</span>
     </div>
-    <ExportPanel connection={props.connection} database={props.database} table={props.table} tabId={`${props.tabId}`} />
+    <ExportPanel connection={props.connection} database={props.database} table={props.table} tables={props.tables} tabId={`${props.tabId}`} />
     <ImportPanel connection={props.connection} database={props.database} table={props.table} tabId={`${props.tabId}`} />
   </div>
 );

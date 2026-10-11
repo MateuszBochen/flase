@@ -3,6 +3,63 @@
 All notable changes of Flase are documented here. Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versions follow [Semantic Versioning](https://semver.org/). A `v*` tag publishes the Docker image of the version.
 
+
+
+## [0.1.0] - 2026-10-11
+
+### Added
+- Database overview (phpMyAdmin "Structure" of database): tables and views with rows, sizes, engine, collation and comment,
+  filter, selection of more tables; procedures, functions, triggers and events
+- Operations on selected tables: export, truncate, drop (views too), with disabled foreign key checks (MySQL) or CASCADE (PostgreSQL)
+- Table maintenance: OPTIMIZE, ANALYZE, CHECK, REPAIR (MySQL / MariaDB), VACUUM, VACUUM FULL, VACUUM ANALYZE, ANALYZE,
+  REINDEX (PostgreSQL) with messages for every table - from overview and from context menu of table in sidebar
+- Create table form: columns (type, null, default, auto increment, primary key, comment, order), indexes, engine,
+  collation and comment, SQL preview
+- Table options in structure: engine, collation (also conversion of existing columns), comment, next AUTO_INCREMENT
+  (identity / serial sequence in PostgreSQL)
+- Create, rename and drop of database (schema in PostgreSQL), collation of database with optional conversion of all tables
+- Procedures, functions, triggers, events and views: new from template, edit of definition in SQL editor, drop;
+  failed change of MySQL routine restores the previous definition; overloaded PostgreSQL functions
+- Execute procedure / function with parameters - CALL / SELECT opened and run in SQL console (OUT values in result)
+- Create view from query of SQL console
+- Context menus: database in sidebar (overview, new table, console, import / export, search, ER diagram, collation,
+  rename, drop) and table in sidebar (rename, copy, truncate, drop, maintenance, export)
+
+- Server tab (gauge icon of connection):
+  - live monitor - uptime, connections, queries (transactions) per second, statements (rows) per second, traffic,
+    buffer pool / cache hit ratio, slow queries, deadlocks, temporary tables / files; charts of last readings,
+    refresh interval and pause
+  - status variables (SHOW GLOBAL STATUS, pg_stat_*) with change since previous reading and average per second
+  - variables with filter, default value, source, description, restart flags; change by SET GLOBAL / SET PERSIST
+    (MySQL 8) / ALTER SYSTEM + reload (PostgreSQL), reset to default, SQL preview
+  - advisor - buffer pool / cache, connections, temporary tables, slow log, table cache, joins without indexes,
+    deadlocks, idle in transaction, checkpoints, autovacuum... with link to the variable
+  - character sets, collations and storage engines (MySQL), databases, collations, access methods and extensions (PostgreSQL)
+  - replication - role of server, replica channels with IO / SQL thread, lag and errors, connected replicas, binary log
+    position and GTID (MySQL / MariaDB); standbys, replication slots, WAL receiver, publications and subscriptions (PostgreSQL);
+    binary logs with their events, WAL files; new binary log, purge of old logs, start / stop replica, switch WAL, drop slot
+- Visual query builder: tables from list (click or drag), joins from foreign keys or drawn from column to column,
+  INNER / LEFT / RIGHT join, grid of columns with alias, aggregate, sort and filter (WHERE / HAVING, GROUP BY added),
+  DISTINCT, LIMIT, live SQL, run in console, create view, state restored after reload
+- Export of rows (current page or all rows) as Excel (XLSX), OpenDocument (ODS), XML (format of mysqldump --xml),
+  HTML, LaTeX and PDF (printable page, "Save as PDF" of browser); copy of selection also as XML, HTML table and LaTeX
+- Chart of loaded rows - bar, line, pie, scatter; label column, more value columns, grouping (sum, average, count,
+  min, max), sorting, export as PNG / SVG
+- Map of spatial values - MySQL / MariaDB geometries, PostgreSQL geometric types, WKT and GeoJSON values; points, lines
+  and polygons, OpenStreetMap background for longitude / latitude, labels, values of clicked row, zoom, export as SVG
+- Find and replace in column of table - plain text (exact letter case) or regular expression, count and sample of changed
+  rows with marked difference, UPDATE previewed, whole table is changed
+- Value of referenced row next to foreign key in grid - display column guessed (name, title, email...) or chosen in
+  context menu ("Show from ..."), remembered per referenced table
+- Transformations of columns in grid ("Display column as") - image from binary value (whole value is loaded when it is
+  longer than preview), image from URL, link (URL, e-mail), Unix time as date, size in bytes, yes / no, hexadecimal;
+  remembered per column
+- Foreign keys: add (also composite, ON DELETE / ON UPDATE) and drop in structure of table and in ER diagram
+  (relation mode - click column, then referenced column; right click on relation drops it)
+
+### Fixed
+- MySQL 8: sizes, rows and AUTO_INCREMENT of tables were read from statistics cached up to 24 hours
+
 ## [0.0.2] - 2026-10-10
 
 ### Added
@@ -70,5 +127,7 @@ First public version - web database manager for MySQL, MariaDB and PostgreSQL, a
 - Production Docker image (`docker/production/Dockerfile`): application, API and websocket on one port
 - GitHub Actions workflow publishing the image to Docker Hub on a `v*` tag
 
-[Unreleased]: https://github.com/MateuszBochen/flase/compare/v0.0.1...HEAD
+[Unreleased]: https://github.com/MateuszBochen/flase/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/MateuszBochen/flase/compare/v0.0.2...v0.1.0
+[0.0.2]: https://github.com/MateuszBochen/flase/compare/v0.0.1...v0.0.2
 [0.0.1]: https://github.com/MateuszBochen/flase/releases/tag/v0.0.1

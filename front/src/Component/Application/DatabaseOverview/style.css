@@ -1,0 +1,139 @@
+.cmp-database-overview .overview-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 30px;
+  padding: 0 6px;
+  background-color: var(--panel);
+  border-bottom: solid 1px var(--bg);
+}
+
+.cmp-database-overview .overview-title {
+  margin: 0 6px 0 2px;
+  color: var(--title);
+  font-weight: 600;
+}
+
+.cmp-database-overview .overview-title svg {
+  margin-right: 4px;
+  color: var(--accent);
+}
+
+.cmp-database-overview .overview-chip {
+  padding: 0 8px;
+  border: solid 1px var(--border);
+  border-radius: 10px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.cmp-database-overview .overview-spacer {
+  flex: 1;
+}
+
+.cmp-database-overview .overview-toolbar button,
+.cmp-database-overview .overview-selection button {
+  height: 22px;
+  padding: 0 8px;
+  border: solid 1px var(--border-strong);
+  border-radius: 3px;
+  color: var(--text-strong);
+  background-color: var(--bg);
+  font: inherit;
+  cursor: pointer;
+}
+
+.cmp-database-overview .overview-toolbar button:hover:not(:disabled),
+.cmp-database-overview .overview-selection button:hover:not(:disabled) {
+  background-color: var(--tab-bg);
+}
+
+.cmp-database-overview .overview-toolbar button:disabled,
+.cmp-database-overview .overview-selection button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.cmp-database-overview .overview-toolbar button svg,
+.cmp-database-overview .overview-selection button svg {
+  margin-right: 4px;
+  font-size: 0.75rem;
+}
+
+.cmp-database-overview .overview-toolbar button[aria-label] svg {
+  margin-right: 0;
+}
+
+.cmp-database-overview .overview-selection button.danger {
+  color: var(--danger-text-soft);
+  border-color: #a8413e;
+}
+
+.cmp-database-overview .overview-selection button.danger:hover:not(:disabled) {
+  color: #ffffff;
+  background-color: #a8413e;
+}
+
+.cmp-database-overview .overview-selection {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.cmp-database-overview .overview-filter {
+  width: 200px;
+  height: 22px;
+  padding: 0 6px;
+  border: solid 1px var(--border-strong);
+  border-radius: 3px;
+  color: var(--text);
+  background-color: var(--input-bg);
+  font: inherit;
+}
+
+.cmp-database-overview .overview-selected {
+  margin: 0 6px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.cmp-database-overview .overview-separator {
+  width: 1px;
+  height: 16px;
+  margin: 0 4px;
+  background-color: var(--border-strong);
+}
+
+.cmp-database-overview .overview-muted {
+  margin-right: 2px;
+  color: var(--text-muted);
+}
+
+.cmp-database-overview .overview-tables {
+  min-width: 70%;
+}
+
+.cmp-database-overview .overview-tables tr.selected td {
+  background-color: var(--inset-soft);
+}
+
+.cmp-database-overview .overview-tables tr.structure-row {
+  cursor: default;
+}
+
+.cmp-database-overview .structure-table th.number,
+.cmp-database-overview .structure-table td.number {
+  text-align: right;
+}
+
+.cmp-database-overview .structure-table tfoot td {
+  border-bottom: none;
+  padding-top: 4px;
+}
+
+.cmp-database-overview .structure-table input[type="checkbox"] {
+  margin: 0;
+  accent-color: var(--primary);
+}

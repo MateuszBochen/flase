@@ -8,6 +8,7 @@ import {
 } from '../../Interface/Data/StructureChangeInterface';
 import PostgresSql from './PostgresSql';
 import PostgresCatalog, {CatalogColumnInterface} from './PostgresCatalog';
+import {foreignKeyParts} from '../ForeignKey';
 
 /**
  * Builds DDL for PostgreSQL. Names and values are escaped,
@@ -41,9 +42,41 @@ class PostgresDdlBuilder {
       }
       case 'copy':
         return this.copy(table, PostgresDdlBuilder.requireName(change.newName, 'New table name'), change.withData);
+      case 'options':
+        return this.options(table, change);
       default:
         throw new Error(`Unknown structure change ${(change as StructureChangeType).kind}`);
     }
+  }
+
+  /** comment and next value of identity / serial column - PostgreSQL has no engine or default collation of table */
+  private async options(table: TableInterface, change: Extract<StructureChangeType, {kind: 'options'}>): Promise<string[]> {
+    if (change.engine) {
+      throw new Error('PostgreSQL has no storage engines');
+    }
+    if (change.collation) {
+      throw new Error('Table of PostgreSQL has no default collation - collation is set for columns');
+    }
+    const tableName = PostgresDdlBuilder.tableName(table);
+    const statements: string[] = [];
+    if (change.comment !== undefined && change.comment !== null) {
+      statements.push(`COMMENT ON TABLE ${tableName} IS ${change.comment ? PostgresSql.literal(change.comment) : 'NULL'}`);
+    }
+    if (change.autoIncrement !== undefined && change.autoIncrement !== null) {
+      if (!Number.isInteger(change.autoIncrement) || change.autoIncrement <= 0) {
+        throw new Error('Auto increment must be positive number');
+      }
+      const column = (await this.catalog.columns(table.databaseName, [table.name])).find((item) => (item.identity || item.serial) && item.sequence);
+      if (!column) {
+        throw new Error('Table has no identity or serial column');
+      }
+      // next inserted row gets this value
+      statements.push(`SELECT setval(${PostgresSql.literal(column.sequence)}, ${change.autoIncrement}, false)`);
+    }
+    if (!statements.length) {
+      throw new Error('Nothing to change');
+    }
+    return statements;
   }
 
   /** one ALTER TABLE for column changes, renames and comments after it (DDL is transactional) */
@@ -111,6 +144,16 @@ class PostgresDdlBuilder {
           after.push(`CREATE ${operation.kind === 'UNIQUE' ? 'UNIQUE ' : ''}INDEX${indexName} ON ${tableName} (${indexColumns})`);
           break;
         }
+        case 'addForeignKey': {
+          const {columns: keyColumns, referenced, onDelete, onUpdate} = foreignKeyParts(operation);
+          const constraint = operation.name?.trim() ? `CONSTRAINT ${PostgresSql.identifier(operation.name.trim())} ` : '';
+          clauses.push(`ADD ${constraint}FOREIGN KEY (${PostgresSql.identifiers(keyColumns)}) REFERENCES ${PostgresDdlBuilder.tableName(operation.referencedTable)} `
+            + `(${PostgresSql.identifiers(referenced)}) ON DELETE ${onDelete} ON UPDATE ${onUpdate}`);
+          break;
+        }
+        case 'dropForeignKey':
+          clauses.push(`DROP CONSTRAINT ${PostgresSql.identifier(PostgresDdlBuilder.requireName(operation.name, 'Foreign key name'))}`);
+          break;
         case 'dropIndex': {
           const name = PostgresDdlBuilder.requireName(operation.name, 'Index name');
           const index = (await this.catalog.indexes(table.databaseName, table.name)).find((item) => item.name === name);
@@ -207,7 +250,7 @@ class PostgresDdlBuilder {
     return statements;
   }
 
-  private static columnDefinition(column: ColumnDefinitionInterface): string {
+  static columnDefinition(column: ColumnDefinitionInterface): string {
     if (column.onUpdateCurrentTimestamp) {
       throw new Error('ON UPDATE CURRENT_TIMESTAMP is not supported in PostgreSQL - use trigger');
     }

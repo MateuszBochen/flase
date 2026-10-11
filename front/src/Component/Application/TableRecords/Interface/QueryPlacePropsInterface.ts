@@ -26,6 +26,7 @@ interface QueryPlacePropsInterface {
   readOnly?: boolean;
   /** dump / CSV import of the table */
   onTransfer: () => void;
+  onFindReplace: () => void;
   /** table was renamed / dropped */
   tableOperationsDisabled: boolean;
 }

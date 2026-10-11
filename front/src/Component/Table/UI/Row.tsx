@@ -51,6 +51,8 @@ export default memo((props: RowPropsInterface) => {
             editable={editable}
             reference={props.hasReference && !!column.reference && props.rowState !== 'inserted' && value !== null && value !== undefined}
             handlers={handlers}
+            transform={props.display?.transforms[column.key] || ''}
+            label={value !== null && value !== undefined && typeof value !== 'object' ? props.display?.labels[column.key]?.[String(value)] : undefined}
           />
         );
       })}

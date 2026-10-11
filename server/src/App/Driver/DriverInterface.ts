@@ -14,6 +14,15 @@ import SqlDialectType from './Query/SqlDialectType';
 import {UserManagerInterface} from './Interface/Data/UserInterface';
 import {StructureChangeType} from './Interface/Data/StructureChangeInterface';
 import {DatabaseSearchResultInterface, SearchModeType} from './Interface/Data/DatabaseSearchInterface';
+import {DatabaseObjectsInterface, ObjectRefInterface, ServerOptionsInterface} from './Interface/Data/DatabaseObjectsInterface';
+import {DatabaseOperationType, MaintenanceResultInterface} from './Interface/Data/DatabaseOperationInterface';
+import {ServerAdminInterface} from './Interface/Data/ServerInterface';
+import {
+  BinaryValueRequestInterface,
+  BinaryValueResultInterface,
+  FindReplaceRequestInterface,
+  FindReplaceResultInterface,
+} from './Interface/Data/CellToolsInterface';
 
 interface DriverInterface {
   /** syntax of SQL - splitting of imported scripts, quoting */
@@ -28,6 +37,11 @@ interface DriverInterface {
    * User accounts and privileges
    */
   users(): UserManagerInterface;
+
+  /**
+   * Status, variables, character sets and engines of server
+   */
+  server(): ServerAdminInterface;
 
   /**
    * Close all connections of driver
@@ -114,6 +128,41 @@ interface DriverInterface {
    * Execute DDL statements one by one (DDL is committed immediately, it cannot be rolled back)
    */
   executeStatements(statements: string[]): Promise<void>;
+
+  /**
+   * Tables with sizes, routines, triggers and events of database (schema)
+   */
+  getDatabaseObjects(database: string): Promise<DatabaseObjectsInterface>;
+
+  /**
+   * Collations and storage engines for forms (empty in PostgreSQL)
+   */
+  getServerOptions(): Promise<ServerOptionsInterface>;
+
+  /**
+   * CREATE statement of procedure, function, trigger, event or view
+   */
+  getObjectDdl(database: string, object: ObjectRefInterface): Promise<string>;
+
+  /**
+   * Build escaped statements of operation on database or on more tables. Throws for invalid definition.
+   */
+  buildDatabaseOperationStatements(operation: DatabaseOperationType): Promise<string[]>;
+
+  /**
+   * Execute statements built for operation - messages of maintenance (OPTIMIZE, VACUUM...) are returned
+   */
+  executeDatabaseOperation(operation: DatabaseOperationType, statements: string[]): Promise<MaintenanceResultInterface[]>;
+
+  /**
+   * Find and replace of text in column - dryRun counts changed rows and returns sample of them
+   */
+  findReplace(request: FindReplaceRequestInterface): Promise<FindReplaceResultInterface>;
+
+  /**
+   * Whole binary value of cell (grid has only preview)
+   */
+  getBinaryValue(request: BinaryValueRequestInterface): Promise<BinaryValueResultInterface>;
 
   /**
    * Search term in all searchable columns of all tables of database.

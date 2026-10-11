@@ -1,6 +1,6 @@
 import React, {useCallback, useEffect, useState} from 'react';
 import IconButton from '../../../../UI/Button/IconButton';
-import {faCopy, faEraser, faMagnifyingGlassChart, faPenToSquare, faRightLeft, faRotateRight, faTable, faTableColumns, faTrashCan} from '@fortawesome/free-solid-svg-icons';
+import {faCopy, faEraser, faMagnifyingGlassChart, faPenToSquare, faRightLeft, faRotateRight, faTable, faTableColumns, faTrashCan, faMagnifyingGlassArrowRight} from '@fortawesome/free-solid-svg-icons';
 import Editor from '../../../../UI/Editor/Editor';
 import QueryPlacePropsInterface from '../Interface/QueryPlacePropsInterface';
 import DriverFactory from '../../../../Library/Database/Driver/DriverFactory';
@@ -200,6 +200,12 @@ export default (props: QueryPlacePropsInterface) => {
           tooltip="Explain query"
           disabled={props.view !== 'data' || props.tableOperationsDisabled}
           onClick={props.onExplain}
+        />
+        <IconButton
+          icon={faMagnifyingGlassArrowRight}
+          tooltip={props.readOnly ? 'Find in column (read only - preview only)' : 'Find and replace…'}
+          disabled={props.tableOperationsDisabled}
+          onClick={props.onFindReplace}
         />
         <IconButton
           icon={faRightLeft}

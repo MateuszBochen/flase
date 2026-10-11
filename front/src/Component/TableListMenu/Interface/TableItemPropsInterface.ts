@@ -1,3 +1,4 @@
+import React from 'react';
 import ConnectionDataInterface from '../../../Library/Connection/Interface/ConnectionDataInterface';
 import Database from '../../../Library/Database/Interface/Database';
 import TableInformationInterface from '../../../Library/Table/Interface/TableInformationInterface';
@@ -7,5 +8,6 @@ interface TableItemPropsInterface {
   database: Database;
   table: TableInformationInterface;
   key: string|number;
+  onContextMenu?: (event: React.MouseEvent, table: TableInformationInterface) => void;
 }
 export default TableItemPropsInterface;

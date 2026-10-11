@@ -23,6 +23,13 @@ export default (props: VerticalSlideItemPropsInterface) => {
       className={`vertical-slider-item ${props.slider.isActive ? 'active' : ''} ${props.slider.color ? 'colored' : ''}`}
       style={props.slider.color ? {borderLeftColor: props.slider.color} : undefined}
       onClick={onClickHandler}
+      onContextMenu={props.slider.onContextMenu ? (event) => {
+        // opened content (table list) has own menus
+        if (componentRef.current?.contains(event.target as Node)) return;
+        event.preventDefault();
+        event.stopPropagation();
+        props.slider.onContextMenu!(event);
+      } : undefined}
     >
       <span className="vertical-slider-label" style={props.slider.color ? {color: props.slider.color} : undefined}>{props.slider.label}</span>
       {props.slider.suffix}

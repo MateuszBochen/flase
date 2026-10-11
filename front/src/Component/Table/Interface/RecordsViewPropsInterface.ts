@@ -1,15 +1,18 @@
+import {ExportFormatType} from '../../../Library/Export/ExportRows';
 import SqlLiteralInterface from '../../../Library/Database/Driver/SqlLiteralInterface';
 import ColumnInterface from '../../../Library/Table/Interface/ColumnInterface';
 import {DirectionOrder} from '../Enum/DirectionOrder';
 import EditableResultInterface from '../../../Library/Record/Interface/EditableResultInterface';
 import RowChangeInterface from '../../../Library/Record/Interface/RowChangeInterface';
-import {CopyFormatType} from '../Copy/CopyFormats';
+import ConnectionDataInterface from '../../../Library/Connection/Interface/ConnectionDataInterface';
 
 export type CellValueType = string|number|null;
 export type QuickFilterOperatorType = '=' | '<>' | 'IS NULL' | 'IS NOT NULL' | 'clear';
 export type SingleRowType = {[key:string]: CellValueType};
 
 interface RecordsViewPropsInterface {
+  /** connection of rows - labels of referenced rows, display settings of columns, whole binary values */
+  connection?: ConnectionDataInterface;
   /** quoting for copy as INSERT - dialect of connection */
   sqlLiteral?: SqlLiteralInterface;
   /*tabIndex: PropTypes.number,*/
@@ -24,7 +27,7 @@ interface RecordsViewPropsInterface {
   /** filter rows by value of cell, 'clear' removes filter */
   onQuickFilter?: (column: ColumnInterface, value: CellValueType, operator: QuickFilterOperatorType) => void;
   /** export of all rows of query (not only current page) as file */
-  onExportAll?: (format: CopyFormatType, fileName: string) => void;
+  onExportAll?: (format: ExportFormatType, fileName: string) => void;
   /** file name without extension, e.g. table name */
   exportName?: string;
   /** widths of columns set by user are remembered under this key (connection / table) */

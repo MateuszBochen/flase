@@ -134,3 +134,19 @@ CREATE TABLE uuid_bin_test (
 INSERT INTO uuid_bin_test (id, name) VALUES
   (decode('3F2C1A9E6B7D4E8F9A0B1C2D3E4F5A01', 'hex'), 'first'),
   (decode('7A8B9C0D1E2F4A3B8C4D5E6F7A8B9C02', 'hex'), 'second');
+-- spatial values for map of results (native geometric types)
+DROP TABLE IF EXISTS gis_test;
+CREATE TABLE gis_test (
+  id INTEGER PRIMARY KEY,
+  name VARCHAR(50) NOT NULL,
+  population INTEGER NOT NULL,
+  location POINT NULL,
+  area POLYGON NULL,
+  wkt TEXT NULL
+);
+INSERT INTO gis_test VALUES
+  (1, 'Warszawa', 1860000, '(21.0122,52.2297)', '((20.85,52.10),(21.27,52.10),(21.27,52.37),(20.85,52.37))', 'POINT(21.0122 52.2297)'),
+  (2, 'Kraków', 800000, '(19.9450,50.0647)', NULL, 'LINESTRING(19.9450 50.0647, 21.0122 52.2297)'),
+  (3, 'Gdańsk', 486000, '(18.6466,54.3520)', NULL, NULL),
+  (4, 'Wrocław', 674000, '(17.0385,51.1079)', NULL, NULL),
+  (5, 'Nowhere', 0, NULL, NULL, NULL);

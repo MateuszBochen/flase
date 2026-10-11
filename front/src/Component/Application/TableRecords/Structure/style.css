@@ -265,3 +265,86 @@
   margin: 8px 10px;
   color: var(--text-muted);
 }
+
+.cmp-structure-view .structure-section-action.options {
+  margin-left: 0;
+  padding: 0;
+}
+
+.cmp-structure-form .foreign-key-pairs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 118px;
+}
+
+.cmp-structure-form .foreign-key-pair {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cmp-structure-form .foreign-key-pair .arrow {
+  color: var(--text-muted);
+}
+
+.cmp-structure-form .foreign-key-pair button {
+  border: none;
+  color: var(--text-muted);
+  background: none;
+  cursor: pointer;
+}
+
+.cmp-structure-form .foreign-key-pairs .structure-section-action {
+  align-self: flex-start;
+  margin-left: 0;
+  padding: 0;
+}
+
+.cmp-find-replace {
+  max-width: 80vw;
+}
+
+.cmp-find-replace .find-preview {
+  margin-top: 6px;
+}
+
+.cmp-find-replace .find-count {
+  margin-bottom: 4px;
+}
+
+.cmp-find-replace .find-preview table {
+  border-collapse: collapse;
+  margin-bottom: 6px;
+}
+
+.cmp-find-replace .find-preview th,
+.cmp-find-replace .find-preview td {
+  max-width: 360px;
+  padding: 2px 8px 2px 4px;
+  border-bottom: solid 1px var(--panel);
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cmp-find-replace .find-preview th {
+  color: var(--text-muted);
+  font-weight: normal;
+}
+
+.cmp-find-replace .find-key {
+  color: var(--text-muted);
+}
+
+.cmp-find-replace .find-before mark {
+  color: inherit;
+  background-color: rgba(217, 83, 79, 0.3);
+  text-decoration: line-through;
+}
+
+.cmp-find-replace .find-after mark {
+  color: inherit;
+  background-color: rgba(95, 168, 79, 0.35);
+}
