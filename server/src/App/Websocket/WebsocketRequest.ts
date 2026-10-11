@@ -16,6 +16,8 @@ import WsMessage from './Dto/WsMessage';
 import ReadOnlyGuard from '../Driver/Query/ReadOnlyGuard';
 import {ChangeUserCommandHandler, GetUserGrantsCommandHandler, GetUsersCommandHandler} from './CommandHandler/UserCommandHandlers';
 import MessageType from './Enum/MessageType';
+import DatabaseOperationCommandHandler from './CommandHandler/DatabaseOperationCommandHandler';
+import {GetDatabaseObjectsCommandHandler, GetObjectDdlCommandHandler, GetServerOptionsCommandHandler} from './CommandHandler/DatabaseObjectsCommandHandlers';
 import QueryErrorInterface from '../Driver/Interface/Data/QueryErrorInterface';
 
 class WebsocketRequest {
@@ -126,6 +128,18 @@ class WebsocketRequest {
         return;
       case CommandType.CHANGE_USER:
         new ChangeUserCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
+        return;
+      case CommandType.GET_DATABASE_OBJECTS:
+        new GetDatabaseObjectsCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
+        return;
+      case CommandType.GET_SERVER_OPTIONS:
+        new GetServerOptionsCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
+        return;
+      case CommandType.GET_OBJECT_DDL:
+        new GetObjectDdlCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
+        return;
+      case CommandType.DATABASE_OPERATION:
+        new DatabaseOperationCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
         return;
       default:
         throw new Error(`Command ${command.command} not supported`);

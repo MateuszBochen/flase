@@ -17,8 +17,12 @@ const TIMESTAMP_EXPRESSION = /^(current_timestamp|now|localtime|localtimestamp)(
  */
 class MysqlDdlBuilder {
 
-  /** copyColumns - columns copied with data, generated columns are left out */
-  static build(table: TableInterface, change: StructureChangeType, copyColumns?: string[]): string[] {
+  /**
+   * copyColumns - columns copied with data, generated columns are left out
+   * charset - character set of collation for CONVERT TO CHARACTER SET
+   */
+  static build(table: TableInterface, change: StructureChangeType, extra: {copyColumns?: string[], charset?: string} = {}): string[] {
+    const copyColumns = extra.copyColumns;
     const tableName = MysqlDdlBuilder.tableName(table);
 
     switch (change.kind) {
@@ -43,6 +47,28 @@ class MysqlDdlBuilder {
             : `INSERT INTO ${copy} SELECT * FROM ${tableName}`);
         }
         return statements;
+      }
+      case 'options': {
+        const options: string[] = [];
+        if (change.engine) {
+          options.push(`ENGINE = ${MysqlDdlBuilder.word(change.engine, 'Engine')}`);
+        }
+        if (change.collation) {
+          const collation = MysqlDdlBuilder.word(change.collation, 'Collation');
+          options.push(change.convert
+            ? `CONVERT TO CHARACTER SET ${MysqlDdlBuilder.word(extra.charset, 'Character set')} COLLATE ${collation}`
+            : `DEFAULT COLLATE ${collation}`);
+        }
+        if (change.comment !== undefined && change.comment !== null) {
+          options.push(`COMMENT = ${mysql.escape(change.comment)}`);
+        }
+        if (change.autoIncrement !== undefined && change.autoIncrement !== null) {
+          options.push(`AUTO_INCREMENT = ${MysqlDdlBuilder.positiveInteger(change.autoIncrement, 'Auto increment')}`);
+        }
+        if (!options.length) {
+          throw new Error('Nothing to change');
+        }
+        return [`ALTER TABLE ${tableName}\n  ${options.join(',\n  ')}`];
       }
       default:
         throw new Error(`Unknown structure change ${(change as StructureChangeType).kind}`);
@@ -85,16 +111,13 @@ class MysqlDdlBuilder {
     }
   }
 
-  private static columnDefinition(column: ColumnDefinitionInterface): string {
+  static columnDefinition(column: ColumnDefinitionInterface): string {
     const parts = [
       mysql.escapeId(MysqlDdlBuilder.requireName(column?.name, 'Column name')),
       MysqlDdlBuilder.rawPart(column.type, 'Column type'),
     ];
     if (column.collation) {
-      if (!/^[A-Za-z0-9_]+$/.test(column.collation)) {
-        throw new Error(`Invalid collation ${column.collation}`);
-      }
-      parts.push(`COLLATE ${column.collation}`);
+      parts.push(`COLLATE ${MysqlDdlBuilder.word(column.collation, 'Collation')}`);
     }
     parts.push(column.nullable ? 'NULL' : 'NOT NULL');
 
@@ -136,18 +159,26 @@ class MysqlDdlBuilder {
     return ` AFTER ${mysql.escapeId(MysqlDdlBuilder.requireName(position.column, 'Column'))}`;
   }
 
-  private static tableName(table: TableInterface): string {
+  /** collation, character set, engine - written without quotes */
+  static word(value: string | undefined | null, label: string): string {
+    if (typeof value !== 'string' || !/^[A-Za-z0-9_]+$/.test(value)) {
+      throw new Error(`Invalid ${label.toLowerCase()} ${value ?? ''}`.trim());
+    }
+    return value;
+  }
+
+  static tableName(table: TableInterface): string {
     return `${mysql.escapeId(MysqlDdlBuilder.requireName(table.databaseName, 'Database'))}.${mysql.escapeId(MysqlDdlBuilder.requireName(table.name, 'Table name'))}`;
   }
 
-  private static requireName(name: string | undefined, label: string): string {
+  static requireName(name: string | undefined, label: string): string {
     if (typeof name !== 'string' || !name.trim()) {
       throw new Error(`${label} is required`);
     }
     return name.trim();
   }
 
-  private static positiveInteger(value: number, label: string): number {
+  static positiveInteger(value: number, label: string): number {
     if (!Number.isInteger(value) || value <= 0) {
       throw new Error(`${label} must be positive number`);
     }

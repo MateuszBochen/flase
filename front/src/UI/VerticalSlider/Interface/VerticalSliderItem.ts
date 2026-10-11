@@ -9,6 +9,8 @@ interface VerticalSliderItem {
   color?: string;
   /** shown after label, e.g. icon */
   suffix?: React.ReactNode;
+  /** right click on item (not on its opened content) */
+  onContextMenu?: (event: React.MouseEvent) => void;
 }
 
 export default VerticalSliderItem;

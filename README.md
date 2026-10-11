@@ -39,8 +39,18 @@ import and export dumps, draw ER diagrams and manage users - all from one self-h
 
 ### Structure
 - Columns, indexes, foreign keys, triggers and DDL of tables and views
+- **Create table** form - columns, primary key, indexes, engine, collation, comment
 - Add, change and drop columns, indexes and foreign keys - **every DDL statement is previewed** before execution
+- Table options - engine, collation (with conversion of columns), comment, AUTO_INCREMENT
 - Rename, copy, truncate and drop tables
+
+### Databases
+- **Database overview** - tables and views with rows and sizes, procedures, functions, triggers and events
+- Operations on **selected tables**: export, truncate, drop, **OPTIMIZE / ANALYZE / CHECK / REPAIR**
+  (MySQL, MariaDB) or **VACUUM / ANALYZE / REINDEX** (PostgreSQL)
+- Create, rename and drop databases (schemas), change collation of database and its tables
+- **Stored procedures, functions, triggers, events and views** - create from template, edit in SQL editor, drop,
+  execute procedure with parameters, create view from query
 
 ### SQL console
 - Many statements in one run, results in tabs, messages with timing and affected rows

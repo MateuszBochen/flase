@@ -1,0 +1,230 @@
+.cmp-create-table {
+  box-sizing: border-box;
+  height: 100%;
+  overflow: auto;
+  padding: 12px 16px 40px;
+  color: var(--text);
+  background-color: var(--bg);
+}
+
+.cmp-create-table .create-table-title {
+  margin-bottom: 12px;
+  color: var(--text-muted);
+  font-size: 1rem;
+}
+
+.cmp-create-table .create-table-title strong {
+  color: var(--title);
+  font-weight: 600;
+}
+
+.cmp-create-table .create-table-title svg {
+  margin-right: 6px;
+  color: var(--accent);
+}
+
+.cmp-create-table section {
+  margin-bottom: 18px;
+}
+
+.cmp-create-table h3 {
+  margin: 0 0 6px;
+  color: var(--accent);
+  font-size: 0.95rem;
+  font-weight: normal;
+}
+
+.cmp-create-table input:not([type="checkbox"]),
+.cmp-create-table select {
+  box-sizing: border-box;
+  height: 26px;
+  padding: 0 6px;
+  border: solid 1px var(--border-strong);
+  border-radius: 3px;
+  color: var(--text-strong);
+  background-color: var(--input-bg);
+  font: inherit;
+}
+
+.cmp-create-table input[type="checkbox"] {
+  accent-color: var(--primary);
+}
+
+.cmp-create-table input:focus,
+.cmp-create-table select:focus {
+  border-color: var(--primary);
+  outline: none;
+}
+
+/* options */
+.cmp-create-table .create-table-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+}
+
+.cmp-create-table .create-table-options label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cmp-create-table .create-table-options label > span {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.cmp-create-table .create-table-options label:first-child input {
+  width: 240px;
+  color: var(--title);
+}
+
+.cmp-create-table .create-table-options label.wide {
+  flex: 1 1 260px;
+}
+
+/* columns */
+.cmp-create-table .create-table-columns {
+  border-collapse: collapse;
+}
+
+.cmp-create-table .create-table-columns th {
+  padding: 2px 6px 4px;
+  color: var(--text-muted);
+  font-weight: normal;
+  text-align: left;
+}
+
+.cmp-create-table .create-table-columns td {
+  padding: 2px 4px;
+  border-bottom: solid 1px var(--panel);
+}
+
+.cmp-create-table .create-table-columns td.center {
+  text-align: center;
+}
+
+.cmp-create-table .create-table-columns td.muted {
+  color: var(--text-muted);
+  text-align: right;
+}
+
+.cmp-create-table .create-table-columns input.type {
+  color: var(--number);
+}
+
+.cmp-create-table .create-table-columns .default {
+  display: flex;
+  gap: 4px;
+}
+
+.cmp-create-table .create-table-columns .default input {
+  width: 140px;
+}
+
+.cmp-create-table .create-table-columns td.actions {
+  white-space: nowrap;
+}
+
+.cmp-create-table button {
+  height: 24px;
+  padding: 0 7px;
+  border: solid 1px var(--border-strong);
+  border-radius: 3px;
+  color: var(--text-strong);
+  background-color: var(--panel);
+  font: inherit;
+  cursor: pointer;
+}
+
+.cmp-create-table .actions button {
+  margin-right: 2px;
+  border-color: transparent;
+  background: none;
+  color: var(--text-muted);
+}
+
+.cmp-create-table button:hover:not(:disabled) {
+  background-color: var(--tab-bg);
+  color: var(--text-strong);
+}
+
+.cmp-create-table button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.cmp-create-table button.danger:hover:not(:disabled) {
+  color: #ffffff;
+  background-color: #a8413e;
+}
+
+.cmp-create-table .create-table-add {
+  margin-top: 6px;
+}
+
+.cmp-create-table .create-table-add svg {
+  margin-right: 4px;
+  font-size: 0.75rem;
+}
+
+.cmp-create-table .create-table-hint {
+  margin-top: 6px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+/* indexes */
+.cmp-create-table .create-table-index {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.cmp-create-table .create-table-index-columns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.cmp-create-table .create-table-index-columns label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px 1px 4px;
+  border: solid 1px var(--border);
+  border-radius: 12px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.cmp-create-table .create-table-index-columns label.checked {
+  border-color: var(--primary);
+  color: var(--text-strong);
+}
+
+.cmp-create-table .create-table-index-columns sup {
+  color: var(--accent);
+}
+
+.cmp-create-table .create-table-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cmp-create-table .create-table-footer button.primary {
+  height: 30px;
+  padding: 0 16px;
+  border-color: transparent;
+  color: #ffffff;
+  background-color: var(--primary);
+  font-weight: 500;
+}
+
+.cmp-create-table .create-table-footer button.primary:hover:not(:disabled) {
+  background-color: var(--primary);
+  filter: brightness(1.1);
+}

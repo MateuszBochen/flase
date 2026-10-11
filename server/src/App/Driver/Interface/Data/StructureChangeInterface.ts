@@ -37,7 +37,9 @@ export type StructureChangeType =
   | {kind: 'truncate'}
   | {kind: 'drop'}
   | {kind: 'rename', newName: string}
-  | {kind: 'copy', newName: string, withData: boolean};
+  | {kind: 'copy', newName: string, withData: boolean}
+  /** table options, only given (not undefined / null) are changed; convert - CONVERT TO CHARACTER SET also existing columns */
+  | {kind: 'options', engine?: string | null, collation?: string | null, convert?: boolean, comment?: string | null, autoIncrement?: number | null};
 
 interface StructureChangeRequestInterface {
   tabId?: string;

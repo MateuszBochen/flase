@@ -1,6 +1,6 @@
 import ConnectionMenuPropsInterface from './Interface/ConnectionMenuPropsInterface';
 import InvisibleButton from '../../UI/Button/InvisibleButton';
-import {faDatabase, faSatelliteDish, faInfoCircle, faMicrochip, faUsersRectangle} from '@fortawesome/free-solid-svg-icons';
+import {faDatabase, faSatelliteDish, faInfoCircle, faMicrochip, faUsersRectangle, faSquarePlus} from '@fortawesome/free-solid-svg-icons';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import React, {useCallback, useEffect, useState} from 'react';
 import HorizontalButtonList from '../../UI/Button/HorizontalButtonList';
@@ -19,6 +19,12 @@ import ConnectionSettingsPopup from '../ConnectionSettings/ConnectionSettingsPop
 import UserManager, {UserManagerPropsInterface} from '../Application/Users/UserManager';
 import EventBus from '../../Library/EventBus/EventBus';
 import ConnectionWasEstablished from '../../Library/Connection/Event/ConnectionWasEstablished';
+import useDatabaseOperation from '../DatabaseOperations/useDatabaseOperation';
+import DatabaseFormPopup from '../DatabaseOperations/DatabaseFormPopup';
+import DriverFactory from '../../Library/Database/Driver/DriverFactory';
+import NewTabComponentWasSelected from '../ApplicationRenderer/Event/NewTabComponentWasSelected';
+import {overviewTab} from '../Application/DatabaseOverview/DatabaseOverview';
+import useConnectionSettings from '../../Library/Connection/useConnectionSettings';
 
 /** Connection manger */
 const connectionManger = ConnectionManager.getInstance();
@@ -46,6 +52,15 @@ const rememberLoaded = (id: string) => {
 /** ConnectionMenu */
 export default (props: ConnectionMenuPropsInterface) => {
   const [settingsOpen, setSettingsOpen] = useState<boolean>(false);
+  const [createOpen, setCreateOpen] = useState<boolean>(false);
+  const connection = useConnectionSettings(props.connectionData);
+  const createDatabase = useDatabaseOperation(props.connectionData, `create-database:${props.connectionData.id}`, (operation) => {
+    setCreateOpen(false);
+    if (operation.kind !== 'createDatabase') return;
+    rememberLoaded(props.connectionData.id);
+    DatabaseManger.getInstance().reloadDatabaseList(props.connectionData);
+    EventBus.emit(new NewTabComponentWasSelected(overviewTab(props.connectionData, operation.name)));
+  });
   const handleLoadDatabaseList = useCallback(() => {
     try {
       DatabaseManger.getInstance().aksForDatabaseList(connectionManger.getEstablishedConnection(props.connectionData));
@@ -102,6 +117,13 @@ export default (props: ConnectionMenuPropsInterface) => {
           <FontAwesomeIcon icon={faTerminal} />
         </TabOpener>
         <InvisibleButton
+          tooltip={connection.readOnly ? 'Read only connection' : `Create ${DriverFactory.getDriver(props.connectionData).features.databaseLabel.toLowerCase()}`}
+          onClickWheel={() => !connection.readOnly && setCreateOpen(true)}
+          onClickLeft={() => !connection.readOnly && setCreateOpen(true)}
+        >
+          <FontAwesomeIcon icon={faSquarePlus} />
+        </InvisibleButton>
+        <InvisibleButton
           tooltip={"Load database list"}
           onClickWheel={handleLoadDatabaseList}
           onClickLeft={handleLoadDatabaseList}
@@ -112,6 +134,16 @@ export default (props: ConnectionMenuPropsInterface) => {
       </HorizontalButtonList>
       <DatabaseListMenu connection={props.connectionData} />
       {settingsOpen && <ConnectionSettingsPopup connection={props.connectionData} onClose={() => setSettingsOpen(false)} />}
+      {createOpen && (
+        <DatabaseFormPopup
+          connection={props.connectionData}
+          mode="create"
+          busy={createDatabase.busy}
+          onPreview={createDatabase.run}
+          onCancel={() => setCreateOpen(false)}
+        />
+      )}
+      {createDatabase.element}
     </Box>
   );
 }

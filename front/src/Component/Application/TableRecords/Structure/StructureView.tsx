@@ -25,6 +25,7 @@ import useStructureChange from './useStructureChange';
 import SqlConfirmPopup from './SqlConfirmPopup';
 import './style.css';
 import useConnectionSettings from '../../../../Library/Connection/useConnectionSettings';
+import TableOptionsForm from './TableOptionsForm';
 
 interface StructureViewPropsInterface {
   connection: ConnectionDataInterface;
@@ -47,6 +48,7 @@ export interface StructureViewRefInterface {
 type FormState =
   | {type: 'column', column?: StructureColumnInterface, after?: string}
   | {type: 'index'}
+  | {type: 'options'}
   | null;
 
 type MenuState = {x: number, y: number, kind: 'column' | 'index', name: string} | null;
@@ -233,6 +235,11 @@ export default forwardRef<StructureViewRefInterface, StructureViewPropsInterface
               {structure.info.createTime && <div><span>Created</span>{structure.info.createTime}</div>}
               {structure.info.updateTime && <div><span>Updated</span>{structure.info.updateTime}</div>}
               {structure.info.comment && <div className="wide"><span>Comment</span>{structure.info.comment}</div>}
+              {canChange && (
+                <div>
+                  <button type="button" className="structure-section-action options" onClick={() => setForm({type: 'options'})}>Table options…</button>
+                </div>
+              )}
             </div>
           )}
 
@@ -359,6 +366,16 @@ export default forwardRef<StructureViewRefInterface, StructureViewPropsInterface
           busy={change.busy}
           onCancel={() => setForm(null)}
           onPreview={(name, kind, columns) => sendChange({kind: 'alter', operations: [{op: 'addIndex', name, kind, columns}]})}
+        />
+      )}
+
+      {form?.type === 'options' && structure?.info && (
+        <TableOptionsForm
+          connection={props.connection}
+          info={structure.info}
+          busy={change.busy}
+          onCancel={() => setForm(null)}
+          onPreview={sendChange}
         />
       )}
 

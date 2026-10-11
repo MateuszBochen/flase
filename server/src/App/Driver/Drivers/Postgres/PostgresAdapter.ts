@@ -28,6 +28,9 @@ import PostgresUsers from './PostgresUsers';
 import {UserManagerInterface} from '../../Interface/Data/UserInterface';
 import {deserializeBinaryValue} from '../BinaryValue';
 import {nodeTlsOptions, tlsOfDsn} from '../../Tls/DsnTls';
+import PostgresDatabaseOperations from './PostgresDatabaseOperations';
+import {DatabaseObjectsInterface, ObjectRefInterface, ServerOptionsInterface} from '../../Interface/Data/DatabaseObjectsInterface';
+import {DatabaseOperationType, MaintenanceResultInterface} from '../../Interface/Data/DatabaseOperationInterface';
 const { Parser } = require('node-sql-parser');
 
 /** types without = operator - rows are identified by text form of value */
@@ -461,11 +464,60 @@ class PostgresAdapter implements DriverInterface {
     return new PostgresDdlBuilder(this.catalog()).build(table, change);
   }
 
+  private operations(): PostgresDatabaseOperations {
+    return new PostgresDatabaseOperations(this.catalog(), (sql, params) => this.queryRows(sql, params));
+  }
+
+  getDatabaseObjects(schema: string): Promise<DatabaseObjectsInterface> {
+    return this.operations().getDatabaseObjects(schema);
+  }
+
+  getServerOptions(): Promise<ServerOptionsInterface> {
+    return this.operations().getServerOptions();
+  }
+
+  getObjectDdl(schema: string, object: ObjectRefInterface): Promise<string> {
+    return this.operations().getObjectDdl(schema, object);
+  }
+
+  buildDatabaseOperationStatements(operation: DatabaseOperationType): Promise<string[]> {
+    return this.operations().build(operation);
+  }
+
+  async executeDatabaseOperation(operation: DatabaseOperationType, statements: string[]): Promise<MaintenanceResultInterface[]> {
+    if (operation.kind !== 'maintenance') {
+      // CREATE of function / trigger without schema name is created in the schema
+      await this.executeStatements(statements, 'database' in operation ? operation.database : null);
+      return [];
+    }
+    // VACUUM cannot run in transaction - every table separately, error of one table does not stop the others
+    const client = await this.getPool().connect();
+    const results: MaintenanceResultInterface[] = [];
+    try {
+      for (let index = 0; index < statements.length; index++) {
+        const table = operation.tables[index] || '';
+        const command = statements[index].replace(/\s+".*$/, '');
+        try {
+          await client.query(statements[index]);
+          results.push({table, operation: command, type: 'status', message: 'OK'});
+        } catch (e: any) {
+          results.push({table, operation: command, type: 'error', message: e?.message || String(e)});
+        }
+      }
+    } finally {
+      client.release();
+    }
+    return results;
+  }
+
   /** DDL of PostgreSQL is transactional - all statements are executed or none */
-  async executeStatements(statements: string[]): Promise<void> {
+  async executeStatements(statements: string[], schema: string | null = null): Promise<void> {
     const client = await this.getPool().connect();
     try {
       await client.query('BEGIN');
+      if (schema) {
+        await client.query(`SET LOCAL search_path TO ${PostgresSql.identifier(schema)}, public`);
+      }
       for (let index = 0; index < statements.length; index++) {
         try {
           await client.query(statements[index]);

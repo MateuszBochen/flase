@@ -15,6 +15,8 @@ import DatabaseSearch from '../Application/DatabaseSearch/DatabaseSearch';
 import ErDiagram from '../Application/ErDiagram/ErDiagram';
 import UserManager from '../Application/Users/UserManager';
 import ProcessList from '../Application/ProcessList/ProcessList';
+import DatabaseOverview from '../Application/DatabaseOverview/DatabaseOverview';
+import CreateTable from '../Application/CreateTable/CreateTable';
 
 /**
  * Open tabs are remembered in browser and opened again after reload of page.
@@ -34,6 +36,8 @@ const TAB_TYPES: {type: string, component: FC<any>}[] = [
   {type: 'er-diagram', component: ErDiagram},
   {type: 'users', component: UserManager},
   {type: 'processes', component: ProcessList},
+  {type: 'database-overview', component: DatabaseOverview},
+  {type: 'create-table', component: CreateTable},
 ];
 
 type StoredTabType = {id: string, type: string, tabName: string, props: {[key: string]: any} | null, connectionId?: string};

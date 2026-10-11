@@ -20,6 +20,8 @@ interface ExportPanelPropsInterface {
   database: string;
   /** only this table is selected at start */
   table?: string;
+  /** these tables are selected at start */
+  tables?: string[];
   tabId: string;
 }
 
@@ -28,7 +30,9 @@ export default (props: ExportPanelPropsInterface) => {
   const tableManager = TableManager.getInstance();
   const listTables = () => tableManager.getTablesListForDatabase(props.connection, {name: props.database}).map((table) => table.tableName).sort();
   const [tables, setTables] = useState<string[]>(listTables());
-  const [selected, setSelected] = useState<Set<string>>(new Set(props.table ? [props.table] : listTables()));
+  /** selection given by opener - whole database otherwise */
+  const initial = props.table ? [props.table] : props.tables?.length ? props.tables : null;
+  const [selected, setSelected] = useState<Set<string>>(new Set(initial || listTables()));
   const [structure, setStructure] = useState<boolean>(true);
   const [data, setData] = useState<boolean>(true);
   const [dropTables, setDropTables] = useState<boolean>(true);
@@ -44,7 +48,7 @@ export default (props: ExportPanelPropsInterface) => {
   const [output, setOutput] = useState<{text: string, truncated: boolean} | null>(null);
   const textMode = useRef<boolean>(false);
   /** user changed selection - reloaded table list must not change it */
-  const touched = useRef<boolean>(!!props.table);
+  const touched = useRef<boolean>(!!initial);
 
   // table list may be loaded after the tab was opened
   useEffect(() => {

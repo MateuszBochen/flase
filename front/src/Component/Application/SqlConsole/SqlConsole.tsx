@@ -1,7 +1,7 @@
 import React, {MouseEvent as ReactMouseEvent, useCallback, useEffect, useRef, useState} from 'react';
 import toast from 'react-hot-toast';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
-import {faFloppyDisk, faForwardFast, faMagnifyingGlassChart, faPlay, faStop} from '@fortawesome/free-solid-svg-icons';
+import {faEye, faFloppyDisk, faForwardFast, faMagnifyingGlassChart, faPlay, faStop} from '@fortawesome/free-solid-svg-icons';
 import ApplicationInterface from '../ApplicationInterface';
 import ConnectionDataInterface from '../../../Library/Connection/Interface/ConnectionDataInterface';
 import Editor from '../../../UI/Editor/Editor';
@@ -20,11 +20,17 @@ import QueryLibrary from './QueryLibrary';
 import './style.css';
 import useConnectionSettings from '../../../Library/Connection/useConnectionSettings';
 import TabState from '../../../Library/Tabs/TabState';
+import useDatabaseOperation from '../../DatabaseOperations/useDatabaseOperation';
+import CreateViewPopup from '../../DatabaseOperations/CreateViewPopup';
 
 export interface SqlConsolePropsInterface extends ApplicationInterface {
   connection: ConnectionDataInterface;
   /** database selected when console is opened */
   database?: string | null;
+  /** text of new console (e.g. CALL of procedure), draft of console is used after reload */
+  initialSql?: string;
+  /** initialSql is executed when console is opened */
+  autoRun?: boolean;
 }
 
 const MAX_ROWS = 1000;
@@ -155,6 +161,13 @@ export default (props: SqlConsolePropsInterface) => {
     const draft = TabState.get(props.tabId).draft;
     if (typeof draft === 'string' && draft) {
       editor.setValue(draft);
+    } else if (props.initialSql) {
+      editor.setValue(props.initialSql);
+      // remembered as draft - console is not executed again after reload
+      TabState.update(props.tabId, {draft: props.initialSql});
+      if (props.autoRun) {
+        setTimeout(() => handlers.current.runAll());
+      }
     }
     editor.onDidChangeModelContent(() => TabState.update(props.tabId, {draft: editor.getValue()}));
     editor.focus();
@@ -172,6 +185,27 @@ export default (props: SqlConsolePropsInterface) => {
     editor.executeEdits('query-library', [{range: selection, text, forceMoveMarkers: true}]);
     editor.focus();
   }, []);
+
+  /** view from selection or statement under cursor */
+  const [viewSelect, setViewSelect] = useState<string | null>(null);
+  const viewOperation = useDatabaseOperation(props.connection, `${props.tabId}:view`, (operation) => {
+    setViewSelect(null);
+    if (operation.kind === 'createView') {
+      TableManager.getInstance().askForTableList(props.connection, {name: operation.database}, true);
+    }
+  });
+  const createView = () => {
+    const [statement] = currentStatements();
+    if (!statement) {
+      toast.error('Write SELECT of the view first');
+      return;
+    }
+    if (!database) {
+      toast.error(`Select ${driver.features.databaseLabel.toLowerCase()} of the view`);
+      return;
+    }
+    setViewSelect(statement);
+  };
 
   const saveQuery = () => {
     const statements = currentStatements();
@@ -246,6 +280,9 @@ export default (props: SqlConsolePropsInterface) => {
           </button>
         )}
         <span className="console-spacer" />
+        <button type="button" onClick={createView} disabled={!!connection.readOnly} title="Create view from selection or statement under cursor">
+          <FontAwesomeIcon icon={faEye} /> Create view…
+        </button>
         <button type="button" onClick={saveQuery} title="Save selection or statement under cursor">
           <FontAwesomeIcon icon={faFloppyDisk} /> Save…
         </button>
@@ -306,6 +343,10 @@ export default (props: SqlConsolePropsInterface) => {
           )}
         </div>
       </div>
+      {viewSelect !== null && database && (
+        <CreateViewPopup database={database} select={viewSelect} busy={viewOperation.busy} onPreview={viewOperation.run} onCancel={() => setViewSelect(null)} />
+      )}
+      {viewOperation.element}
     </div>
   );
 }

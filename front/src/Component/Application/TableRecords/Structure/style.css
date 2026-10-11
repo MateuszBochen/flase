@@ -265,3 +265,8 @@
   margin: 8px 10px;
   color: var(--text-muted);
 }
+
+.cmp-structure-view .structure-section-action.options {
+  margin-left: 0;
+  padding: 0;
+}

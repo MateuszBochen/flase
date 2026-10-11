@@ -3,6 +3,29 @@
 All notable changes of Flase are documented here. Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versions follow [Semantic Versioning](https://semver.org/). A `v*` tag publishes the Docker image of the version.
 
+## [Unreleased]
+
+### Added
+- Database overview (phpMyAdmin "Structure" of database): tables and views with rows, sizes, engine, collation and comment,
+  filter, selection of more tables; procedures, functions, triggers and events
+- Operations on selected tables: export, truncate, drop (views too), with disabled foreign key checks (MySQL) or CASCADE (PostgreSQL)
+- Table maintenance: OPTIMIZE, ANALYZE, CHECK, REPAIR (MySQL / MariaDB), VACUUM, VACUUM FULL, VACUUM ANALYZE, ANALYZE,
+  REINDEX (PostgreSQL) with messages for every table - from overview and from context menu of table in sidebar
+- Create table form: columns (type, null, default, auto increment, primary key, comment, order), indexes, engine,
+  collation and comment, SQL preview
+- Table options in structure: engine, collation (also conversion of existing columns), comment, next AUTO_INCREMENT
+  (identity / serial sequence in PostgreSQL)
+- Create, rename and drop of database (schema in PostgreSQL), collation of database with optional conversion of all tables
+- Procedures, functions, triggers, events and views: new from template, edit of definition in SQL editor, drop;
+  failed change of MySQL routine restores the previous definition; overloaded PostgreSQL functions
+- Execute procedure / function with parameters - CALL / SELECT opened and run in SQL console (OUT values in result)
+- Create view from query of SQL console
+- Context menus: database in sidebar (overview, new table, console, import / export, search, ER diagram, collation,
+  rename, drop) and table in sidebar (rename, copy, truncate, drop, maintenance, export)
+
+### Fixed
+- MySQL 8: sizes, rows and AUTO_INCREMENT of tables were read from statistics cached up to 24 hours
+
 ## [0.0.2] - 2026-10-10
 
 ### Added

@@ -19,7 +19,11 @@ export default (props: TableItemPropsInterface) => {
   };
 
   return (
-    <li>
+    <li onContextMenu={props.onContextMenu ? (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      props.onContextMenu!(event, props.table);
+    } : undefined}>
       <TabOpener<TableRecordsPropsInterface>
         tooltip={'Open table records'}
         tab={tab}

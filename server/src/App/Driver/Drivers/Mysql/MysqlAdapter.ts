@@ -35,6 +35,9 @@ import TableStructureInterface, {
 import {deserializeBinaryValue} from '../BinaryValue';
 import {nodeTlsOptions, tlsOfDsn} from '../../Tls/DsnTls';
 import {installMysqlTlsIdentityCheck} from './MysqlTlsIdentity';
+import MysqlDatabaseOperations from './MysqlDatabaseOperations';
+import {DatabaseObjectsInterface, ObjectRefInterface, ServerOptionsInterface} from '../../Interface/Data/DatabaseObjectsInterface';
+import {DatabaseOperationType, MaintenanceResultInterface} from '../../Interface/Data/DatabaseOperationInterface';
 const mysql = require('mysql');
 const { Parser } = require('node-sql-parser');
 
@@ -403,7 +406,124 @@ class MysqlAdapter implements DriverInterface {
         .filter((column) => !column.generationExpression)
         .map((column) => column.name)
       : undefined;
-    return MysqlDdlBuilder.build(table, change, copyColumns);
+    // CONVERT TO CHARACTER SET needs character set of collation
+    const charset = change.kind === 'options' && change.collation && change.convert
+      ? await this.operations().charsetOf(change.collation)
+      : undefined;
+    return MysqlDdlBuilder.build(table, change, {copyColumns, charset});
+  }
+
+  private operations(): MysqlDatabaseOperations {
+    return new MysqlDatabaseOperations((sql, params) => this.queryRows(sql, params), (sql, params) => this.queryStats(sql, params));
+  }
+
+  getDatabaseObjects(database: string): Promise<DatabaseObjectsInterface> {
+    return this.operations().getDatabaseObjects(database);
+  }
+
+  getServerOptions(): Promise<ServerOptionsInterface> {
+    return this.operations().getServerOptions();
+  }
+
+  getObjectDdl(database: string, object: ObjectRefInterface): Promise<string> {
+    return this.operations().getObjectDdl(database, object);
+  }
+
+  buildDatabaseOperationStatements(operation: DatabaseOperationType): Promise<string[]> {
+    return this.operations().build(operation);
+  }
+
+  async executeDatabaseOperation(operation: DatabaseOperationType, statements: string[]): Promise<MaintenanceResultInterface[]> {
+    // CREATE of routine / trigger / event without database name is created in selected database
+    const database = 'database' in operation ? operation.database : null;
+
+    if (operation.kind === 'maintenance') {
+      const results: MaintenanceResultInterface[] = [];
+      await this.runOnOneConnection(null, statements, (rows) => rows.forEach((row) => results.push({
+        table: row.Table,
+        operation: row.Op,
+        type: row.Msg_type,
+        message: row.Msg_text,
+      })));
+      return results;
+    }
+
+    if (operation.kind === 'objectDdl' && operation.replace) {
+      // DROP + CREATE is not atomic in MySQL - when CREATE fails, previous definition is created again
+      const original = await this.getObjectDdl(operation.database, operation.replace).catch(() => null);
+      try {
+        await this.runOnOneConnection(database, statements);
+      } catch (e: any) {
+        if (original && e?.statementIndex > 0) {
+          const message = e.statementMessage || e.sqlMessage || e.message;
+          try {
+            await this.runOnOneConnection(database, [original]);
+            e.sqlMessage = `${message}. Nothing was changed - previous definition was restored.`;
+          } catch (restoreError: any) {
+            e.sqlMessage = `${message}. Previous definition could not be restored: ${restoreError?.sqlMessage || restoreError?.message}`;
+          }
+        }
+        throw e;
+      }
+      return [];
+    }
+
+    await this.runOnOneConnection(database, statements);
+    return [];
+  }
+
+  /**
+   * Statements on one connection - session settings (FOREIGN_KEY_CHECKS, selected database) apply to the following
+   * statements; connection is reset before it returns to pool.
+   */
+  private runOnOneConnection(database: string | null, statements: string[], onRows?: (rows: any[]) => void): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.getPool().getConnection(async (err: MysqlError, connection: PoolConnection) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        const query = (sql: string, params: any[] = []) => new Promise<any>((done, fail) => {
+          connection.query(sql, params, (queryError: MysqlError | null, rows: any) => queryError ? fail(queryError) : done(rows));
+        });
+        let failure: any = null;
+        try {
+          if (database) {
+            await query('USE ??', [database]);
+          }
+          for (let index = 0; index < statements.length; index++) {
+            try {
+              const rows = await query(statements[index]);
+              if (onRows && Array.isArray(rows)) {
+                onRows(rows);
+              }
+            } catch (e: any) {
+              e.statementIndex = index;
+              e.statementMessage = e?.sqlMessage || e?.message;
+              // DDL is committed immediately - tell which statements were already executed
+              if (statements.length > 1 && e?.sqlMessage) {
+                e.sqlMessage = `${e.sqlMessage}. Executed ${index} of ${statements.length} statements.`;
+              }
+              throw e;
+            }
+          }
+        } catch (e) {
+          failure = e;
+        }
+        connection.changeUser({}, (resetError) => {
+          if (resetError) {
+            connection.destroy();
+          } else {
+            connection.release();
+          }
+          if (failure) {
+            reject(failure);
+          } else {
+            resolve();
+          }
+        });
+      });
+    });
   }
 
   async searchDatabase(
@@ -479,6 +599,27 @@ class MysqlAdapter implements DriverInterface {
     }
   }
 
+  /**
+   * information_schema.TABLES of MySQL 8 keeps sizes, rows and AUTO_INCREMENT up to 24 hours (information_schema_stats_expiry),
+   * statistics are read fresh - after change of table they must be current (MariaDB has no such cache, setting fails there)
+   */
+  private queryStats(sql: string, params: any[] = []): Promise<any[]> {
+    return new Promise((resolve, reject) => {
+      this.getPool().getConnection((err: MysqlError, connection: PoolConnection) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        connection.query('SET SESSION information_schema_stats_expiry = 0', () => {
+          connection.query(sql, params, (queryError: MysqlError | null, rows: any[]) => {
+            connection.release();
+            queryError ? reject(queryError) : resolve(rows);
+          });
+        });
+      });
+    });
+  }
+
   private queryRows(sql: string, params: any[] = []): Promise<any[]> {
     return new Promise((resolve, reject) => {
       this.getPool().query(sql, params, (err: MysqlError | null, rows: any[]) => err ? reject(err) : resolve(rows));
@@ -490,7 +631,7 @@ class MysqlAdapter implements DriverInterface {
   }
 
   private async loadTableInfo(db: string, name: string): Promise<StructureTableInfoInterface | null> {
-    const rows = await this.queryRows(
+    const rows = await this.queryStats(
       `SELECT \`TABLE_TYPE\`, \`ENGINE\`, \`TABLE_COLLATION\`, \`ROW_FORMAT\`, \`TABLE_ROWS\`, \`DATA_LENGTH\`,
               \`INDEX_LENGTH\`, \`AUTO_INCREMENT\`, \`TABLE_COMMENT\`, \`CREATE_TIME\`, \`UPDATE_TIME\`
        FROM \`information_schema\`.\`TABLES\` WHERE \`TABLE_SCHEMA\` = ? AND \`TABLE_NAME\` = ?`,
