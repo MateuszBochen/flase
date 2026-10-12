@@ -4,6 +4,7 @@ import Button from '../../../UI/Button/Button';
 import ColumnInterface from '../../../Library/Table/Interface/ColumnInterface';
 import {CellValueType} from '../Interface/RecordsViewPropsInterface';
 import {BinaryValueInterface, formatBytes, hexDump, isBinaryValue} from '../../../Library/Record/BinaryValue';
+import {isBinary16, isUuidColumn, uuidOfHex} from '../../../Library/Record/Uuid';
 
 interface ValueEditorPropsInterface {
   column: ColumnInterface;
@@ -30,7 +31,9 @@ export default (props: ValueEditorPropsInterface) => {
   const [text, setText] = useState<string>(initialText);
   const [isNull, setIsNull] = useState<boolean>(props.value === null);
   const [wrap, setWrap] = useState<boolean>(true);
-  const [binaryView, setBinaryView] = useState<'hex' | 'text'>(binary?.text !== null && binary?.text !== undefined ? 'text' : 'hex');
+  const [binaryView, setBinaryView] = useState<'hex' | 'text' | 'uuid'>(
+    isUuidColumn(props.column, [props.value]) ? 'uuid' : binary?.text !== null && binary?.text !== undefined ? 'text' : 'hex',
+  );
 
   const isJsonColumn = /^json/i.test(props.column.type || '');
   const looksLikeJson = /^\s*[[{]/.test(text);
@@ -51,7 +54,7 @@ export default (props: ValueEditorPropsInterface) => {
   ];
 
   return (
-    <Popup isOpen={true} label={`${props.column.name}  ·  ${props.column.type || ''}`} onClickOk={props.onClose} buttons={buttons}>
+    <Popup openOnMount label={`${props.column.name}  ·  ${props.column.type || ''}`} onClickOk={props.onClose} onClose={props.onClose} buttons={buttons}>
       <div className="cmp-value-editor">
         <div className="value-editor-toolbar">
           {binary ? (
@@ -59,6 +62,7 @@ export default (props: ValueEditorPropsInterface) => {
               <span className="value-editor-info">{formatBytes(binary.size)}{binary.truncated ? ` (first ${formatBytes(binary.hex.length / 2)} shown)` : ''}</span>
               <button type="button" className={binaryView === 'hex' ? 'active' : ''} onClick={() => setBinaryView('hex')}>Hex</button>
               <button type="button" className={binaryView === 'text' ? 'active' : ''} disabled={binary.text === null} onClick={() => setBinaryView('text')}>Text</button>
+              {isBinary16(binary) && <button type="button" className={binaryView === 'uuid' ? 'active' : ''} onClick={() => setBinaryView('uuid')}>UUID</button>}
             </>
           ) : (
             <>
@@ -78,7 +82,7 @@ export default (props: ValueEditorPropsInterface) => {
           )}
         </div>
         {binary ? (
-          <pre className="value-editor-text binary">{binaryView === 'hex' ? hexDump(binary.hex) : binary.text}</pre>
+          <pre className="value-editor-text binary">{binaryView === 'uuid' ? uuidOfHex(binary.hex) : binaryView === 'hex' ? hexDump(binary.hex) : binary.text}</pre>
         ) : (
           <textarea
             className={`value-editor-text ${wrap ? 'wrap' : ''}`}

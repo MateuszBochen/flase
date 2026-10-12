@@ -8,6 +8,7 @@ import ConnectionControlIconPropsInterface from './Interface/ConnectionControlIc
 import InvisibleButton from '../../UI/Button/InvisibleButton';
 import ConnectionForm from '../ConnectionForm/ConnectionForm';
 import Popup from '../../UI/Popup/Popup';
+import {PopupRefInterface} from '../../UI/Popup/Type/types';
 import EventBus from '../../Library/EventBus/EventBus';
 import ConnectionWasEstablished from '../../Library/Connection/Event/ConnectionWasEstablished';
 import ConnectionRequestWasRejected from '../../Library/Connection/Event/ConnectionRequestWasRejected';
@@ -24,7 +25,7 @@ const ACTIVITY_MS = 250;
 /** ConnectionControlIcon */
 export default (props: ConnectionControlIconPropsInterface) => {
   const [connectionIsActive, setConnectionIsActive] = useState<boolean>(connectionManger.checkIfConnectionIsActive(props.connectionData));
-  const [connectPopup, setConnectPopup] = useState<boolean>(false);
+  const connectPopup = useRef<PopupRefInterface | null>(null);
   const [activity, setActivity] = useState<boolean>(false);
   const activityTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
@@ -55,8 +56,8 @@ export default (props: ConnectionControlIconPropsInterface) => {
   }, [props.connectionData, connectionIsActive]);
 
   const handleCloseConnectionDialog = useCallback(() => {
-    setConnectPopup(false);
-  }, [connectPopup]);
+    connectPopup.current?.close();
+  }, []);
 
 
 
@@ -70,26 +71,26 @@ export default (props: ConnectionControlIconPropsInterface) => {
       EventBus.unSub(connectionWasEstablished);
     }
 
-  }, [connectPopup]);
+  }, []);
 
   /** remembered password: connect at once, form only when the server refuses it (e.g. password was changed) */
   const handleOpenConnectionDialog = useCallback(() => {
     PasswordVault.load(props.connectionData.id).then((credentials) => {
       if (!credentials) {
-        setConnectPopup(true);
+        connectPopup.current?.open();
         return;
       }
       const rejected = EventBus.subscribe(ConnectionRequestWasRejected.name, () => {
         EventBus.unSub(rejected);
         EventBus.unSub(established);
-        setConnectPopup(true);
+        connectPopup.current?.open();
       });
       const established = EventBus.subscribe(ConnectionWasEstablished.name, () => {
         EventBus.unSub(rejected);
         EventBus.unSub(established);
       });
       EventBus.emit(new ConnectionFormWasSubmitted({userData: credentials, connectionData: props.connectionData}));
-    }).catch(() => setConnectPopup(true));
+    }).catch(() => connectPopup.current?.open());
   }, [props.connectionData]);
 
   return (
@@ -105,7 +106,7 @@ export default (props: ConnectionControlIconPropsInterface) => {
         <FontAwesomeIcon icon={faSatelliteDish} color={connectionIsActive ? (activity ? activityColor : connectedColor) : undefined} />
       </InvisibleButton>
       <Popup
-        isOpen={connectPopup}
+        ref={connectPopup}
         label={`Connect to ${props.connectionData.displayName}`}
         onClickOk={handleCloseConnectionDialog}
       >

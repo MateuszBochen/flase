@@ -1,26 +1,26 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useRef} from 'react';
 import Popup from '../../UI/Popup/Popup';
+import {PopupRefInterface} from '../../UI/Popup/Type/types';
 import Button from '../../UI/Button/Button';
 import {SHORTCUT_HELP_EVENT, SHORTCUTS} from '../../Library/Shortcuts/Shortcuts';
 import './style.css';
 
 /** ShortcutHelp - list of keyboard shortcuts */
 export default () => {
-  const [open, setOpen] = useState<boolean>(false);
+  const popup = useRef<PopupRefInterface | null>(null);
 
   useEffect(() => {
-    const onOpen = () => setOpen(true);
+    const onOpen = () => popup.current?.open();
     window.addEventListener(SHORTCUT_HELP_EVENT, onOpen);
     return () => window.removeEventListener(SHORTCUT_HELP_EVENT, onOpen);
   }, []);
 
-  if (!open) return null;
   return (
     <Popup
-      isOpen={true}
+      ref={popup}
       label="Keyboard shortcuts"
-      onClickOk={() => setOpen(false)}
-      buttons={[<Button key="close" size="small" label="Close" onClick={() => setOpen(false)} />]}
+      onClickOk={() => popup.current?.close()}
+      buttons={[<Button key="close" size="small" label="Close" onClick={() => popup.current?.close()} />]}
     >
       <div className="cmp-shortcut-help">
         {SHORTCUTS.map((group) => (

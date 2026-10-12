@@ -3,9 +3,18 @@ import TabOpener from '../TabOpener/TabOpener';
 import TabInterface from '../ApplicationRenderer/Interface/TabInterface';
 import TableRecords from '../Application/TableRecords/TableRecords';
 import TableRecordsPropsInterface from '../Application/TableRecords/Interface/TableRecordsPropsInterface';
+import {useEffect, useRef} from 'react';
 
 /** TableItem */
 export default (props: TableItemPropsInterface) => {
+  const itemRef = useRef<HTMLLIElement | null>(null);
+
+  // chosen by arrows - list scrolls to it
+  useEffect(() => {
+    if (props.highlighted) {
+      itemRef.current?.scrollIntoView({block: 'nearest'});
+    }
+  }, [props.highlighted]);
 
   const tab:TabInterface<TableRecordsPropsInterface> = {
     component: TableRecords,
@@ -19,7 +28,7 @@ export default (props: TableItemPropsInterface) => {
   };
 
   return (
-    <li onContextMenu={props.onContextMenu ? (event) => {
+    <li ref={itemRef} className={props.highlighted ? 'highlighted' : undefined} onContextMenu={props.onContextMenu ? (event) => {
       event.preventDefault();
       event.stopPropagation();
       props.onContextMenu!(event, props.table);

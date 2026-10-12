@@ -34,9 +34,10 @@ export default (props: RowFormPropsInterface) => {
 
   return (
     <Popup
-      isOpen={true}
+      openOnMount
       label={props.title}
       onClickOk={() => props.onSave(values)}
+      onClose={props.onCancel}
       buttons={[
         <Button key="save" size="small" colorVariant="success" label="Save" onClick={() => props.onSave(values)} />,
         <Button key="cancel" size="small" label="Cancel" onClick={props.onCancel} />,

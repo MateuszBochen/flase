@@ -14,6 +14,7 @@ import {sendServerCommand} from '../../../Library/Server/useServerRequest';
 import ColumnDisplay, {TRANSFORMS, TransformType} from '../../../Library/CellTools/ColumnDisplay';
 import {BinaryValueResultInterface} from '../../../Library/CellTools/CellToolsInterface';
 import {isBinaryValue} from '../../../Library/Record/BinaryValue';
+import {isUuidColumn} from '../../../Library/Record/Uuid';
 import {ContextMenuItem} from '../../../UI/ContextMenu/ContextMenu';
 import {SingleRowType} from '../Interface/RecordsViewPropsInterface';
 import {GridDisplayActionsInterface, GridDisplayInterface} from './GridDisplay';
@@ -78,16 +79,27 @@ const useGridDisplay = (
     };
   }, []);
 
+  /** columns of 16 bytes values which look like UUID - after commit, rows of grid are not there during render */
+  const [uuidColumns, setUuidColumns] = useState<string[]>([]);
+  useEffect(() => {
+    const records = loaded ? getRecords() : [];
+    const found = records.length ? columns.filter((column) => isUuidColumn(column, records.map((row) => row[column.key]))).map((column) => column.key) : [];
+    setUuidColumns((previous) => previous.join() === found.join() ? previous : found);
+  }, [columns, loaded]);
+
+  /** chosen by user, otherwise UUID for recognized columns */
   const transforms = useMemo(() => {
     const result: {[key: string]: TransformType} = {};
-    if (connection) {
-      columns.forEach((column) => {
-        const transform = ColumnDisplay.transformOf(connection.id, column);
-        if (transform) result[column.key] = transform;
-      });
-    }
+    columns.forEach((column) => {
+      const transform = connection ? ColumnDisplay.transformOf(connection.id, column) : '';
+      if (transform) {
+        result[column.key] = transform;
+      } else if (uuidColumns.includes(column.key)) {
+        result[column.key] = 'uuid';
+      }
+    });
     return result;
-  }, [connection, columns, version]);
+  }, [connection, columns, uuidColumns, version]);
 
   /** column shown for foreign key - chosen by user or guessed from referenced table */
   const displayColumnOf = useCallback((column: ColumnInterface): string => {
@@ -172,10 +184,11 @@ const useGridDisplay = (
   const menuItems = (column: ColumnInterface): ContextMenuItem[] => {
     if (!connection || !column.table?.name) return [];
     const current = ColumnDisplay.transformOf(connection.id, column);
+    const recognized = !current && transforms[column.key] === 'uuid';
     const items: ContextMenuItem[] = [{
       label: 'Display column as',
       children: TRANSFORMS.filter((item) => item.applies(column.type || '')).map((item) => ({
-        label: item.label,
+        label: item.transform === '' && recognized ? `${item.label} - recognized as UUID` : item.label,
         hint: current === item.transform ? '✓' : undefined,
         onClick: () => ColumnDisplay.setTransform(connection.id, column, item.transform),
       })),

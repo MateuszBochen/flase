@@ -60,9 +60,10 @@ export default (props: ObjectEditorPopupPropsInterface) => {
 
   return (
     <Popup
-      isOpen={true}
+      openOnMount
       label={props.object ? `Edit ${label} ${props.object.name}` : `New ${label} in ${props.database}`}
       onClickOk={preview}
+      onClose={props.onCancel}
       buttons={[
         <Button key="preview" size="small" colorVariant="success" label="Preview SQL" onClick={preview} loading={props.busy} disabled={text === null} />,
         <Button key="cancel" size="small" label="Cancel" onClick={props.onCancel} />,

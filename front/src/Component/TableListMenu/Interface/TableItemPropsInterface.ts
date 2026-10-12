@@ -8,6 +8,8 @@ interface TableItemPropsInterface {
   database: Database;
   table: TableInformationInterface;
   key: string|number;
+  /** chosen by arrows in filter - Enter opens it */
+  highlighted?: boolean;
   onContextMenu?: (event: React.MouseEvent, table: TableInformationInterface) => void;
 }
 export default TableItemPropsInterface;

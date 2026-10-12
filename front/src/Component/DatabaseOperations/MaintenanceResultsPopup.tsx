@@ -13,9 +13,10 @@ interface MaintenanceResultsPopupPropsInterface {
 /** MaintenanceResultsPopup - messages of OPTIMIZE / ANALYZE / CHECK / REPAIR / VACUUM for every table */
 export default (props: MaintenanceResultsPopupPropsInterface) => (
   <Popup
-    isOpen={true}
+    openOnMount
     label={props.operation.kind === 'maintenance' ? `${MAINTENANCE_LABELS[props.operation.action] || props.operation.action} - results` : 'Results'}
     onClickOk={props.onClose}
+    onClose={props.onClose}
     buttons={[<Button key="close" size="small" label="Close" onClick={props.onClose} />]}
   >
     <div className="cmp-maintenance-results">

@@ -70,9 +70,10 @@ export default (props: ExecuteRoutinePopupPropsInterface) => {
 
   return (
     <Popup
-      isOpen={true}
+      openOnMount
       label={`Execute ${props.routine.kind.toLowerCase()} ${props.routine.name}`}
       onClickOk={execute}
+      onClose={props.onCancel}
       buttons={[
         <Button key="execute" size="small" colorVariant="success" label="Execute in console" onClick={execute} />,
         <Button key="cancel" size="small" label="Cancel" onClick={props.onCancel} />,

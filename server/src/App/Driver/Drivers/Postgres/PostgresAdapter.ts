@@ -52,7 +52,13 @@ const NO_EQUALITY_TYPE = /^(json|xml|point|line|lseg|box|path|polygon|circle)\b/
  */
 class PostgresAdapter implements DriverInterface {
   readonly dialect: SqlDialectType = 'postgresql';
+  /** short queries (structure, lists, DDL) - never held while waiting for other connection */
   private pool: Pool | null = null;
+  /**
+   * sessions of tabs (select, console, import) and dumps - they hold connection and meanwhile load structure of tables
+   * from the other pool; in one pool many tabs at once would take all connections and wait for each other forever
+   */
+  private sessionPool: Pool | null = null;
   /** credentials were verified and disconnect was not called */
   private connected = false;
   private readonly analyser: SelectAnalyser;
@@ -114,10 +120,9 @@ class PostgresAdapter implements DriverInterface {
   }
 
   releaseConnections(): void {
-    if (this.pool) {
-      this.pool.end().catch((e) => console.log(e));
-      this.pool = null;
-    }
+    [this.pool, this.sessionPool].forEach((pool) => pool?.end().catch((e) => console.log(e)));
+    this.pool = null;
+    this.sessionPool = null;
   }
 
   private createPool(): Pool {
@@ -150,6 +155,16 @@ class PostgresAdapter implements DriverInterface {
     return this.pool;
   }
 
+  private getSessionPool(): Pool {
+    if (!this.connected) {
+      throw new Error('Not connected');
+    }
+    if (!this.sessionPool) {
+      this.sessionPool = this.createPool();
+    }
+    return this.sessionPool;
+  }
+
   private async queryRows(sql: string, params: any[] = []): Promise<any[]> {
     return (await this.getPool().query(sql, params)).rows;
   }
@@ -159,7 +174,7 @@ class PostgresAdapter implements DriverInterface {
   }
 
   async openSession(database: string | null, tabId?: string): Promise<DriverSessionInterface> {
-    const client = await this.getPool().connect();
+    const client = await this.getSessionPool().connect();
     if (!this.watchedClients.has(client)) {
       this.watchedClients.add(client);
       client.on('error', (error) => console.log('PostgreSQL connection error', error.message));
@@ -213,7 +228,7 @@ class PostgresAdapter implements DriverInterface {
   }
 
   async getProcessList(): Promise<ProcessInterface[]> {
-    const ownProcesses = new Set<number>(((this.pool as any)?._clients || []).map((client: any) => client.processID));
+    const ownProcesses = new Set<number>(([] as any[]).concat(...[this.pool, this.sessionPool].map((pool) => (pool as any)?._clients || [])).map((client: any) => client.processID));
     const rows = await this.queryRows(
       `SELECT pid, usename, client_addr, client_port, datname, state, wait_event_type, wait_event, query,
               EXTRACT(EPOCH FROM (now() - COALESCE(CASE WHEN state = 'active' THEN query_start END, state_change, backend_start)))::int AS seconds
@@ -245,7 +260,7 @@ class PostgresAdapter implements DriverInterface {
   }
 
   dump(options: DumpOptionsInterface, write: (text: string) => Promise<void>): Promise<{tables: number, rows: number}> {
-    return new PostgresDumper(this.getPool(), options).dump(write);
+    return new PostgresDumper(this.getSessionPool(), options).dump(write);
   }
 
   buildInsertStatement(database: string, table: string, columns: string[], rows: (string | null)[][]): string {

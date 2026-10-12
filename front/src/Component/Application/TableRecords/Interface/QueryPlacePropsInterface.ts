@@ -17,6 +17,8 @@ interface QueryPlacePropsInterface {
   queryRef?: MutableRefObject<QueryInterface | null>;
   view: TableViewType;
   onViewChange: (view: TableViewType) => void;
+  /** middle click / Ctrl+click on view - the view of table in new tab */
+  onOpenViewInNewTab: (view: TableViewType) => void;
   /** data view - run query again, structure view - load structure again */
   onReload: () => void;
   onTableOperation: (operation: TableOperationType) => void;

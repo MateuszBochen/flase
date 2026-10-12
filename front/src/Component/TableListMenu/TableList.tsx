@@ -1,6 +1,6 @@
 import Box from '../../UI/Box/Box';
 import TableListPropsInterface from './Interface/TableListPropsInterface';
-import React, {useCallback, useEffect, useState} from 'react';
+import React, {KeyboardEvent, useCallback, useEffect, useMemo, useState} from 'react';
 import toast from 'react-hot-toast';
 import TableInformationInterface from '../../Library/Table/Interface/TableInformationInterface';
 import TableItem from './TableItem';
@@ -34,6 +34,8 @@ type MenuState = {x: number, y: number, table: string} | null;
 export default (props: TableListPropsInterface) => {
   const [state, setState] = useState<TableInformationInterface[]>(props.tables);
   const [filter, setFilter] = useState<string>('');
+  /** table chosen by arrows in filter, -1 - none */
+  const [highlighted, setHighlighted] = useState<number>(-1);
   const [menu, setMenu] = useState<MenuState>(null);
   const [nameForm, setNameForm] = useState<{mode: 'rename' | 'copy', table: string} | null>(null);
   const connection = useConnectionSettings(props.connection);
@@ -102,9 +104,40 @@ export default (props: TableListPropsInterface) => {
     return false;
   }, []);
 
+  const filtered = useMemo(() => state.filter((tableItem) => compare(tableItem.tableName, filter)), [state, filter, compare]);
+
+  // typed filter chooses the first table, Enter opens it at once
+  useEffect(() => {
+    setHighlighted(filter ? 0 : -1);
+  }, [filter]);
+
+  /** arrows choose table, Enter opens it, Shift+Enter in new tab shown at once, Ctrl+Enter in new tab in background, Escape clears filter */
+  const onFilterKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      if (!filtered.length) return;
+      const step = event.key === 'ArrowDown' ? 1 : -1;
+      setHighlighted((previous) => previous < 0
+        ? (step > 0 ? 0 : filtered.length - 1)
+        : (previous + step + filtered.length) % filtered.length);
+    } else if (event.key === 'Enter') {
+      const table = filtered[highlighted];
+      if (table) {
+        event.preventDefault();
+        openTableTab(props.connection, {databaseName: database, name: table.tableName}, {newTab: event.shiftKey || event.ctrlKey || event.metaKey, activate: event.shiftKey});
+      }
+    } else if (event.key === 'Escape' && (filter || highlighted >= 0)) {
+      // popup or menu above is not closed by it
+      event.preventDefault();
+      setFilter('');
+      setHighlighted(-1);
+    }
+  };
+
   return (
-    <Box maxPossibleHeight={true}>
+    <Box className="table-list">
       <div
+        className="table-list-content"
         onClick={(e) => {
           e.stopPropagation();
           e.preventDefault()
@@ -117,6 +150,7 @@ export default (props: TableListPropsInterface) => {
             value={filter}
             placeholder="Filter tables…"
             onChange={(e) => setFilter(e.target.value.toLowerCase())}
+            onKeyDown={onFilterKeyDown}
           />
           <TabOpener<DatabaseOverviewPropsInterface>
             tooltip={`Overview of ${props.database.name} - tables, routines, triggers, events`}
@@ -199,8 +233,9 @@ export default (props: TableListPropsInterface) => {
           </TabOpener>
         </div>
         <ul>
-          {state.filter((tableItem) => compare(tableItem.tableName, filter)).map((filteredItem) =>(
+          {filtered.map((filteredItem, index) =>(
             <TableItem
+              highlighted={index === highlighted}
               connection={props.connection}
               database={props.database}
               table={filteredItem}

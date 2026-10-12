@@ -83,9 +83,10 @@ export default (props: ColumnFormPropsInterface) => {
 
   return (
     <Popup
-      isOpen={true}
+      openOnMount
       label={isNew ? 'Add column' : `Change column ${props.column!.name}`}
       onClickOk={preview}
+      onClose={props.onCancel}
       buttons={[
         <Button key="preview" size="small" colorVariant="success" label="Preview SQL" onClick={preview} loading={props.busy} disabled={!name.trim() || !type.trim()} />,
         <Button key="cancel" size="small" label="Cancel" onClick={props.onCancel} />,

@@ -41,9 +41,10 @@ export default (props: CellEditPopupPropsInterface) => {
 
   return (
     <Popup
-      isOpen={true}
+      openOnMount
       label={`${props.column.name}  ·  ${props.column.type || ''}`}
       onClickOk={save}
+      onClose={props.onClose}
       buttons={[
         <Button key="save" size="small" colorVariant="success" label="Save" onClick={save} />,
         <Button key="cancel" size="small" label="Cancel" onClick={props.onClose} />,

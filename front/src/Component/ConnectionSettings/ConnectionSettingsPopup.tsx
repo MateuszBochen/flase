@@ -86,9 +86,10 @@ export default (props: ConnectionSettingsPopupPropsInterface) => {
   if (props.connection.predefined) {
     return (
       <Popup
-        isOpen={true}
+        openOnMount
         label={`Connection ${props.connection.displayName}`}
         onClickOk={props.onClose}
+        onClose={props.onClose}
         buttons={[
           <Button key="close" size="small" label="Close" onClick={props.onClose} />,
           ...(connected ? [<Button key="disconnect" size="small" label="Disconnect" onClick={disconnect} />] : []),
@@ -111,9 +112,10 @@ export default (props: ConnectionSettingsPopupPropsInterface) => {
 
   return (
     <Popup
-      isOpen={true}
+      openOnMount
       label={`Connection ${props.connection.displayName}`}
       onClickOk={save}
+      onClose={props.onClose}
       buttons={[
         <Button key="save" size="small" colorVariant="success" label="Save" onClick={save} />,
         <Button key="cancel" size="small" label="Cancel" onClick={props.onClose} />,

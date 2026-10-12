@@ -24,7 +24,7 @@ import FindReplacePopup from './UI/FindReplacePopup';
 /** TableRecords */
 const TableRecords = (props: TableRecordsPropsInterface) => {
   const connection = useConnectionSettings(props.connection);
-  const [view, setView] = useState<TableViewType>('data');
+  const [view, setView] = useState<TableViewType>(props.initialView || 'data');
   /** table does not exist under this name anymore */
   const [gone, setGone] = useState<string | null>(null);
   const structureRef = useRef<StructureViewRefInterface | null>(null);
@@ -85,6 +85,7 @@ const TableRecords = (props: TableRecordsPropsInterface) => {
         queryRef={queryRef}
         view={view}
         onViewChange={setView}
+        onOpenViewInNewTab={(newView) => openTableTab(props.connection, table, {newTab: true, view: newView})}
         onReload={onReload}
         onTableOperation={(operation: TableOperationType) => operationsRef.current?.start(operation)}
         tableOperationsDisabled={!!gone}

@@ -77,7 +77,13 @@ const ContextMenu = (props: ContextMenuPropsInterface) => {
         props.onClose();
       }
     };
-    const onKeyDown = (event: KeyboardEvent) => event.key === 'Escape' && props.onClose();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        // popup under the menu stays open
+        event.preventDefault();
+        props.onClose();
+      }
+    };
     const close = () => props.onClose();
 
     document.addEventListener('mousedown', onMouseDown, true);

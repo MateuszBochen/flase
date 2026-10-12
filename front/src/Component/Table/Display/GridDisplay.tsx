@@ -3,6 +3,7 @@ import ColumnInterface from '../../../Library/Table/Interface/ColumnInterface';
 import {TransformType} from '../../../Library/CellTools/ColumnDisplay';
 import {binaryLabel, BinaryValueInterface, formatBytes, isBinaryValue} from '../../../Library/Record/BinaryValue';
 import {CellValueType} from '../Interface/RecordsViewPropsInterface';
+import {isBinary16, uuidOfHex} from '../../../Library/Record/Uuid';
 
 /** how cells of grid are shown - transformations of columns, labels of referenced rows */
 export interface GridDisplayInterface {
@@ -141,6 +142,8 @@ export const renderTransformed = (
     }
     case 'hex':
       return <span className="dtc-transformed">{hexOf(value)}</span>;
+    case 'uuid':
+      return isBinary16(value) ? <span className="dtc-transformed dtc-uuid" title={hexOf(value)}>{uuidOfHex(value.hex)}</span> : null;
     default:
       return null;
   }

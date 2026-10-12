@@ -79,6 +79,21 @@ const check = (name, ok, info = '') => {
   await page.waitForTimeout(300);
   check('data view kept rows', await grid.isVisible() && await grid.locator('.data-table-row').count() === 2);
 
+  // middle click on Structure - structure of table in new tab, current tab stays in data
+  const tabCount = await page.locator('.tab-label-list-item').count();
+  await page.locator('.table-records-root:visible').getByRole('button', {name: 'Structure', exact: true}).dispatchEvent('mousedown', {button: 1});
+  await page.waitForTimeout(1000);
+  const dataShown = await page.locator('.table-records-root:visible .cmp-records-view').isVisible();
+  check('middle click opens new tab, current stays in data', await page.locator('.tab-label-list-item').count() === tabCount + 1 && dataShown, `${tabCount} ${await page.locator('.tab-label-list-item').count()} ${dataShown}`);
+  await page.locator('.tab-label-list-item').last().click();
+  await page.waitForTimeout(1500);
+  check('new tab shows structure', await page.locator('.table-records-root:visible .cmp-structure-view').isVisible()
+    && (await page.locator('.table-records-root:visible .cmp-structure-view').innerText()).includes('CREATE TABLE `struct_test`'));
+  // closed - following steps work with structure of the first tab
+  await page.keyboard.press('Alt+W');
+  await page.waitForTimeout(500);
+  check('back in first tab', await page.locator('.tab-label-list-item').count() === tabCount && await grid.isVisible());
+
   // open referencing table from "Referenced by"
   await page.locator('.table-records-root:visible').getByRole('button', {name: 'Structure', exact: true}).click();
   await view.locator('.structure-section').filter({has: page.locator('h3', {hasText: 'Referenced by'})}).getByRole('button', {name: 'struct_child'}).click();

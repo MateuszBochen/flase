@@ -189,9 +189,10 @@ export default (props: UserManagerPropsInterface) => {
       )}
       {preview && (
         <Popup
-          isOpen={true}
+          openOnMount
           label={destructive ? 'Confirm - this cannot be undone' : 'Confirm change'}
           onClickOk={() => setPreview(null)}
+          onClose={() => setPreview(null)}
           buttons={[
             <Button key="execute" size="small" colorVariant={destructive ? 'danger' : 'success'} label={destructive ? 'Hold to execute' : 'Execute'} loading={busy} onClick={execute} />,
             <Button key="close" size="small" label="Cancel" onClick={() => setPreview(null)} />,
@@ -211,9 +212,10 @@ const CreateUserForm = (props: {isPostgres: boolean, busy: boolean, onCancel: ()
   const preview = () => props.onPreview(name, host, password);
   return (
     <Popup
-      isOpen={true}
+      openOnMount
       label={props.isPostgres ? 'New role' : 'New user'}
       onClickOk={preview}
+      onClose={props.onCancel}
       buttons={[
         <Button key="preview" size="small" colorVariant="success" label="Preview SQL" loading={props.busy} disabled={!name.trim() || !password} onClick={preview} />,
         <Button key="cancel" size="small" label="Cancel" onClick={props.onCancel} />,
@@ -235,9 +237,10 @@ const PasswordForm = (props: {title: string, busy: boolean, onCancel: () => void
   const preview = () => props.onPreview(password);
   return (
     <Popup
-      isOpen={true}
+      openOnMount
       label={props.title}
       onClickOk={preview}
+      onClose={props.onCancel}
       buttons={[
         <Button key="preview" size="small" colorVariant="success" label="Preview SQL" loading={props.busy} disabled={!password || password !== repeat} onClick={preview} />,
         <Button key="cancel" size="small" label="Cancel" onClick={props.onCancel} />,

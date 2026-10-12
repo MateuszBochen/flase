@@ -20,9 +20,10 @@ export default (props: TableNameFormPropsInterface) => {
 
   return (
     <Popup
-      isOpen={true}
+      openOnMount
       label={props.mode === 'copy' ? `Copy table ${props.currentName}` : `Rename table ${props.currentName}`}
       onClickOk={preview}
+      onClose={props.onCancel}
       buttons={[
         <Button key="preview" size="small" colorVariant="success" label="Preview SQL" onClick={preview} loading={props.busy} disabled={unchanged} />,
         <Button key="cancel" size="small" label="Cancel" onClick={props.onCancel} />,

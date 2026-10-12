@@ -39,9 +39,10 @@ export default (props: IndexFormPropsInterface) => {
 
   return (
     <Popup
-      isOpen={true}
+      openOnMount
       label="Add index"
       onClickOk={preview}
+      onClose={props.onCancel}
       buttons={[
         <Button key="preview" size="small" colorVariant="success" label="Preview SQL" onClick={preview} loading={props.busy} disabled={!selected.length} />,
         <Button key="cancel" size="small" label="Cancel" onClick={props.onCancel} />,

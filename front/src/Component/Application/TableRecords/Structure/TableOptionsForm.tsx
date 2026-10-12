@@ -43,9 +43,10 @@ export default (props: TableOptionsFormPropsInterface) => {
 
   return (
     <Popup
-      isOpen={true}
+      openOnMount
       label="Table options"
       onClickOk={preview}
+      onClose={props.onCancel}
       buttons={[
         <Button key="preview" size="small" colorVariant="success" label="Preview SQL" onClick={preview} loading={props.busy} disabled={!changed || invalidNumber} />,
         <Button key="cancel" size="small" label="Cancel" onClick={props.onCancel} />,

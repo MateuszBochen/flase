@@ -19,7 +19,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   const user = await res.json();
 
   const browser = await chromium.launch();
-  const page = await (await browser.newContext({viewport: {width: 1500, height: 900}})).newPage();
+  const page = await (await browser.newContext({viewport: {width: 1500, height: 900}, permissions: ['clipboard-read', 'clipboard-write']})).newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
@@ -133,12 +133,52 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     await openTable('uuid_bin_test');
     await page.screenshot({path: `${OUT}/uuid-02-${engine}-binary.png`});
     const binIds = await column('id');
-    check('binary(16) key shown as hex', binIds.includes('0x3F2C1A9E6B7D4E8F9A0B1C2D3E4F5A01'), JSON.stringify(binIds));
+    check('binary(16) key with UUID default shown as UUID', binIds.includes('3f2c1a9e-6b7d-4e8f-9a0b-1c2d3e4f5a01'), JSON.stringify(binIds));
     const second = await rowOf('name', 'second');
     await editText(second, 'name', 'second edited');
     await submit();
     await reload();
     check('edit by binary(16) key saved', (await column('name')).includes('second edited') && (await column('name')).includes('first'), JSON.stringify(await column('name')));
+  }
+
+  {
+    // --- 16 bytes without UUID default: recognized by layout of values, MD5 hashes stay hex
+    await openTable('bin16_test');
+    const hashes = await column('hash');
+    check('MD5 hashes stay hex', hashes.length === 4 && hashes.every((value) => /^0x[0-9A-F]{32}$/.test(value)), JSON.stringify(hashes));
+    const refs = await column('ref');
+    check('UUID v4 recognized', refs.join() === '3f2c1a9e-6b7d-4e8f-9a0b-1c2d3e4f5a01,7a8b9c0d-1e2f-4a3b-8c4d-5e6f7a8b9c02,NULL,b1c2d3e4-f5a6-4b7c-9d8e-0f1a2b3c4d03', JSON.stringify(refs));
+    check('swapped UUID v1 recognized', (await column('legacy'))[0] === '1026baba-6ccd-780c-9564-5b8c656024db', JSON.stringify(await column('legacy')));
+    await page.screenshot({path: `${OUT}/uuid-04-${engine}-bin16.png`});
+
+    const columnMenu = async (name, path) => {
+      await (await cell(0, name)).click({button: 'right'});
+      for (const label of path.slice(0, -1)) {
+        await page.getByRole('menuitem', {name: label, exact: true}).hover();
+        await page.waitForTimeout(250);
+      }
+      await page.getByRole('menuitem', {name: path[path.length - 1], exact: true}).click();
+      await page.waitForTimeout(1200);
+    };
+    // automatic recognition is shown in menu, hex can be chosen instead, and UUID forced for other column
+    await (await cell(0, 'ref')).click({button: 'right'});
+    await page.getByRole('menuitem', {name: 'Display column as', exact: true}).hover();
+    await page.waitForTimeout(250);
+    check('menu tells column was recognized', await page.getByRole('menuitem', {name: 'Value (default) - recognized as UUID'}).count() === 1);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+    await columnMenu('ref', ['Display column as', 'Hexadecimal']);
+    check('hex chosen instead of UUID', (await column('ref'))[0] === '0x3F2C1A9E6B7D4E8F9A0B1C2D3E4F5A01', JSON.stringify(await column('ref')));
+    await columnMenu('hash', ['Display column as', 'UUID (16 bytes)']);
+    check('UUID forced for hashes', /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test((await column('hash'))[0]), JSON.stringify(await column('hash')));
+
+    // copy value as shown
+    await columnMenu('ref', ['Display column as', 'Value (default)']);
+    await (await cell(1, 'ref')).click({button: 'right'});
+    await page.getByRole('menuitem', {name: 'Copy value', exact: true}).click();
+    await page.waitForTimeout(300);
+    check('UUID copied', await page.evaluate(() => navigator.clipboard.readText()) === '7a8b9c0d-1e2f-4a3b-8c4d-5e6f7a8b9c02');
+    await columnMenu('hash', ['Display column as', 'Value (default)']);
   }
 
   if (engine === 'mariadb') {

@@ -18,9 +18,10 @@ export default () => {
     return () => EventBus.unSub(eventId);
   }, []);
 
-  /** tabs of colored connection (e.g. production) have the same color */
+  /** tabs of colored connection (e.g. production) have the same color, database of PostgreSQL tree the color of its server */
   const colors = context.tabs.map((tabItem) => {
-    const connectionId = (tabItem.props as any)?.connection?.id;
+    const connection = (tabItem.props as any)?.connection;
+    const connectionId = connection?.parentId || connection?.id;
     return connectionId ? ConnectionSettings.getInstance().getConnection(connectionId)?.color : undefined;
   });
 

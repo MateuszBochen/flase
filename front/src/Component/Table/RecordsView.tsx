@@ -45,6 +45,7 @@ import RowForm from './Edit/RowForm';
 import ValueEditor from './Edit/ValueEditor';
 import CellEditPopup from './Edit/CellEditPopup';
 import {isBinaryValue} from '../../Library/Record/BinaryValue';
+import {isBinary16, uuidOfHex} from '../../Library/Record/Uuid';
 import toast from 'react-hot-toast';
 
 type QueryStatus = {
@@ -69,6 +70,9 @@ type ContextMenuState = {
 } | null;
 
 /** RecordsView */
+/** grid used last (focus, click) - gets Ctrl+S when focus is on body */
+let lastUsedGrid: HTMLDivElement | null = null;
+
 export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterface>((props, ref) => {
 
   const [status, setStatus] = useState<QueryStatus>({loading: true, rows: 0, error: null});
@@ -210,10 +214,24 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
 
   } as RecordsViewRefInterface));
 
+  /**
+   * editor of cell or popup was removed - focus fell to body, keyboard shortcuts (Ctrl+S) must go to grid again;
+   * after render, so blur of editor is not caused by it
+   */
+  const focusGrid = useCallback(() => {
+    setTimeout(() => {
+      const active = document.activeElement;
+      if (!active || active === document.body) {
+        rootRef.current?.focus({preventScroll: true});
+      }
+    });
+  }, []);
+
   /** grid callbacks */
   const onCommitEdit = useCallback((rowIndex: number, column: ColumnInterface, value: CellValueType) => {
     setChanges((previous) => setRowValues(previous, getRecords(), rowIndex, {[column.key]: value}));
     setEditingCell(null);
+    focusGrid();
   }, []);
 
   const onCellMouseDown = useCallback((rowIndex: number, columnIndex: number, mode: SelectModeType) => {
@@ -279,7 +297,10 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
       setEditingCell({rowIndex, columnKey: column.key});
     },
     onCommitEdit,
-    onCancelEdit: () => setEditingCell(null),
+    onCancelEdit: () => {
+      setEditingCell(null);
+      focusGrid();
+    },
     onContextMenu,
   }), [changes, selectedRow, editingCell, canEdit, selection, onCellMouseDown, onCellMouseEnter, onCommitEdit, onContextMenu]);
 
@@ -292,6 +313,7 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
       rowIndexes.map((rowIndex) => getDisplayedRow(changes, records, rowIndex)),
       editable?.table.name,
       props.sqlLiteral,
+      Object.keys(gridDisplay.display.transforms).filter((key) => gridDisplay.display.transforms[key] === 'uuid'),
     );
   };
 
@@ -380,6 +402,25 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
     }
   };
 
+  // focus is on body (closed popup, removed editor) - Ctrl+S of the last used visible grid is not left to browser
+  const onKeyDownRef = useRef(onKeyDown);
+  onKeyDownRef.current = onKeyDown;
+  useEffect(() => {
+    const onWindowKeyDown = (event: globalThis.KeyboardEvent) => {
+      const root = rootRef.current;
+      const active = document.activeElement;
+      if (!root || lastUsedGrid !== root || (active && active !== document.body) || !root.offsetParent) return;
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
+        onKeyDownRef.current(event as unknown as KeyboardEvent<HTMLDivElement>);
+      }
+    };
+    window.addEventListener('keydown', onWindowKeyDown);
+    return () => {
+      window.removeEventListener('keydown', onWindowKeyDown);
+      if (lastUsedGrid === rootRef.current) lastUsedGrid = null;
+    };
+  }, []);
+
   /** row actions */
   const onAddRow = () => setRowForm({title: 'New row', values: valuesForNewRow(columns)});
 
@@ -431,7 +472,9 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
     if (rowIndex !== null && column) {
       const value = getDisplayedRow(changes, records, rowIndex)[column.key];
       items.push({label: 'Open value editor…', onClick: () => setValueEditor({rowIndex, column})});
-      items.push({label: 'Copy value', onClick: () => copyToClipboard(isBinaryValue(value) ? (value.text ?? `0x${value.hex}`) as any : value)});
+      items.push({label: 'Copy value', onClick: () => copyToClipboard(isBinary16(value) && gridDisplay.display.transforms[column.key] === 'uuid'
+        ? uuidOfHex(value.hex)
+        : isBinaryValue(value) ? (value.text ?? `0x${value.hex}`) as any : value)});
       items.push({
         label: 'Copy selection as',
         children: COPY_FORMATS.map(({format, label}) => ({label, hint: format === 'tsv' ? 'Ctrl+C' : undefined, onClick: () => copySelection(format)})),
@@ -550,6 +593,8 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
       ref={rootRef}
       tabIndex={-1}
       onKeyDown={onKeyDown}
+      onFocus={() => lastUsedGrid = rootRef.current}
+      onMouseDown={() => lastUsedGrid = rootRef.current}
     >
       <div
         className="cmp-records-view-table-wrapper"
@@ -666,7 +711,7 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
         />
       )}
       {image && (
-        <Popup isOpen={true} label={image.title} onClickOk={() => setImage(null)} buttons={[<Button key="close" size="small" label="Close" onClick={() => setImage(null)} />]}>
+        <Popup openOnMount label={image.title} onClickOk={() => setImage(null)} onClose={() => setImage(null)} buttons={[<Button key="close" size="small" label="Close" onClick={() => setImage(null)} />]}>
           <div className="cmp-image-preview"><img src={image.url} alt={image.title} /></div>
         </Popup>
       )}
