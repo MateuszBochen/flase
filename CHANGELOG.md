@@ -10,7 +10,8 @@ versions follow [Semantic Versioning](https://semver.org/). A `v*` tag publishes
   version and variant bits of all values on the page (MD5 hashes and other bytes stay hex); "Display column as" shows
   recognized column and can switch it to hexadecimal or force UUID, value is copied as UUID, value editor has UUID view
 - Filter of tables in sidebar: arrows choose table (typed filter chooses the first one), Enter opens it,
-  Shift+Enter or Ctrl+Enter in new tab, Escape clears filter
+  Shift+Enter in new tab, Ctrl+Enter in new tab in background, Escape clears filter
+- Middle click (or Ctrl+click) on Data / Structure of table opens the view in new tab
 
 ### Changed
 - Browser tab shows name and icon of Flase instead of "React App"
@@ -18,6 +19,7 @@ versions follow [Semantic Versioning](https://semver.org/). A `v*` tag publishes
 - Filter and icons of database stay on top in sidebar, only list of tables scrolls
 
 ### Fixed
+- Tabs of database opened in PostgreSQL tree had no color of the connection
 - Ctrl+S right after editing of cell (Enter, Escape) or after closing of popup opened "Save page" of browser instead of
   submitting changes - focus is returned to grid and Ctrl+S goes to the last used grid
 - Application stopped answering (until restart of server) when many tabs loaded data at once - e.g. application open

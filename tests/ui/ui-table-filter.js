@@ -82,7 +82,7 @@ const check = (name, ok, info = '') => {
   await page.keyboard.press('Shift+Enter');
   await page.waitForTimeout(1500);
   const shiftTabs = (await page.locator('.tab-label-list-item').allInnerTexts()).map((text) => text.split('\n')[0].trim());
-  check('Shift+Enter opens in new tab', shiftTabs.length === 3 && shiftTabs.includes(`shop/${names[1]}`), JSON.stringify(shiftTabs));
+  check('Shift+Enter opens in new tab and shows it', shiftTabs.length === 3 && await activeTab() === `shop/${names[1]}`, JSON.stringify(shiftTabs));
 
   // --- Escape clears filter
   await input.focus();

@@ -7,6 +7,8 @@ interface IconButtonInterface {
   disabled?: boolean;
   buttonProps?: InvisibleButtonPropsInterface;
   onClick: (event: MouseEvent<HTMLButtonElement>) => void;
+  /** middle click, e.g. open in new tab - onClick when not given */
+  onClickWheel?: (event: MouseEvent<HTMLButtonElement>) => void;
   tooltip?: string;
   /** e.g. selected view */
   active?: boolean;

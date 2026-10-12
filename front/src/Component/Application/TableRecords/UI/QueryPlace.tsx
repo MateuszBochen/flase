@@ -180,13 +180,15 @@ export default (props: QueryPlacePropsInterface) => {
           icon={faTable}
           tooltip="Data"
           active={props.view === 'data'}
-          onClick={() => props.onViewChange('data')}
+          onClick={(event) => event.ctrlKey || event.metaKey ? props.onOpenViewInNewTab('data') : props.onViewChange('data')}
+          onClickWheel={() => props.onOpenViewInNewTab('data')}
         />
         <IconButton
           icon={faTableColumns}
           tooltip="Structure"
           active={props.view === 'structure'}
-          onClick={() => props.onViewChange('structure')}
+          onClick={(event) => event.ctrlKey || event.metaKey ? props.onOpenViewInNewTab('structure') : props.onViewChange('structure')}
+          onClickWheel={() => props.onOpenViewInNewTab('structure')}
         />
         <span className="speed-dial-separator" />
         <IconButton

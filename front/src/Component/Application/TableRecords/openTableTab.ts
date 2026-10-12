@@ -8,12 +8,14 @@ import CurrentTabComponentWasSelected from '../../ApplicationRenderer/Event/Curr
 import TabInterface from '../../ApplicationRenderer/Interface/TabInterface';
 import TableRecordsPropsInterface from './Interface/TableRecordsPropsInterface';
 import TableRecords from './TableRecords';
+import {TableViewType} from './Interface/QueryPlacePropsInterface';
 
 /** open table records of given table, optionally with own query */
 const openTableTab = (
   connection: ConnectionDataInterface,
   table: TableInterface,
-  options: {query?: string, newTab: boolean},
+  /** activate - new tab is shown at once, otherwise it is opened in background */
+  options: {query?: string, newTab: boolean, activate?: boolean, view?: TableViewType},
 ) => {
   const known = TableManager.getInstance()
     .getTablesListForDatabase(connection, {name: table.databaseName})
@@ -29,9 +31,10 @@ const openTableTab = (
 
   const tab: TabInterface<TableRecordsPropsInterface> = {
     component: TableRecords,
-    props: {connection, database: {name: table.databaseName}, table: tableInformation, initialQuery: options.query},
+    props: {connection, database: {name: table.databaseName}, table: tableInformation, initialQuery: options.query, initialView: options.view},
     tabName: `${table.databaseName}/${table.name}`,
     isActive: false,
+    activate: options.activate,
   };
 
   EventBus.emit(options.newTab ? new NewTabComponentWasSelected(tab) : new CurrentTabComponentWasSelected(tab));

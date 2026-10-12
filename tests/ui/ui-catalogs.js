@@ -11,7 +11,7 @@ const check = (name, ok, info = '') => {
 };
 
 (async () => {
-  const connection = {id: 'ui-catalogs', dsn: 'postgresql://postgres:5432', username: 'flase', displayName: 'PG server', changeConfirmationRequired: false};
+  const connection = {id: 'ui-catalogs', dsn: 'postgresql://postgres:5432', username: 'flase', displayName: 'PG server', changeConfirmationRequired: false, color: '#d4b106'};
   const user = await (await fetch(`${BASE}/api/login`, {method: 'POST', headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({userData: {username: 'flase', password: 'flase'}, connectionData: connection})})).json();
   const browser = await chromium.launch();
@@ -53,6 +53,8 @@ const check = (name, ok, info = '') => {
   await page.locator('.table-list-menu-root li', {hasText: /^tickets$/}).locator('button').dispatchEvent('mousedown');
   await page.waitForTimeout(2000);
   check('table tab of chosen database', await activeTab() === 'public/tickets' && await page.locator('.cmp-records-view:visible .data-table-row').count() === 3, await activeTab());
+  const tabColor = await page.locator('.tab-label-list-item.active').evaluate((element) => getComputedStyle(element).borderTopColor);
+  check('tab of database has color of server connection', tabColor === 'rgb(212, 177, 6)', tabColor);
   await page.screenshot({path: `${OUT}/catalogs-01-tree.png`});
 
   // console of chosen database

@@ -111,7 +111,7 @@ export default (props: TableListPropsInterface) => {
     setHighlighted(filter ? 0 : -1);
   }, [filter]);
 
-  /** arrows choose table, Enter opens it (Shift+Enter or Ctrl+Enter in new tab), Escape clears filter */
+  /** arrows choose table, Enter opens it, Shift+Enter in new tab shown at once, Ctrl+Enter in new tab in background, Escape clears filter */
   const onFilterKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault();
@@ -124,7 +124,7 @@ export default (props: TableListPropsInterface) => {
       const table = filtered[highlighted];
       if (table) {
         event.preventDefault();
-        openTableTab(props.connection, {databaseName: database, name: table.tableName}, {newTab: event.shiftKey || event.ctrlKey || event.metaKey});
+        openTableTab(props.connection, {databaseName: database, name: table.tableName}, {newTab: event.shiftKey || event.ctrlKey || event.metaKey, activate: event.shiftKey});
       }
     } else if (event.key === 'Escape' && (filter || highlighted >= 0)) {
       // popup or menu above is not closed by it

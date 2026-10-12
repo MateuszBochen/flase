@@ -11,7 +11,7 @@ export default (props: IconButtonInterface) => {
   return (
     <InvisibleButton
       onClickLeft={props.onClick}
-      onClickWheel={props.onClick}
+      onClickWheel={props.onClickWheel || props.onClick}
       tooltip={props.tooltip || ''}
       disabled={props.disabled}
       className={className}

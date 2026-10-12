@@ -18,7 +18,8 @@ export const SHORTCUTS: {group: string, items: {keys: string, action: string}[]}
     items: [
       {keys: '↑ / ↓', action: 'Choose table'},
       {keys: 'Enter', action: 'Open table'},
-      {keys: 'Shift + Enter / Ctrl + Enter', action: 'Open table in new tab'},
+      {keys: 'Shift + Enter', action: 'Open table in new tab'},
+      {keys: 'Ctrl + Enter', action: 'Open table in new tab in background'},
       {keys: 'Escape', action: 'Clear filter'},
     ],
   },
