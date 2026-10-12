@@ -304,7 +304,8 @@ const DB2 = 'ui_db_test2';
   const pgButtons = await pgOverview.locator('.overview-selection button').allInnerTexts();
   check('schema tables listed', pgTables.includes('customers') && pgTables.includes('orders'), pgTables.join());
   check('PostgreSQL maintenance actions', pgButtons.join('|').includes('Vacuum') && pgButtons.join('|').includes('Reindex') && !pgButtons.join('|').includes('Optimize'), pgButtons.join('|'));
-  check('no events section, no collation', !(await pgOverview.innerText()).includes('Events') && await pgOverview.locator('.overview-chip').count() === 0);
+  check('no events section, database of connection instead of collation', !(await pgOverview.innerText()).includes('Events')
+    && (await pgOverview.locator('.overview-chip').allInnerTexts()).join() === 'database shop', (await pgOverview.locator('.overview-chip').allInnerTexts()).join());
   await pgOverview.getByLabel('Select customers').check();
   await pgOverview.locator('.overview-selection').getByRole('button', {name: 'Vacuum analyze'}).click();
   await page.waitForTimeout(2000);

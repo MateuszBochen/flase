@@ -31,6 +31,7 @@ export default (props: VerticalSlideItemPropsInterface) => {
         props.slider.onContextMenu!(event);
       } : undefined}
     >
+      {props.slider.chevron && <span className="vertical-slider-chevron" aria-hidden="true">{props.slider.isActive ? '▾' : '▸'}</span>}
       <span className="vertical-slider-label" style={props.slider.color ? {color: props.slider.color} : undefined}>{props.slider.label}</span>
       {props.slider.suffix}
       <div className="vertical-slider-item-component" ref={componentRef}>

@@ -64,6 +64,11 @@ interface DriverInterface {
   cancel(tabId: string): Promise<boolean>;
 
   /**
+   * Databases of PostgreSQL server (level above schemas), null for MySQL
+   */
+  getCatalogs(): Promise<{name: string, canConnect: boolean, current: boolean, size: number | null}[] | null>;
+
+  /**
    * Threads of database server (SHOW FULL PROCESSLIST)
    */
   getProcessList(): Promise<ProcessInterface[]>;

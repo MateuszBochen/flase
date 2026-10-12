@@ -1,3 +1,5 @@
+-- views left by interrupted browser tests
+DROP VIEW IF EXISTS v_city_orders, v_expensive;
 SET FOREIGN_KEY_CHECKS = 0;
 DROP VIEW IF EXISTS struct_view;
 DROP TABLE IF EXISTS struct_child;

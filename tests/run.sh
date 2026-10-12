@@ -25,6 +25,12 @@ passed=()
 failed=()
 
 reset_data() {
+  # role and database of the same name - default database of PostgreSQL connection without database in DSN
+  docker exec flase_postgres psql -q -U flase -d shop -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'flase_owner') THEN CREATE ROLE flase_owner LOGIN PASSWORD 'flase'; END IF; END \$\$;" > /dev/null
+  docker exec flase_postgres sh -c "psql -U flase -d shop -Atc \"SELECT 1 FROM pg_database WHERE datname = 'flase_owner'\" | grep -q 1 || psql -q -U flase -d shop -c 'CREATE DATABASE flase_owner OWNER flase_owner'" > /dev/null
+  # tables as created by Hibernate / Flyway in application database
+  docker exec -i -e PGPASSWORD=flase flase_postgres psql -q -h 127.0.0.1 -U flase_owner -d flase_owner -v ON_ERROR_STOP=1 < "$TESTS/fixtures/postgres-hibernate.sql" 2>&1 | grep -v NOTICE
+
   docker exec -i flase_mysql mysql -uroot -proot shop < "$TESTS/fixtures/mysql.sql" 2>/dev/null
   docker exec -i flase_mariadb mariadb -uroot -proot shop < "$TESTS/fixtures/mysql.sql"
   docker exec -i flase_mariadb mariadb -uroot -proot shop < "$TESTS/fixtures/mariadb.sql"
@@ -65,7 +71,7 @@ if [ "$GROUP" = "all" ] || [ "$GROUP" = "server" ]; then
     docker run --rm -v "$ROOT:/repo" -w /repo/server "$NODE_IMAGE" npx ts-node -T ../tests/server/split-test.ts > "$LOGS/split" 2>&1
     report split-test "$LOGS/split"
   fi
-  for test in ws-test edit-test structure-test ddl-test search-test console-test transfer-test release-test pg-test database-test server-test foreign-key-test cell-tools-test; do
+  for test in ws-test edit-test structure-test ddl-test search-test console-test transfer-test release-test pg-test database-test server-test foreign-key-test cell-tools-test hibernate-test catalog-test; do
     selected "$test" || continue
     reset_data
     docker run --rm --network flase_default -v "$ROOT/server/node_modules:/nm:ro" -v "$TESTS/server:/t:ro" -e NODE_PATH=/nm \
@@ -119,7 +125,7 @@ if [ "$GROUP" = "all" ] || [ "$GROUP" = "ui" ]; then
   # file and arguments
   for test in "ui-test5.js 0" "ui-test.js 0" "ui-test.js 1" "ui-test2.js 0" "ui-test3.js 0" "ui-test4.js 0" "ui-structure.js 0" \
     "ui-ddl.js 0" "ui-browse.js 0" "ui-copy.js 0" "ui-deselect.js 0" "ui-value.js 0" "ui-completion.js 0" "ui-search.js 0" \
-    "ui-console.js 0" "ui-transfer.js 0" "ui-postgres.js" "ui-edit-popup.js" "ui-column-resize.js" "ui-new-connection.js" "ui-sidebar.js" "ui-predefined.js" "ui-restore.js" "ui-password.js" "ui-database.js" "ui-server.js" "ui-query-builder.js" "ui-export-chart.js" "ui-display.js" "ui-uuid.js mariadb" "ui-uuid.js mysql" "ui-uuid.js postgres" "ui-perf.js mysql" "ui-perf.js postgres"; do
+    "ui-console.js 0" "ui-transfer.js 0" "ui-postgres.js" "ui-edit-popup.js" "ui-column-resize.js" "ui-new-connection.js" "ui-sidebar.js" "ui-predefined.js" "ui-restore.js" "ui-password.js" "ui-database.js" "ui-server.js" "ui-query-builder.js" "ui-export-chart.js" "ui-display.js" "ui-catalogs.js" "ui-uuid.js mariadb" "ui-uuid.js mysql" "ui-uuid.js postgres" "ui-perf.js mysql" "ui-perf.js postgres"; do
     file="${test%% *}"
     selected "$file" || continue
     reset_data

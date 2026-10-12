@@ -1,0 +1,36 @@
+.cmp-catalog-list .catalog-suffix {
+  margin-left: 6px;
+  white-space: nowrap;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.cmp-catalog-list .catalog-suffix svg {
+  font-size: 0.65rem;
+  opacity: 0.7;
+}
+
+.cmp-catalog-list .catalog-suffix.denied {
+  color: var(--danger-text);
+}
+
+.cmp-catalog-list .catalog-status {
+  padding: 4px 6px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.cmp-catalog-list .catalog-status.error {
+  color: var(--danger-text);
+}
+
+.cmp-catalog-list .catalog-status button {
+  margin-left: 8px;
+  padding: 0 6px;
+  border: solid 1px var(--border-strong);
+  border-radius: 3px;
+  color: var(--text-strong);
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}

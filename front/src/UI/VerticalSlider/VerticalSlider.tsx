@@ -41,6 +41,17 @@ export default (props: VerticalSliderPropsInterface) => {
     };
   }));
 
+  // collapse all - signal of parent
+  const firstSignal = useRef(props.collapseSignal);
+  useEffect(() => {
+    if (props.collapseSignal === firstSignal.current) return;
+    firstSignal.current = props.collapseSignal;
+    const empty = new Set<string>();
+    saveOpen(props.storageKey, empty);
+    setOpen(empty);
+    setState((previous) => previous.map((item) => ({...item, isActive: false})));
+  }, [props.collapseSignal]);
+
   useEffect(() => {
     if (containerRef.current) {
       containerRef.current.style.height = `calc(100% - ${containerRef.current.offsetTop + 3}px`;

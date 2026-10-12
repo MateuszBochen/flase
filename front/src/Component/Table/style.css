@@ -477,6 +477,9 @@
   color: #8fb3e8;
 }
 .data-table-content .data-table-row .data-table-cell .dtc-content .dtc-reference {
+  position: relative;
+  /* long value with label of referenced row must not cover the button */
+  z-index: 1;
   float: right;
   margin-left: 4px;
   padding: 0 2px;

@@ -11,6 +11,8 @@ interface VerticalSliderItem {
   suffix?: React.ReactNode;
   /** right click on item (not on its opened content) */
   onContextMenu?: (event: React.MouseEvent) => void;
+  /** arrow showing that item opens / closes */
+  chevron?: boolean;
 }
 
 export default VerticalSliderItem;

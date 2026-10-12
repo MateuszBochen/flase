@@ -83,6 +83,7 @@ import and export dumps, draw ER diagrams and manage users - all from one self-h
 - Processlist with kill of queries, search across all tables of a database
 - **Dark and light theme**, keyboard shortcuts (F1 shows all of them)
 - Several servers open at once in the sidebar, tabs colored by connection
+- PostgreSQL tree like pgAdmin - databases, schemas, tables (connection without database in DSN)
 - **State survives reload** - open tabs (with query, sort and filter of tables and text of SQL console), open servers and databases
 - **Remember password** in the browser - encrypted (AES-GCM) with a key the page cannot read, never stored on the server
 - **TLS / SSL** connections to the database (`sslmode` in DSN, own CA, client certificates)
@@ -96,7 +97,8 @@ docker run -d --name flase -p 3001:3001 -e JWT_SECRET=$(openssl rand -hex 32) ba
 ```
 
 Open http://localhost:3001 and add a connection, for example `mysql://db-host:3306`, `mariadb://db-host:3306`
-or `postgresql://db-host:5432/database`. Passwords are not stored on the server; optionally they can be remembered in the browser
+or `postgresql://db-host:5432/database`. PostgreSQL connection with database in DSN shows schemas of the database;
+without database (`postgresql://db-host:5432`) it shows all databases of the server with their schemas, like pgAdmin. Passwords are not stored on the server; optionally they can be remembered in the browser
 (encrypted with a non-extractable key of the browser, available over HTTPS or localhost).
 
 ### docker compose

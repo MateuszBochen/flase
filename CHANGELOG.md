@@ -3,7 +3,20 @@
 All notable changes of Flase are documented here. Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versions follow [Semantic Versioning](https://semver.org/). A `v*` tag publishes the Docker image of the version.
 
+## [0.2.0] - 2026-10-12
 
+### Added
+- PostgreSQL connection without database in DSN (`postgresql://host:5432`) shows databases of server like pgAdmin -
+  database -> schemas -> tables; database is opened with login of the connection (password is not asked again),
+  more databases can be open at once, open databases and their tabs are restored after reload
+- Database of PostgreSQL connection is shown in overview of schema
+
+### Changed
+- PostgreSQL connection opens database named as the user (like psql) when DSN has no database, `postgres` only when
+  such database does not exist (it was always `postgres`)
+
+### Fixed
+- Link to referenced row in grid could not be clicked when long value (UUID) was shown with label of referenced row
 
 ## [0.1.0] - 2026-10-11
 
@@ -127,7 +140,7 @@ First public version - web database manager for MySQL, MariaDB and PostgreSQL, a
 - Production Docker image (`docker/production/Dockerfile`): application, API and websocket on one port
 - GitHub Actions workflow publishing the image to Docker Hub on a `v*` tag
 
-[Unreleased]: https://github.com/MateuszBochen/flase/compare/v0.1.0...HEAD
+[0.2.0]: https://github.com/MateuszBochen/flase/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/MateuszBochen/flase/compare/v0.0.2...v0.1.0
 [0.0.2]: https://github.com/MateuszBochen/flase/compare/v0.0.1...v0.0.2
 [0.0.1]: https://github.com/MateuszBochen/flase/releases/tag/v0.0.1

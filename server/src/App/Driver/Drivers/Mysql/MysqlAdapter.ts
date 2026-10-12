@@ -198,6 +198,11 @@ class MysqlAdapter implements DriverInterface {
     return true;
   }
 
+  /** MySQL has no level above databases */
+  async getCatalogs(): Promise<null> {
+    return null;
+  }
+
   async getProcessList(): Promise<ProcessInterface[]> {
     const ownThreads = new Set<number>(((this.pool as any)?._allConnections || []).map((connection: any) => connection.threadId));
     const rows = await this.queryRows('SHOW FULL PROCESSLIST');

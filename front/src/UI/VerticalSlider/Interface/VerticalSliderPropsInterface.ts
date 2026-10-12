@@ -9,6 +9,8 @@ interface VerticalSliderPropsInterface {
   multiple?: boolean;
   /** open items are remembered in browser under this key (also one open item of accordion) */
   storageKey?: string;
+  /** every change closes all items (button "collapse all") */
+  collapseSignal?: number;
 }
 
 export default VerticalSliderPropsInterface;
