@@ -14,6 +14,15 @@ export const SHORTCUTS: {group: string, items: {keys: string, action: string}[]}
     ],
   },
   {
+    group: 'Filter of tables (sidebar)',
+    items: [
+      {keys: '↑ / ↓', action: 'Choose table'},
+      {keys: 'Enter', action: 'Open table'},
+      {keys: 'Shift + Enter / Ctrl + Enter', action: 'Open table in new tab'},
+      {keys: 'Escape', action: 'Clear filter'},
+    ],
+  },
+  {
     group: 'Data grid',
     items: [
       {keys: 'Double click', action: 'Edit cell'},

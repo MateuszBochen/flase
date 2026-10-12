@@ -20,9 +20,10 @@ export default (props: CreateViewPopupPropsInterface) => {
 
   return (
     <Popup
-      isOpen={true}
+      openOnMount
       label={`Create view in ${props.database}`}
       onClickOk={preview}
+      onClose={props.onCancel}
       buttons={[
         <Button key="preview" size="small" colorVariant="success" label="Preview SQL" onClick={preview} loading={props.busy} disabled={!name.trim()} />,
         <Button key="cancel" size="small" label="Cancel" onClick={props.onCancel} />,

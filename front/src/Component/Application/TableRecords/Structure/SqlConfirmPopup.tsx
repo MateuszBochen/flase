@@ -22,9 +22,10 @@ export default (props: SqlConfirmPopupPropsInterface) => {
   const destructive = isDestructive(props.change);
   return (
     <Popup
-      isOpen={true}
+      openOnMount
       label={destructive ? 'Confirm - this cannot be undone' : 'Confirm structure change'}
       onClickOk={props.onCancel}
+      onClose={props.onCancel}
       buttons={[
         <Button
           key="execute"

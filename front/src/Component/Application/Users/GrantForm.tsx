@@ -82,9 +82,10 @@ export default (props: GrantFormPropsInterface) => {
 
   return (
     <Popup
-      isOpen={true}
+      openOnMount
       label="Grant privileges"
       onClickOk={preview}
+      onClose={props.onCancel}
       buttons={[
         <Button key="preview" size="small" colorVariant="success" label="Preview SQL" loading={props.busy} disabled={!valid} onClick={preview} />,
         <Button key="cancel" size="small" label="Cancel" onClick={props.onCancel} />,

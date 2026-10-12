@@ -8,7 +8,7 @@ import TableInformationInterface from '../Table/Interface/TableInformationInterf
  * How values of column are shown in grid (transformations) and which column of referenced table is shown
  * next to foreign key value. Settings are kept in browser.
  */
-export type TransformType = '' | 'image' | 'imageUrl' | 'link' | 'unixTime' | 'bytes' | 'bool' | 'hex';
+export type TransformType = '' | 'image' | 'imageUrl' | 'link' | 'unixTime' | 'bytes' | 'bool' | 'hex' | 'uuid';
 
 const TRANSFORMS_KEY = 'column-transforms';
 const DISPLAY_KEY = 'reference-display-columns';
@@ -25,6 +25,8 @@ export const TRANSFORMS: {transform: TransformType, label: string, applies: (typ
   {transform: 'bytes', label: 'Size in bytes (KiB, MiB)', applies: (type) => NUMBER_TYPE.test(type) || !type},
   {transform: 'bool', label: 'Yes / no (✓ / ✗)', applies: (type) => NUMBER_TYPE.test(type) || /char|bool/i.test(type) || !type},
   {transform: 'hex', label: 'Hexadecimal', applies: () => true},
+  // 16 bytes values are shown as UUID automatically when they look like it
+  {transform: 'uuid', label: 'UUID (16 bytes)', applies: (type) => BINARY_TYPE.test(type) || !type},
 ];
 
 class ColumnDisplayWasChanged implements EventInterface<null> {

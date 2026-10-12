@@ -75,9 +75,10 @@ export default (props: ForeignKeyFormPropsInterface) => {
 
   return (
     <Popup
-      isOpen={true}
+      openOnMount
       label={`Add foreign key to ${props.table.name}`}
       onClickOk={preview}
+      onClose={props.onCancel}
       buttons={[
         <Button key="preview" size="small" colorVariant="success" label="Preview SQL" onClick={preview} loading={props.busy} disabled={!valid} />,
         <Button key="cancel" size="small" label="Cancel" onClick={props.onCancel} />,

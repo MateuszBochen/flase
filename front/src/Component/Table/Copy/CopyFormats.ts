@@ -3,6 +3,7 @@ import {CellValueType, SingleRowType} from '../Interface/RecordsViewPropsInterfa
 import SqlLiteral from '../../../Library/Database/Driver/Adapter/MySql/SqlLiteral';
 import SqlLiteralInterface from '../../../Library/Database/Driver/SqlLiteralInterface';
 import {isBinaryValue} from '../../../Library/Record/BinaryValue';
+import {isBinary16, uuidOfHex} from '../../../Library/Record/Uuid';
 
 export type CopyFormatType = 'tsv' | 'tsv-header' | 'csv' | 'markdown' | 'insert' | 'json' | 'xml' | 'html' | 'latex';
 
@@ -32,7 +33,10 @@ export const EXPORT_FILE: {[format in CopyFormatType]: {extension: string, mimeT
 };
 
 /** binary values come from server as preview, they are copied as text when possible */
-const plain = (value: CellValueType | undefined | object): CellValueType => {
+const plain = (value: CellValueType | undefined | object, asUuid: boolean = false): CellValueType => {
+  if (asUuid && isBinary16(value)) {
+    return uuidOfHex(value.hex);
+  }
   if (isBinaryValue(value)) {
     return value.text !== null ? value.text : `[BLOB ${value.size} B]`;
   }
@@ -78,8 +82,17 @@ const markdownCell = (value: CellValueType): string => {
  * table - name used for INSERT (table of editable result or of first column)
  */
 /** sql - quoting of INSERT format, MySQL when not given */
-export const formatCopy = (format: CopyFormatType, columns: ColumnInterface[], rows: SingleRowType[], table?: string, sql: SqlLiteralInterface = new SqlLiteral()): string => {
-  const values = rows.map((row) => columns.map((column) => plain(row[column.key])));
+/** uuidColumns - keys of 16 bytes columns shown as UUID, copied as UUID too (not in INSERT - text is not the binary value) */
+export const formatCopy = (
+  format: CopyFormatType,
+  columns: ColumnInterface[],
+  rows: SingleRowType[],
+  table?: string,
+  sql: SqlLiteralInterface = new SqlLiteral(),
+  uuidColumns: string[] = [],
+): string => {
+  const asUuid = columns.map((column) => format !== 'insert' && uuidColumns.includes(column.key));
+  const values = rows.map((row) => columns.map((column, index) => plain(row[column.key], asUuid[index])));
   const names = columns.map((column) => column.name);
 
   switch (format) {

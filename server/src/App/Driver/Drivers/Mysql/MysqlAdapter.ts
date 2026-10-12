@@ -54,7 +54,13 @@ const { Parser } = require('node-sql-parser');
 class MysqlAdapter implements DriverInterface {
   readonly dialect: SqlDialectType = 'mysql';
   private consoleLog = true;
+  /** short queries (structure, lists, DDL) - never held while waiting for other connection */
   private pool: Pool | null = null;
+  /**
+   * sessions of tabs (select, console, import) and dumps - they hold connection and meanwhile load structure of tables
+   * from the other pool; in one pool many tabs at once would take all connections and wait for each other forever
+   */
+  private sessionPool: Pool | null = null;
   /** credentials were verified and disconnect was not called */
   private connected = false;
   private keepaliveIntervalId: NodeJS.Timeout | null = null;
@@ -110,10 +116,9 @@ class MysqlAdapter implements DriverInterface {
   }
 
   releaseConnections(): void {
-    if (this.pool) {
-      this.pool.end((err) => err && this.log(err));
-      this.pool = null;
-    }
+    [this.pool, this.sessionPool].forEach((pool) => pool?.end((err) => err && this.log(err)));
+    this.pool = null;
+    this.sessionPool = null;
   }
 
   private createPool(): Pool {
@@ -145,7 +150,7 @@ class MysqlAdapter implements DriverInterface {
 
   openSession(database: string | null, tabId?: string): Promise<DriverSessionInterface> {
     return new Promise((resolve, reject) => {
-      this.getPool().getConnection((err: MysqlError, connection: PoolConnection) => {
+      this.getSessionPool().getConnection((err: MysqlError, connection: PoolConnection) => {
         if (err) {
           reject(err);
           return;
@@ -204,7 +209,7 @@ class MysqlAdapter implements DriverInterface {
   }
 
   async getProcessList(): Promise<ProcessInterface[]> {
-    const ownThreads = new Set<number>(((this.pool as any)?._allConnections || []).map((connection: any) => connection.threadId));
+    const ownThreads = new Set<number>(([] as any[]).concat(...[this.pool, this.sessionPool].map((pool) => (pool as any)?._allConnections || [])).map((connection: any) => connection.threadId));
     const rows = await this.queryRows('SHOW FULL PROCESSLIST');
     return rows.map((row) => ({
       id: Number(row.Id),
@@ -220,7 +225,7 @@ class MysqlAdapter implements DriverInterface {
   }
 
   dump(options: DumpOptionsInterface, write: (text: string) => Promise<void>): Promise<{tables: number, rows: number}> {
-    return new MysqlDumper(this.getPool(), options).dump(write);
+    return new MysqlDumper(this.getSessionPool(), options).dump(write);
   }
 
   buildInsertStatement(database: string, table: string, columns: string[], rows: (string | null)[][]): string {
@@ -915,6 +920,16 @@ class MysqlAdapter implements DriverInterface {
       this.pool = this.createPool();
     }
     return this.pool;
+  }
+
+  private getSessionPool(): Pool {
+    if (!this.connected) {
+      throw new Error('Not connected');
+    }
+    if (!this.sessionPool) {
+      this.sessionPool = this.createPool();
+    }
+    return this.sessionPool;
   }
 
   private streamQueryResults = (query:string):Observable<RecordType> => {

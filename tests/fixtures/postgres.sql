@@ -134,6 +134,19 @@ CREATE TABLE uuid_bin_test (
 INSERT INTO uuid_bin_test (id, name) VALUES
   (decode('3F2C1A9E6B7D4E8F9A0B1C2D3E4F5A01', 'hex'), 'first'),
   (decode('7A8B9C0D1E2F4A3B8C4D5E6F7A8B9C02', 'hex'), 'second');
+-- bytea without UUID default: MD5 hashes (not UUID), UUID v4, UUID v1 of UUID_TO_BIN(uuid, 1)
+DROP TABLE IF EXISTS bin16_test;
+CREATE TABLE bin16_test (
+  id INTEGER PRIMARY KEY,
+  hash bytea NULL,
+  ref bytea NULL,
+  legacy bytea NULL
+);
+INSERT INTO bin16_test (id, hash, ref, legacy) VALUES
+  (1, decode(md5('alpha'), 'hex'), decode('3F2C1A9E6B7D4E8F9A0B1C2D3E4F5A01', 'hex'), decode('1026BABA6CCD780C95645B8C656024DB', 'hex')),
+  (2, decode(md5('beta'), 'hex'), decode('7A8B9C0D1E2F4A3B8C4D5E6F7A8B9C02', 'hex'), decode('1026BABA6CCD780D95645B8C656024DB', 'hex')),
+  (3, decode(md5('gamma'), 'hex'), NULL, decode('1026BABA6CCD780E95645B8C656024DB', 'hex')),
+  (4, decode(md5('delta'), 'hex'), decode('B1C2D3E4F5A64B7C9D8E0F1A2B3C4D03', 'hex'), decode('1026BABA6CCD780F95645B8C656024DB', 'hex'));
 -- spatial values for map of results (native geometric types)
 DROP TABLE IF EXISTS gis_test;
 CREATE TABLE gis_test (

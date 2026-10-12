@@ -3,6 +3,27 @@
 All notable changes of Flase are documented here. Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versions follow [Semantic Versioning](https://semver.org/). A `v*` tag publishes the Docker image of the version.
 
+## [0.2.1] - 2026-10-12
+
+### Added
+- UUID kept as 16 bytes (`BINARY(16)`, `bytea`) is shown as UUID - recognized by UUID default of column or by
+  version and variant bits of all values on the page (MD5 hashes and other bytes stay hex); "Display column as" shows
+  recognized column and can switch it to hexadecimal or force UUID, value is copied as UUID, value editor has UUID view
+- Filter of tables in sidebar: arrows choose table (typed filter chooses the first one), Enter opens it,
+  Shift+Enter or Ctrl+Enter in new tab, Escape clears filter
+
+### Changed
+- Browser tab shows name and icon of Flase instead of "React App"
+- Popup is closed by Escape and by click outside of it (like Cancel / Close button)
+- Filter and icons of database stay on top in sidebar, only list of tables scrolls
+
+### Fixed
+- Ctrl+S right after editing of cell (Enter, Escape) or after closing of popup opened "Save page" of browser instead of
+  submitting changes - focus is returned to grid and Ctrl+S goes to the last used grid
+- Application stopped answering (until restart of server) when many tabs loaded data at once - e.g. application open
+  in two windows restoring the same tabs, or several SQL consoles: queries of tabs took all connections of the pool and
+  waited for another connection to read structure of their tables; sessions of tabs have own pool now
+
 ## [0.2.0] - 2026-10-12
 
 ### Added
@@ -140,6 +161,7 @@ First public version - web database manager for MySQL, MariaDB and PostgreSQL, a
 - Production Docker image (`docker/production/Dockerfile`): application, API and websocket on one port
 - GitHub Actions workflow publishing the image to Docker Hub on a `v*` tag
 
+[0.2.1]: https://github.com/MateuszBochen/flase/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/MateuszBochen/flase/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/MateuszBochen/flase/compare/v0.0.2...v0.1.0
 [0.0.2]: https://github.com/MateuszBochen/flase/compare/v0.0.1...v0.0.2

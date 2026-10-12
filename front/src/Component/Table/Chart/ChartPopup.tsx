@@ -279,9 +279,10 @@ export default (props: ChartPopupPropsInterface) => {
 
   return (
     <Popup
-      isOpen={true}
+      openOnMount
       label={`Chart of ${props.name}`}
       onClickOk={props.onClose}
+      onClose={props.onClose}
       buttons={[
         <Button key="png" size="small" label="Export PNG" onClick={exportPng} disabled={!points.length} />,
         <Button key="svg" size="small" label="Export SVG" onClick={() => download(new Blob([svgText()], {type: 'image/svg+xml'}), 'svg')} disabled={!points.length} />,

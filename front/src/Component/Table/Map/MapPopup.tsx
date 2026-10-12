@@ -184,9 +184,10 @@ export default (props: MapPopupPropsInterface) => {
 
   return (
     <Popup
-      isOpen={true}
+      openOnMount
       label={`Map of ${props.name}`}
       onClickOk={props.onClose}
+      onClose={props.onClose}
       buttons={[
         <Button key="svg" size="small" label="Export SVG" onClick={() => exportSvg(svgRef.current)} disabled={!features.length} />,
         <Button key="close" size="small" label="Close" onClick={props.onClose} />,

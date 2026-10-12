@@ -26,9 +26,10 @@ export default (props: ExplainPopupPropsInterface) => {
 
   return (
     <Popup
-      isOpen={true}
+      openOnMount
       label="EXPLAIN"
       onClickOk={props.onClose}
+      onClose={props.onClose}
       buttons={[<Button key="close" size="small" label="Close" onClick={props.onClose} />]}
     >
       <div className="cmp-explain">

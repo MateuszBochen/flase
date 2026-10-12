@@ -46,9 +46,10 @@ export default (props: OperationConfirmPopupPropsInterface) => {
 
   return (
     <Popup
-      isOpen={true}
+      openOnMount
       label={title(operation, driver.features.databaseLabel)}
       onClickOk={props.onCancel}
+      onClose={props.onCancel}
       buttons={[
         <Button
           key="execute"

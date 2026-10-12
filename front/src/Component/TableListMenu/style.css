@@ -44,3 +44,31 @@
 .table-list-filter .invisible-button-root {
   padding: 0 4px;
 }
+
+/* filter and icons stay on top, only list of tables scrolls */
+.table-list-menu-root {
+  display: flex;
+  flex-direction: column;
+}
+.table-list-menu-root .table-list,
+.table-list-menu-root .table-list-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.table-list-menu-root .table-list-filter {
+  flex: none;
+}
+.table-list-menu-root .table-list-content > ul {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* table chosen by arrows in filter */
+.table-list-menu-root li.highlighted button {
+  color: var(--text-strong);
+  background: var(--inset-soft);
+  box-shadow: inset 2px 0 0 var(--primary);
+}

@@ -58,9 +58,10 @@ export default (props: DatabaseFormPopupPropsInterface) => {
 
   return (
     <Popup
-      isOpen={true}
+      openOnMount
       label={titles[props.mode]}
       onClickOk={preview}
+      onClose={props.onCancel}
       buttons={[
         <Button key="preview" size="small" colorVariant="success" label="Preview SQL" onClick={preview} loading={props.busy} disabled={disabled} />,
         <Button key="cancel" size="small" label="Cancel" onClick={props.onCancel} />,

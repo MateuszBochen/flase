@@ -212,9 +212,10 @@ export default (props: ReplicationViewPropsInterface) => {
       {menu && <ContextMenu x={menu.x} y={menu.y} items={menu.items} onClose={() => setMenu(null)} />}
       {preview && (
         <Popup
-          isOpen={true}
+          openOnMount
           label={`${ACTION_TITLES[preview.action.kind]} - confirm`}
           onClickOk={() => setPreview(null)}
+          onClose={() => setPreview(null)}
           buttons={[
             <Button
               key="execute"

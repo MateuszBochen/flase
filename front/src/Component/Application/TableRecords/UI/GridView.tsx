@@ -360,9 +360,10 @@ export default (props: GridViewPropsInterface) => {
       />
       {sqlPreview && (
         <Popup
-          isOpen={true}
+          openOnMount
           label={props.connection.changeConfirmationRequired ? 'Confirm changes' : 'SQL preview'}
           onClickOk={() => setSqlPreview(null)}
+          onClose={() => setSqlPreview(null)}
           buttons={[
             <Button
               key="execute"

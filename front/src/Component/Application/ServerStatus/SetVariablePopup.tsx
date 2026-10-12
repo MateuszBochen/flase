@@ -71,9 +71,10 @@ export default (props: SetVariablePopupPropsInterface) => {
   return (
     <>
       <Popup
-        isOpen={true}
+        openOnMount
         label={`Change ${variable.name}`}
         onClickOk={() => send({value, persist}, true)}
+        onClose={props.onCancel}
         buttons={[
           <Button key="preview" size="small" colorVariant="success" label="Preview SQL" loading={busy} onClick={() => send({value, persist}, true)} />,
           <Button key="default" size="small" label="Reset to default" disabled={busy} onClick={() => send({value: null, persist}, true)} />,
@@ -117,9 +118,10 @@ export default (props: SetVariablePopupPropsInterface) => {
       </Popup>
       {preview && (
         <Popup
-          isOpen={true}
+          openOnMount
           label={`Confirm change of ${variable.name}`}
           onClickOk={() => setPreview(null)}
+          onClose={() => setPreview(null)}
           buttons={[
             <Button key="execute" size="small" colorVariant="success" label="Execute" loading={busy} onClick={() => previewed.current && send(previewed.current, false)} />,
             <Button key="cancel" size="small" label="Cancel" onClick={() => setPreview(null)} />,

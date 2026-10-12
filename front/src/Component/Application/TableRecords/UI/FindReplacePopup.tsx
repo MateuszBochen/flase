@@ -92,9 +92,10 @@ export default (props: FindReplacePopupPropsInterface) => {
 
   return (
     <Popup
-      isOpen={true}
+      openOnMount
       label={`Find and replace in ${props.table.name}`}
       onClickOk={props.onClose}
+      onClose={props.onClose}
       buttons={[
         <Button key="preview" size="small" colorVariant="success" label="Preview" loading={busy && !preview} disabled={!column || !find} onClick={() => send(true)} />,
         <Button
