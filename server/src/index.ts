@@ -65,9 +65,39 @@ app.post('/api/login', (req:Request, res:Response) => {
   const connector = new EstablishConnection();
   connector.connect(data).then((response: EstablishConnectionResultInterface) => {
     if (response.driver && response.username !== null) {
-      res.send(sessions.create(response.driver, response.username, {readOnly: !!predefined?.readOnly}));
+      res.send(sessions.create(response.driver, response.username, {readOnly: !!predefined?.readOnly, request: data}));
     } else {
       console.log('login fail', response.error);
+      res.status(401).send({error: response.error});
+    }
+  });
+});
+
+/**
+ * other database of PostgreSQL server - new session with login of given session (password is not sent again),
+ * read only of the session is kept
+ */
+app.post('/api/login/database', (req: Request, res: Response) => {
+  const found = typeof req.body?.token === 'string' ? sessions.findByToken(req.body.token) : null;
+  const database = req.body?.database;
+  if (!found || !found.session.request) {
+    res.status(401).send({error: 'Session expired or does not exist, log in again'});
+    return;
+  }
+  if (found.session.driver.dialect !== 'postgresql') {
+    res.status(400).send({error: 'Only PostgreSQL connection has databases above schemas'});
+    return;
+  }
+  if (typeof database !== 'string' || !database.trim() || database.length > 63) {
+    res.status(400).send({error: 'Database name is required'});
+    return;
+  }
+  const parent = found.session.request;
+  const request: ConnectionRequestInterface = {...parent, connectionData: {...parent.connectionData, database}};
+  new EstablishConnection().connect(request).then((response: EstablishConnectionResultInterface) => {
+    if (response.driver && response.username !== null) {
+      res.send(sessions.create(response.driver, response.username, {readOnly: found.session.readOnly, request}));
+    } else {
       res.status(401).send({error: response.error});
     }
   });

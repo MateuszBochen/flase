@@ -24,6 +24,7 @@ import WebsocketConnectionWasRestored from '../WebSocket/Event/WebsocketConnecti
 import RefreshTokenRequest from '../API/Request/RefreshTokenRequest';
 import JwtExpiration from './JwtExpiration';
 import PasswordVault from './PasswordVault';
+import LoginDatabaseRequest from '../API/Request/LoginDatabaseRequest';
 
 /** next try when token refresh failed because of network */
 const REFRESH_RETRY_MS = 10 * 1000;
@@ -139,10 +140,39 @@ class ConnectionManager {
     });
   }
 
+  /**
+   * connection of database of PostgreSQL server chosen in tree - opened with login of parent connection,
+   * resolves with established connection (existing one when it is open)
+   */
+  connectDatabase(parent: ConnectionDataInterface, child: ConnectionDataInterface): Promise<ConnectionDataInterface> {
+    if (this.listOfEstablishedConnections[child.id]) {
+      return Promise.resolve(this.listOfEstablishedConnections[child.id].connection);
+    }
+    const established = this.listOfEstablishedConnections[parent.id];
+    if (!established) {
+      return Promise.reject(new Error(`${parent.displayName} is not connected`));
+    }
+    return new LoginDatabaseRequest().login(established.user, child.catalog!).then((user: EstablishedUser) => {
+      const childConnection = {user, connection: child};
+      this.listOfEstablishedConnections[child.id] = childConnection;
+      ConnectionSettings.getInstance().addNewEstablishedConnection(childConnection);
+      this.connectWithApi(childConnection);
+      EventBus.emit(new ConnectionWasEstablished());
+      return child;
+    }).catch((e) => {
+      throw new Error(e?.response?.data?.error || e?.message || 'Connection request rejected');
+    });
+  }
+
   /** disconnect function - server session is closed, user must log in again */
   /** notify false - disconnect requested by user, no warning toast */
   disconnect(establishedConnection: EstablishedConnectionInterface, notify: boolean = true): void {
     const id = establishedConnection.connection.id;
+
+    // databases opened with login of this connection are closed with it
+    Object.values(this.listOfEstablishedConnections)
+      .filter((item) => item.connection.parentId === id)
+      .forEach((item) => this.disconnect(item, false));
 
     // close and remove from apis list
     this.listOfApiConnections[id]?.close();

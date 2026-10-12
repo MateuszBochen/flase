@@ -59,3 +59,10 @@
   color: var(--text-muted);
   font-size: 0.75em;
 }
+
+.vertical-slider-root .vertical-slider-chevron {
+  display: inline-block;
+  width: 12px;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}

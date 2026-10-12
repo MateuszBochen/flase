@@ -18,6 +18,7 @@ import {ChangeUserCommandHandler, GetUserGrantsCommandHandler, GetUsersCommandHa
 import MessageType from './Enum/MessageType';
 import DatabaseOperationCommandHandler from './CommandHandler/DatabaseOperationCommandHandler';
 import {FindReplaceCommandHandler, GetBinaryValueCommandHandler} from './CommandHandler/CellToolsCommandHandlers';
+import GetCatalogsCommandHandler from './CommandHandler/GetCatalogsCommandHandler';
 import {
   GetLogEventsCommandHandler,
   GetReplicationCommandHandler,
@@ -177,6 +178,9 @@ class WebsocketRequest {
         return;
       case CommandType.GET_BINARY_VALUE:
         new GetBinaryValueCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
+        return;
+      case CommandType.GET_CATALOGS:
+        new GetCatalogsCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
         return;
       default:
         throw new Error(`Command ${command.command} not supported`);

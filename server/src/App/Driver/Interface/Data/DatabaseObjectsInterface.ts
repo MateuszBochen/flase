@@ -53,6 +53,8 @@ export interface DatabaseEventInterface {
 export interface DatabaseObjectsInterface {
   tabId?: string;
   database: string;
+  /** PostgreSQL - database of connection which contains the schema */
+  catalog?: string | null;
   /** default collation of database, null in PostgreSQL (schema has none) */
   collation: string | null;
   tables: DatabaseTableItemInterface[];

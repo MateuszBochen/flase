@@ -1,6 +1,6 @@
 import ConnectionMenuPropsInterface from './Interface/ConnectionMenuPropsInterface';
 import InvisibleButton from '../../UI/Button/InvisibleButton';
-import {faDatabase, faSatelliteDish, faInfoCircle, faMicrochip, faUsersRectangle, faSquarePlus, faGauge} from '@fortawesome/free-solid-svg-icons';
+import {faDatabase, faSatelliteDish, faInfoCircle, faMicrochip, faUsersRectangle, faSquarePlus, faGauge, faCompress} from '@fortawesome/free-solid-svg-icons';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import React, {useCallback, useEffect, useState} from 'react';
 import HorizontalButtonList from '../../UI/Button/HorizontalButtonList';
@@ -25,6 +25,8 @@ import DriverFactory from '../../Library/Database/Driver/DriverFactory';
 import NewTabComponentWasSelected from '../ApplicationRenderer/Event/NewTabComponentWasSelected';
 import {overviewTab} from '../Application/DatabaseOverview/DatabaseOverview';
 import useConnectionSettings from '../../Library/Connection/useConnectionSettings';
+import Catalogs from '../../Library/Connection/Catalogs';
+import CatalogListMenu from '../CatalogListMenu/CatalogListMenu';
 import ServerStatus, {ServerStatusPropsInterface} from '../Application/ServerStatus/ServerStatus';
 
 /** Connection manger */
@@ -54,6 +56,8 @@ const rememberLoaded = (id: string) => {
 export default (props: ConnectionMenuPropsInterface) => {
   const [settingsOpen, setSettingsOpen] = useState<boolean>(false);
   const [createOpen, setCreateOpen] = useState<boolean>(false);
+  /** closes all open databases of server */
+  const [collapseSignal, setCollapseSignal] = useState<number>(0);
   const connection = useConnectionSettings(props.connectionData);
   const createDatabase = useDatabaseOperation(props.connectionData, `create-database:${props.connectionData.id}`, (operation) => {
     setCreateOpen(false);
@@ -62,7 +66,14 @@ export default (props: ConnectionMenuPropsInterface) => {
     DatabaseManger.getInstance().reloadDatabaseList(props.connectionData);
     EventBus.emit(new NewTabComponentWasSelected(overviewTab(props.connectionData, operation.name)));
   });
+  /** PostgreSQL without database in DSN - databases of server, each with its schemas */
+  const withCatalogs = Catalogs.hasCatalogs(props.connectionData);
   const handleLoadDatabaseList = useCallback(() => {
+    if (withCatalogs) {
+      Catalogs.load(props.connectionData);
+      rememberLoaded(props.connectionData.id);
+      return;
+    }
     try {
       DatabaseManger.getInstance().aksForDatabaseList(connectionManger.getEstablishedConnection(props.connectionData));
       rememberLoaded(props.connectionData.id);
@@ -75,6 +86,10 @@ export default (props: ConnectionMenuPropsInterface) => {
   useEffect(() => {
     const restore = () => {
       if (!loadedLists().includes(props.connectionData.id)) return;
+      if (withCatalogs) {
+        if (connectionManger.checkIfConnectionIsActive(props.connectionData) && !Catalogs.listOf(props.connectionData)) Catalogs.load(props.connectionData);
+        return;
+      }
       try {
         const established = connectionManger.getEstablishedConnection(props.connectionData);
         if (!DatabaseManger.getInstance().getListOfDatabaseForConnection(established).length) {
@@ -123,23 +138,32 @@ export default (props: ConnectionMenuPropsInterface) => {
         >
           <FontAwesomeIcon icon={faTerminal} />
         </TabOpener>
-        <InvisibleButton
+        {!withCatalogs && <InvisibleButton
           tooltip={connection.readOnly ? 'Read only connection' : `Create ${DriverFactory.getDriver(props.connectionData).features.databaseLabel.toLowerCase()}`}
           onClickWheel={() => !connection.readOnly && setCreateOpen(true)}
           onClickLeft={() => !connection.readOnly && setCreateOpen(true)}
         >
           <FontAwesomeIcon icon={faSquarePlus} />
-        </InvisibleButton>
+        </InvisibleButton>}
         <InvisibleButton
-          tooltip={"Load database list"}
+          tooltip={withCatalogs ? 'Load databases of server' : 'Load database list'}
           onClickWheel={handleLoadDatabaseList}
           onClickLeft={handleLoadDatabaseList}
         >
           <FontAwesomeIcon icon={faDatabase} />
         </InvisibleButton>
+        {withCatalogs && (
+          <InvisibleButton
+            tooltip="Collapse all databases"
+            onClickLeft={() => setCollapseSignal((previous) => previous + 1)}
+            onClickWheel={() => setCollapseSignal((previous) => previous + 1)}
+          >
+            <FontAwesomeIcon icon={faCompress} />
+          </InvisibleButton>
+        )}
         <ConnectionControlIcon connectionData={props.connectionData} />
       </HorizontalButtonList>
-      <DatabaseListMenu connection={props.connectionData} />
+      {withCatalogs ? <CatalogListMenu connection={props.connectionData} collapseSignal={collapseSignal} /> : <DatabaseListMenu connection={props.connectionData} />}
       {settingsOpen && <ConnectionSettingsPopup connection={props.connectionData} onClose={() => setSettingsOpen(false)} />}
       {createOpen && (
         <DatabaseFormPopup

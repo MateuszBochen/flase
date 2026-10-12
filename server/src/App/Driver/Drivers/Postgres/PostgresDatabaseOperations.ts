@@ -42,7 +42,8 @@ class PostgresDatabaseOperations {
       return fallback;
     });
 
-    if (!(await this.queryRows('SELECT 1 FROM pg_namespace WHERE nspname = $1', [schema])).length) {
+    const [current] = await this.queryRows('SELECT current_database() AS name, EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = $1) AS found', [schema]);
+    if (!current?.found) {
       throw new Error(`Schema ${schema} does not exist`);
     }
 
@@ -80,6 +81,7 @@ class PostgresDatabaseOperations {
 
     return {
       database: schema,
+      catalog: current.name,
       collation: null,
       tables: tables.map((row) => {
         const isView = row.kind === 'v' || row.kind === 'm';

@@ -64,7 +64,8 @@ const check = (name, ok, info = '') => {
 
   // --- foreign key link
   const customerCell = await cell(0, 'customer_id');
-  const customerId = (await customerCell.innerText()).trim();
+  // label of referenced row is shown next to key - only the key itself
+  const customerId = (await customerCell.locator('.dtc-content').evaluate((element) => Array.from(element.childNodes).filter((node) => node.nodeType === 3).map((node) => node.textContent).join(''))).trim();
   check('foreign key cell has link', await customerCell.locator('.dtc-reference').count() === 1);
   check('primary key cell has no link', await (await cell(0, 'id')).locator('.dtc-reference').count() === 0);
   await customerCell.locator('.dtc-reference').click();

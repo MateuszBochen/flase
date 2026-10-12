@@ -67,15 +67,33 @@ class PostgresAdapter implements DriverInterface {
     this.analyser = new SelectAnalyser(new Parser(), this.dialect);
   }
 
+  /** database of connection - from DSN, otherwise database named as user (like psql), postgres when it does not exist */
+  private database: string = '';
+
   async connect(): Promise<DriverInterface> {
-    const pool = this.createPool();
-    try {
-      // check credentials with first connection
-      const client = await pool.connect();
-      client.release();
-    } catch (e) {
-      await pool.end().catch(() => undefined);
-      throw e;
+    const chosen = this.connectionData.connectionData?.database;
+    const candidates = chosen
+      ? [chosen]
+      : this.dsnOptions.db
+      ? [this.dsnOptions.db]
+      : Array.from(new Set([this.connectionData.userData.username, 'postgres'].filter(Boolean)));
+    let pool: Pool | null = null;
+    for (let index = 0; index < candidates.length; index++) {
+      this.database = candidates[index];
+      pool = this.createPool();
+      try {
+        // check credentials with first connection
+        const client = await pool.connect();
+        client.release();
+        break;
+      } catch (e: any) {
+        await pool.end().catch(() => undefined);
+        pool = null;
+        // 3D000 - database does not exist, next candidate is tried
+        if (e?.code !== '3D000' || index === candidates.length - 1) {
+          throw e;
+        }
+      }
     }
     this.pool = pool;
     this.connected = true;
@@ -111,7 +129,7 @@ class PostgresAdapter implements DriverInterface {
       user: this.connectionData.userData.username,
       password: this.connectionData.userData.password,
       // connection is always made to one database
-      database: this.dsnOptions.db || 'postgres',
+      database: this.database || this.dsnOptions.db || 'postgres',
       ssl: tlsOptions,
       max: 5,
       keepAlive: true,
@@ -182,6 +200,16 @@ class PostgresAdapter implements DriverInterface {
     session.markCancelled();
     await this.queryRows('SELECT pg_cancel_backend($1)', [processId]);
     return true;
+  }
+
+  /** databases of server - tree of connection without database in DSN */
+  async getCatalogs(): Promise<{name: string, canConnect: boolean, current: boolean, size: number | null}[]> {
+    const rows = await this.queryRows(
+      `SELECT d.datname AS name, has_database_privilege(d.datname, 'CONNECT') AS can_connect, d.datname = current_database() AS current,
+              CASE WHEN has_database_privilege(d.datname, 'CONNECT') THEN pg_database_size(d.datname) END AS size
+       FROM pg_database d WHERE NOT d.datistemplate AND d.datallowconn ORDER BY d.datname`,
+    );
+    return rows.map((row) => ({name: row.name, canConnect: !!row.can_connect, current: !!row.current, size: row.size === null ? null : Number(row.size)}));
   }
 
   async getProcessList(): Promise<ProcessInterface[]> {

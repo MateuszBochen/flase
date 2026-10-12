@@ -2,6 +2,7 @@ import DriverInterface from '../Driver/DriverInterface';
 import JWT from '../JWT/JWT';
 import Settings from '../Settings/Settings';
 import EstablishedUser from '../Connection/Interface/EstablishedUser';
+import ConnectionRequestInterface from '../Connection/Interface/ConnectionRequestInterface';
 const uuid = require('uuid');
 
 type SessionType = {
@@ -12,6 +13,8 @@ type SessionType = {
   /** expiration of the newest token, ms */
   expiresAt: number;
   openWebsockets: number;
+  /** login of session - other database of PostgreSQL server is opened with it */
+  request?: ConnectionRequestInterface;
   releaseTimer?: ReturnType<typeof setTimeout>;
 };
 
@@ -31,10 +34,10 @@ class SessionStore {
   }
 
   /** new session for connected driver, returns token for client */
-  create(driver: DriverInterface, username: string, options: {readOnly?: boolean} = {}): EstablishedUser {
+  create(driver: DriverInterface, username: string, options: {readOnly?: boolean, request?: ConnectionRequestInterface} = {}): EstablishedUser {
     const sessionId = uuid.v4();
     const token = JWT.getJwtToken({username, sessionId});
-    this.sessions[sessionId] = {driver, username, readOnly: !!options.readOnly, expiresAt: SessionStore.expiresAt(token), openWebsockets: 0};
+    this.sessions[sessionId] = {driver, username, readOnly: !!options.readOnly, expiresAt: SessionStore.expiresAt(token), openWebsockets: 0, request: options.request};
 
     // released if client never opens websocket
     this.scheduleRelease(sessionId);

@@ -12,6 +12,9 @@ interface ConnectionDataInterface {
   readOnly?: boolean;
   /** defined by administrator on server (FLASE_CONNECTIONS) - cannot be changed or deleted, address is taken by server */
   predefined?: boolean;
+  /** PostgreSQL database chosen in tree - connection of it was opened with login of parentId */
+  catalog?: string;
+  parentId?: string;
 }
 
 export default ConnectionDataInterface;

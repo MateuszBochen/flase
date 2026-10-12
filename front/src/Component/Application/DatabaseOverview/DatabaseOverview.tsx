@@ -279,6 +279,7 @@ const DatabaseOverview = (props: DatabaseOverviewPropsInterface) => {
     <div className="cmp-database-overview cmp-structure-view">
       <div className="overview-toolbar">
         <span className="overview-title"><FontAwesomeIcon icon={faDatabase} /> {props.database}</span>
+        {objects?.catalog && <span className="overview-chip" title="Database of connection - other databases need own connection with database in DSN">database {objects.catalog}</span>}
         {objects?.collation && <span className="overview-chip" title="Default collation">{objects.collation}</span>}
         <span className="overview-spacer" />
         <button type="button" onClick={openCreateTable} disabled={readOnly || !!gone} title="Create table (Structure → new table)">

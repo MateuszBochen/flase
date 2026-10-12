@@ -266,7 +266,19 @@ const postgresTests = async () => {
   await c.operation({kind: 'dropDatabase', name: S});
   await c.operation({kind: 'dropDatabase', name: S2});
 
-  let r = await c.options();
+  // database of DSN, without it database named as user (libpq) and postgres when there is no such database
+  let r = await c.objects('public');
+  check('database of DSN', r.payload?.catalog === 'shop' && r.payload.tables.length > 0, r.error || r.payload?.catalog);
+  const noDatabase = await connect({...connection, id: 'db-pg-nodb', dsn: 'postgresql://postgres:5432'}, 'flase', 'flase');
+  r = await noDatabase.objects('public');
+  check('without database in DSN: postgres when database of user does not exist', r.payload?.catalog === 'postgres', r.error || r.payload?.catalog);
+  noDatabase.ws.close();
+  const userDatabase = await connect({...connection, id: 'db-pg-user', dsn: 'postgresql://postgres:5432'}, 'flase_owner', 'flase');
+  r = await userDatabase.objects('public');
+  check('without database in DSN: database named as user', r.payload?.catalog === 'flase_owner', r.error || r.payload?.catalog);
+  userDatabase.ws.close();
+
+  r = await c.options();
   check('server options empty', r.payload?.collations?.length === 0 && r.payload.engines.length === 0, r.error);
   r = await c.operation({kind: 'createDatabase', name: S});
   check('schema created', r.message === 'DATABASE_OPERATION_APPLIED' && r.payload.statements[0] === `CREATE SCHEMA "${S}"`, r.error);
