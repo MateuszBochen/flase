@@ -1,10 +1,10 @@
 import DriverInterface from '../../DriverInterface';
+import {SqlValueType} from '../../SqlLiteralInterface';
 import TableInformationInterface from '../../../../Table/Interface/TableInformationInterface';
 import {Parser} from 'node-sql-parser';
 import QueryInterface from '../../../Interface/QueryInterface';
 import QueryModel from './QueryModel';
 import TableInterface from '../../../../Table/Interface/TableInterface';
-import {CellValueType} from '../../../../../Component/Table/Interface/RecordsViewPropsInterface';
 import SqlLiteral from './SqlLiteral';
 import SqlDialectType from '../../SqlDialectType';
 import DriverFeaturesInterface from '../../DriverFeaturesInterface';
@@ -36,7 +36,7 @@ class MysqlAdapter implements DriverInterface {
   }
 
   getDefaultQuery(table: TableInformationInterface): QueryInterface {
-    const stringQuery =  `SELECT * FROM \`${table.tableName}\` WHERE 1 LIMIT 0, 100`;
+    const stringQuery =  `SELECT * FROM ${this.sql.identifier(table.tableName)} WHERE 1 LIMIT 0, 100`;
     return new QueryModel(stringQuery, this.parser);
   }
 
@@ -45,7 +45,7 @@ class MysqlAdapter implements DriverInterface {
     return '';
   }
 
-  getRowsQuery(table: TableInterface, currentDatabase: string, conditions: {column: string, value: CellValueType}[]): string {
+  getRowsQuery(table: TableInterface, currentDatabase: string, conditions: {column: string, value: SqlValueType}[]): string {
     const where = conditions.length
       ? conditions.map((condition) => this.sql.equals(condition.column, condition.value)).join(' AND ')
       : '1';

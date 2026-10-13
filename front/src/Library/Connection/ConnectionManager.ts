@@ -197,6 +197,24 @@ class ConnectionManager {
     return !!this.listOfEstablishedConnections[data.id];
   }
 
+  /** connected - websocket is open (or being opened), reconnecting - it was lost and client tries to open it again */
+  getConnectionState(data: ConnectionDataInterface): 'disconnected' | 'connected' | 'reconnecting' {
+    if (!this.listOfEstablishedConnections[data.id]) {
+      return 'disconnected';
+    }
+    return this.listOfApiConnections[data.id]?.isReconnecting() ? 'reconnecting' : 'connected';
+  }
+
+  /** lost connection - try at once instead of waiting for next attempt */
+  reconnect(data: ConnectionDataInterface): void {
+    const client = this.listOfApiConnections[data.id];
+    if (!client) {
+      return;
+    }
+    toast.loading(`Reconnecting to server (${data.displayName})…`, {id: `ws-${data.id}`});
+    client.reconnectNow();
+  }
+
   getEstablishedConnection(data: ConnectionDataInterface): EstablishedConnectionInterface {
     if (this.listOfEstablishedConnections[data.id]) {
       return this.listOfEstablishedConnections[data.id];

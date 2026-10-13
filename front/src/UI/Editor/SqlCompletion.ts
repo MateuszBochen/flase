@@ -16,7 +16,7 @@ let api: typeof monaco | null = null;
 
 const unquote = (name: string) => /^"(?:[^"]|"")*"$/.test(name) ? name.slice(1, -1).replace(/""/g, '"') : name.replace(/`/g, '');
 
-const mysqlName = (name: string) => /^\w+$/.test(name) ? name : `\`${name}\``;
+const mysqlName = (name: string) => /^\w+$/.test(name) ? name : `\`${name.replace(/`/g, '``')}\``;
 
 /** alias / table name -> table name, from FROM and JOIN parts of query */
 const tablesOfQuery = (text: string): Map<string, string> => {

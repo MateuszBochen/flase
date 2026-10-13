@@ -139,6 +139,7 @@ postgresql://db:5432/shop?sslmode=verify-full&sslrootcert=ca.pem&sslcert=client.
 ```
 
 Without `sslrootcert` the CAs trusted by Node.js are used (enough for most cloud databases with public certificates).
+A certificate given without `sslmode` turns TLS on: `verify-ca` with `sslrootcert`, otherwise `require`.
 Certificate files are read only from `FLASE_CERT_DIR` (`/app/certs` in the image: `-v ./certs:/app/certs:ro`),
 so a DSN typed in the browser cannot read other files of the server.
 
@@ -153,6 +154,7 @@ so a DSN typed in the browser cannot read other files of the server.
 | `FLASE_CONNECTIONS` | - | JSON array of predefined connections: a DSN string or an object with `name`, `dsn`, `username`, `readOnly`, `color`, `confirmChanges` |
 | `FLASE_ALLOW_CUSTOM_CONNECTIONS` | `true` | `false` = users can use only predefined connections |
 | `FLASE_CERT_DIR` | `/app/certs` | Directory of CA / client certificates for TLS of database connections |
+| `FLASE_CONNECT_TIMEOUT_SECONDS` | `10` | Login to an unreachable database server fails after this time |
 
 Predefined connections are resolved by the server: the address is never taken from the browser and `readOnly`
 is enforced for the whole session. Credentials written in a predefined DSN are never sent to the browser.

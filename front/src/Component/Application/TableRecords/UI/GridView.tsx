@@ -241,9 +241,16 @@ export default (props: GridViewPropsInterface) => {
     const identifier = column.key !== column.name && column.alias
       ? `${sql.identifier(column.alias)}.${sql.identifier(name)}`
       : sql.identifier(name);
-    const condition = operator === 'IS NULL' || operator === 'IS NOT NULL'
-      ? `${identifier} ${operator}`
-      : `${identifier} ${operator} ${sql.value(value)}`;
+    let condition: string;
+    try {
+      condition = operator === 'IS NULL' || operator === 'IS NOT NULL'
+        ? `${identifier} ${operator}`
+        : `${identifier} ${operator} ${sql.value(value)}`;
+    } catch (e: any) {
+      // long binary value - only its preview is known
+      toast.error(e.message);
+      return;
+    }
     EventBus.emit(new FilterWasRequested({tabId: props.tabId, condition}));
   }, [props.tabId, props.connection]);
 
@@ -311,11 +318,18 @@ export default (props: GridViewPropsInterface) => {
   const onOpenReference = useCallback((column: ColumnInterface, value: CellValueType, newTab: boolean) => {
     const reference = column.reference;
     if (!reference) return;
-    const query = DriverFactory.getDriver(props.connection).getRowsQuery(
-      reference.table,
-      reference.table.databaseName,
-      [{column: reference.columnName, value}],
-    );
+    let query: string;
+    try {
+      query = DriverFactory.getDriver(props.connection).getRowsQuery(
+        reference.table,
+        reference.table.databaseName,
+        [{column: reference.columnName, value}],
+      );
+    } catch (e: any) {
+      // long binary value - only its preview is known
+      toast.error(e.message);
+      return;
+    }
     openTableTab(props.connection, reference.table, {query, newTab});
   }, [props.connection]);
 

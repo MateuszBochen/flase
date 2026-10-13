@@ -35,6 +35,12 @@ class Settings {
     return (Number.isFinite(seconds) && seconds > 0 ? seconds : 30) * 1000;
   }
 
+  /** login to unreachable database server fails after this time (FLASE_CONNECT_TIMEOUT_SECONDS) */
+  public static getConnectTimeoutMs(): number {
+    const seconds = Number(process.env.FLASE_CONNECT_TIMEOUT_SECONDS);
+    return (Number.isFinite(seconds) && seconds > 0 ? seconds : 10) * 1000;
+  }
+
   public static getJWTTokenExpire(): string {
     if (process.env.JWT_TOKEN_EXPIRE) {
       return process.env.JWT_TOKEN_EXPIRE;

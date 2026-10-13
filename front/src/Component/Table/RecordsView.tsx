@@ -44,9 +44,10 @@ import ContextMenu, {ContextMenuItem} from '../../UI/ContextMenu/ContextMenu';
 import RowForm from './Edit/RowForm';
 import ValueEditor from './Edit/ValueEditor';
 import CellEditPopup from './Edit/CellEditPopup';
-import {isBinaryValue} from '../../Library/Record/BinaryValue';
+import {binaryLabel, isBinaryValue, isFilterableBinary} from '../../Library/Record/BinaryValue';
 import {isBinary16, uuidOfHex} from '../../Library/Record/Uuid';
 import toast from 'react-hot-toast';
+import {downloadBinary} from '../../Library/Record/BinaryDownload';
 
 type QueryStatus = {
   loading: boolean;
@@ -463,6 +464,21 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
       .catch(() => toast.error('Unable to copy'));
   };
 
+  /** binary value (BLOB) of cell as file - whole value is loaded from server, grid has only preview */
+  const downloadValue = (rowIndex: number, column: ColumnInterface) => {
+    const records = getRecords();
+    const value = getDisplayedRow(changes, records, rowIndex)[column.key];
+    if (!isBinaryValue(value)) return;
+    // table-column-key of row (primary key when it is one column), otherwise number of row
+    const key = editable?.primaryKey.length === 1 ? records[rowIndex]?.[editable.primaryKey[0]] : undefined;
+    const rowName = key !== null && key !== undefined && typeof key !== 'object' ? String(key) : `row${rowIndex + 1}`;
+    const baseName = [column.table?.name, column.orgName || column.name, rowName].filter(Boolean).join('-');
+    // changed (unsaved) value is not in database - it is not loaded from there
+    const changedHere = getRowState(changes, records, rowIndex) === 'inserted' || changes.updated[rowIndex]?.[column.key] !== undefined;
+    downloadBinary(value, () => changedHere ? null : gridDisplay.actions.loadBinary(column, rowIndex), baseName)
+      .catch((e) => toast.error(e?.message || 'Value could not be downloaded'));
+  };
+
   const contextMenuItems = (menu: NonNullable<ContextMenuState>): ContextMenuItem[] => {
     const items: ContextMenuItem[] = [];
     const records = getRecords();
@@ -475,6 +491,9 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
       items.push({label: 'Copy value', onClick: () => copyToClipboard(isBinary16(value) && gridDisplay.display.transforms[column.key] === 'uuid'
         ? uuidOfHex(value.hex)
         : isBinaryValue(value) ? (value.text ?? `0x${value.hex}`) as any : value)});
+      if (isBinaryValue(value)) {
+        items.push({label: 'Download value', onClick: () => downloadValue(rowIndex, column)});
+      }
       items.push({
         label: 'Copy selection as',
         children: COPY_FORMATS.map(({format, label}) => ({label, hint: format === 'tsv' ? 'Ctrl+C' : undefined, onClick: () => copySelection(format)})),
@@ -483,7 +502,8 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
         label: 'Copy selected rows as',
         children: COPY_FORMATS.map(({format, label}) => ({label, onClick: () => copySelectedRows(format)})),
       });
-      if (column.reference && props.onOpenReference && value !== null && value !== undefined && !isBinaryValue(value) && rowState !== 'inserted') {
+      // binary key only when it is known whole (preview of long value is not)
+      if (column.reference && props.onOpenReference && value !== null && value !== undefined && !(isBinaryValue(value) && value.truncated) && rowState !== 'inserted') {
         items.push(
           {label: `Open ${column.reference.table.name} row`, onClick: () => props.onOpenReference!(column, value, false)},
           {label: `Open ${column.reference.table.name} row in new tab`, onClick: () => props.onOpenReference!(column, value, true)},
@@ -493,9 +513,11 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
 
     // expressions (no table column) cannot be used in WHERE by their alias
     const filterValue = rowIndex !== null && column ? getDisplayedRow(changes, records, rowIndex)[column.key] : undefined;
-    if (rowIndex !== null && column && column.orgName && props.onQuickFilter && !isBinaryValue(filterValue)) {
+    // binary value only when it is short (key, UUID) - files are not compared
+    if (rowIndex !== null && column && column.orgName && props.onQuickFilter && (!isBinaryValue(filterValue) || isFilterableBinary(filterValue))) {
       const value = filterValue;
-      const shown = value === null || value === undefined ? 'NULL' : String(value).length > 30 ? `${String(value).slice(0, 30)}…` : String(value);
+      const text = isBinaryValue(value) ? binaryLabel(value) : String(value);
+      const shown = value === null || value === undefined ? 'NULL' : text.length > 30 ? `${text.slice(0, 30)}…` : text;
       const filter = (operator: QuickFilterOperatorType) => () => props.onQuickFilter!(column, value ?? null, operator);
       items.push('separator');
       if (value === null || value === undefined) {
@@ -708,6 +730,7 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
             setValueEditor(null);
           }}
           onClose={() => setValueEditor(null)}
+          onDownload={() => downloadValue(valueEditor.rowIndex, valueEditor.column)}
         />
       )}
       {image && (

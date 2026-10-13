@@ -1,3 +1,4 @@
+import {isBinaryValue, valueKey} from '../../../Library/Record/BinaryValue';
 import {memo, useMemo} from 'react';
 import RowPropsInterface from '../Interface/RowPropsInterface';
 import Cell from './Cell';
@@ -52,7 +53,7 @@ export default memo((props: RowPropsInterface) => {
             reference={props.hasReference && !!column.reference && props.rowState !== 'inserted' && value !== null && value !== undefined}
             handlers={handlers}
             transform={props.display?.transforms[column.key] || ''}
-            label={value !== null && value !== undefined && typeof value !== 'object' ? props.display?.labels[column.key]?.[String(value)] : undefined}
+            label={value !== null && value !== undefined && (typeof value !== 'object' || isBinaryValue(value)) ? props.display?.labels[column.key]?.[valueKey(value)] : undefined}
           />
         );
       })}

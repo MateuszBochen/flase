@@ -14,6 +14,7 @@ const path = require('path');
  *
  * Files are read only from FLASE_CERT_DIR - DSN typed in browser cannot read other files of server.
  * Without sslrootcert the trusted CAs of Node.js are used (public CAs of cloud databases).
+ * Certificate without sslmode means verify-ca (sslrootcert) or require (only client certificate).
  */
 export type TlsModeType = 'disable' | 'require' | 'verify-ca' | 'verify-full';
 
@@ -67,6 +68,9 @@ export const tlsOfDsn = (params: Record<string, unknown> = {}): DsnTlsInterface 
       throw new Error(`Unknown sslmode ${rawMode} - use disable, require, verify-ca or verify-full`);
     }
     mode = known;
+  } else if (caName || certName || keyName) {
+    // certificate without sslmode - user wants TLS, connection must not silently stay unencrypted
+    mode = caName ? 'verify-ca' : 'require';
   }
   // like libpq: CA given with require means the certificate is verified
   if (mode === 'require' && caName) {

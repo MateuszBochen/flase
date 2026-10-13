@@ -71,7 +71,7 @@ if [ "$GROUP" = "all" ] || [ "$GROUP" = "server" ]; then
     docker run --rm -v "$ROOT:/repo" -w /repo/server "$NODE_IMAGE" npx ts-node -T ../tests/server/split-test.ts > "$LOGS/split" 2>&1
     report split-test "$LOGS/split"
   fi
-  for test in ws-test edit-test structure-test ddl-test search-test console-test transfer-test release-test pg-test database-test server-test foreign-key-test cell-tools-test hibernate-test catalog-test pool-test; do
+  for test in ws-test edit-test structure-test ddl-test search-test console-test transfer-test release-test pg-test database-test server-test foreign-key-test cell-tools-test hibernate-test catalog-test pool-test crash-test; do
     selected "$test" || continue
     reset_data
     docker run --rm --network flase_default -v "$ROOT/server/node_modules:/nm:ro" -v "$TESTS/server:/t:ro" -e NODE_PATH=/nm \
@@ -125,7 +125,7 @@ if [ "$GROUP" = "all" ] || [ "$GROUP" = "ui" ]; then
   # file and arguments
   for test in "ui-test5.js 0" "ui-test.js 0" "ui-test.js 1" "ui-test2.js 0" "ui-test3.js 0" "ui-test4.js 0" "ui-structure.js 0" \
     "ui-ddl.js 0" "ui-browse.js 0" "ui-copy.js 0" "ui-deselect.js 0" "ui-value.js 0" "ui-completion.js 0" "ui-search.js 0" \
-    "ui-console.js 0" "ui-transfer.js 0" "ui-postgres.js" "ui-edit-popup.js" "ui-column-resize.js" "ui-new-connection.js" "ui-sidebar.js" "ui-predefined.js" "ui-restore.js" "ui-password.js" "ui-database.js" "ui-server.js" "ui-query-builder.js" "ui-export-chart.js" "ui-display.js" "ui-catalogs.js" "ui-save-shortcut.js" "ui-table-filter.js" "ui-uuid.js mariadb" "ui-uuid.js mysql" "ui-uuid.js postgres" "ui-perf.js mysql" "ui-perf.js postgres"; do
+    "ui-console.js 0" "ui-transfer.js 0" "ui-postgres.js" "ui-edit-popup.js" "ui-column-resize.js" "ui-new-connection.js" "ui-sidebar.js" "ui-predefined.js" "ui-restore.js" "ui-password.js" "ui-database.js" "ui-server.js" "ui-query-builder.js" "ui-export-chart.js" "ui-display.js" "ui-catalogs.js" "ui-save-shortcut.js" "ui-table-filter.js" "ui-open-tables.js" "ui-sidebar-height.js" "ui-robustness.js" "ui-blob-download.js mariadb" "ui-blob-download.js postgres" "ui-connection-state.js" "ui-uuid.js mariadb" "ui-uuid.js mysql" "ui-uuid.js postgres" "ui-perf.js mysql" "ui-perf.js postgres"; do
     file="${test%% *}"
     selected "$file" || continue
     reset_data

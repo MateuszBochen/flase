@@ -28,6 +28,7 @@ import PostgresUsers from './PostgresUsers';
 import {UserManagerInterface} from '../../Interface/Data/UserInterface';
 import {deserializeBinaryValue} from '../BinaryValue';
 import {nodeTlsOptions, tlsOfDsn} from '../../Tls/DsnTls';
+import Settings from '../../../Settings/Settings';
 import PostgresDatabaseOperations from './PostgresDatabaseOperations';
 import PostgresServerAdmin from './PostgresServerAdmin';
 import {ServerAdminInterface} from '../../Interface/Data/ServerInterface';
@@ -137,6 +138,8 @@ class PostgresAdapter implements DriverInterface {
       database: this.database || this.dsnOptions.db || 'postgres',
       ssl: tlsOptions,
       max: 5,
+      // default is no timeout - unreachable host would wait for TCP timeout (minutes)
+      connectionTimeoutMillis: Settings.getConnectTimeoutMs(),
       keepAlive: true,
       application_name: 'Flase',
     } as any);

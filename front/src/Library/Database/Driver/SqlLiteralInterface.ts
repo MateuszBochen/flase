@@ -1,4 +1,8 @@
 import {CellValueType} from '../../../Component/Table/Interface/RecordsViewPropsInterface';
+import {BinaryValueInterface} from '../../Record/BinaryValue';
+
+/** value of cell - binary values come from server as preview object */
+export type SqlValueType = CellValueType | BinaryValueInterface | undefined;
 
 /** escaping for SQL generated on client (navigation, filters, copy as INSERT) */
 interface SqlLiteralInterface {
@@ -7,10 +11,11 @@ interface SqlLiteralInterface {
   /** database.table, database is left out when it is the current one */
   table(databaseName: string, name: string, currentDatabase?: string): string;
 
-  value(value: CellValueType | undefined): string;
+  /** throws for binary value which is longer than its preview */
+  value(value: SqlValueType): string;
 
   /** column = value, NULL is compared with IS NULL */
-  equals(column: string, value: CellValueType | undefined, tableAlias?: string): string;
+  equals(column: string, value: SqlValueType, tableAlias?: string): string;
 
   /** name as typed in editor - quoted only when needed */
   completionName(name: string): string;

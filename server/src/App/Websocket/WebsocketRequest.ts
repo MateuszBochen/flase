@@ -58,6 +58,14 @@ class WebsocketRequest {
         console.error('Invalid websocket message', event.data);
         return;
       }
+      // valid JSON, but not a command (null, number, array...) - property access below would crash the server
+      if (!command || typeof command !== 'object' || Array.isArray(command) || typeof command.command !== 'string') {
+        console.error('Invalid websocket command', String(event.data).slice(0, 200));
+        return;
+      }
+      if (!command.connectionData || typeof command.connectionData !== 'object') {
+        command.connectionData = {} as any;
+      }
 
       if (this.forceReadOnly) {
         // guard and read only database sessions read the flag from command
@@ -93,99 +101,51 @@ class WebsocketRequest {
     if (refused) {
       throw new Error(refused);
     }
-    const clientWebsocket = new ClientWebSocket(this.clientWebsocket);
-    switch (command.command) {
-      case CommandType.RELOAD_DATABASE_LIST:
-        new ReloadDatabaseListCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
-        return;
-      case CommandType.RELOAD_TABLES_LIST:
-        new ReloadTablesListCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
-        return;
-      case CommandType.SEND_SELECT_QUERY:
-        new HandleSelectQueryRequestHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
-        return;
-      case CommandType.APPLY_ROW_CHANGES:
-        new ApplyRowChangesCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
-        return;
-      case CommandType.GET_TABLE_STRUCTURE:
-        new GetTableStructureCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
-        return;
-      case CommandType.CHANGE_STRUCTURE:
-        new ChangeStructureCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
-        return;
-      case CommandType.SEARCH_DATABASE:
-        new SearchDatabaseCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
-        return;
-      case CommandType.EXECUTE_STATEMENTS:
-        new ExecuteStatementsCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
-        return;
-      case CommandType.CANCEL_QUERY:
-        new CancelQueryCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
-        return;
-      case CommandType.GET_PROCESSLIST:
-        new GetProcessListCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
-        return;
-      case CommandType.KILL_PROCESS:
-        new KillProcessCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
-        return;
-      case CommandType.CREATE_TRANSFER:
-        new CreateTransferCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
-        return;
-      case CommandType.GET_USERS:
-        new GetUsersCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
-        return;
-      case CommandType.GET_USER_GRANTS:
-        new GetUserGrantsCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
-        return;
-      case CommandType.CHANGE_USER:
-        new ChangeUserCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
-        return;
-      case CommandType.GET_DATABASE_OBJECTS:
-        new GetDatabaseObjectsCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
-        return;
-      case CommandType.GET_SERVER_OPTIONS:
-        new GetServerOptionsCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
-        return;
-      case CommandType.GET_OBJECT_DDL:
-        new GetObjectDdlCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
-        return;
-      case CommandType.DATABASE_OPERATION:
-        new DatabaseOperationCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
-        return;
-      case CommandType.GET_SERVER_STATUS:
-        new GetServerStatusCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
-        return;
-      case CommandType.GET_SERVER_VARIABLES:
-        new GetServerVariablesCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
-        return;
-      case CommandType.GET_SERVER_INFO:
-        new GetServerInfoCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
-        return;
-      case CommandType.SET_SERVER_VARIABLE:
-        new SetServerVariableCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
-        return;
-      case CommandType.GET_REPLICATION:
-        new GetReplicationCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
-        return;
-      case CommandType.GET_LOG_EVENTS:
-        new GetLogEventsCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
-        return;
-      case CommandType.REPLICATION_ACTION:
-        new ReplicationActionCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
-        return;
-      case CommandType.FIND_REPLACE:
-        new FindReplaceCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
-        return;
-      case CommandType.GET_BINARY_VALUE:
-        new GetBinaryValueCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
-        return;
-      case CommandType.GET_CATALOGS:
-        new GetCatalogsCommandHandler(this.databaseDriver, clientWebsocket, command).handle(command.payload);
-        return;
-      default:
-        throw new Error(`Command ${command.command} not supported`);
+    // own property only - "constructor" or "__proto__" from client must not resolve to Object prototype
+    const Handler = Object.prototype.hasOwnProperty.call(WebsocketRequest.HANDLERS, command.command) ? WebsocketRequest.HANDLERS[command.command] : null;
+    if (!Handler) {
+      throw new Error(`Command ${command.command} not supported`);
     }
+    // handlers read fields of payload - null or primitive from client must not crash them
+    const payload = command.payload && typeof command.payload === 'object' && !Array.isArray(command.payload) ? command.payload : {};
+    command.payload = payload;
+    // async handlers reject also when their own error handling fails - unhandled rejection would stop the whole server
+    Promise.resolve()
+      .then(() => new Handler(this.databaseDriver, new ClientWebSocket(this.clientWebsocket), command).handle(payload))
+      .catch((e) => this.sendError(command, e));
   }
+
+  private static readonly HANDLERS: {[command: string]: new (driver: DriverInterface, ws: ClientWebSocket, command: CommandInterface) => {handle: (data: any) => void | Promise<void>}} = {
+    [CommandType.RELOAD_DATABASE_LIST]: ReloadDatabaseListCommandHandler,
+    [CommandType.RELOAD_TABLES_LIST]: ReloadTablesListCommandHandler,
+    [CommandType.SEND_SELECT_QUERY]: HandleSelectQueryRequestHandler,
+    [CommandType.APPLY_ROW_CHANGES]: ApplyRowChangesCommandHandler,
+    [CommandType.GET_TABLE_STRUCTURE]: GetTableStructureCommandHandler,
+    [CommandType.CHANGE_STRUCTURE]: ChangeStructureCommandHandler,
+    [CommandType.SEARCH_DATABASE]: SearchDatabaseCommandHandler,
+    [CommandType.EXECUTE_STATEMENTS]: ExecuteStatementsCommandHandler,
+    [CommandType.CANCEL_QUERY]: CancelQueryCommandHandler,
+    [CommandType.GET_PROCESSLIST]: GetProcessListCommandHandler,
+    [CommandType.KILL_PROCESS]: KillProcessCommandHandler,
+    [CommandType.CREATE_TRANSFER]: CreateTransferCommandHandler,
+    [CommandType.GET_USERS]: GetUsersCommandHandler,
+    [CommandType.GET_USER_GRANTS]: GetUserGrantsCommandHandler,
+    [CommandType.CHANGE_USER]: ChangeUserCommandHandler,
+    [CommandType.GET_DATABASE_OBJECTS]: GetDatabaseObjectsCommandHandler,
+    [CommandType.GET_SERVER_OPTIONS]: GetServerOptionsCommandHandler,
+    [CommandType.GET_OBJECT_DDL]: GetObjectDdlCommandHandler,
+    [CommandType.DATABASE_OPERATION]: DatabaseOperationCommandHandler,
+    [CommandType.GET_SERVER_STATUS]: GetServerStatusCommandHandler,
+    [CommandType.GET_SERVER_VARIABLES]: GetServerVariablesCommandHandler,
+    [CommandType.GET_SERVER_INFO]: GetServerInfoCommandHandler,
+    [CommandType.SET_SERVER_VARIABLE]: SetServerVariableCommandHandler,
+    [CommandType.GET_REPLICATION]: GetReplicationCommandHandler,
+    [CommandType.GET_LOG_EVENTS]: GetLogEventsCommandHandler,
+    [CommandType.REPLICATION_ACTION]: ReplicationActionCommandHandler,
+    [CommandType.FIND_REPLACE]: FindReplaceCommandHandler,
+    [CommandType.GET_BINARY_VALUE]: GetBinaryValueCommandHandler,
+    [CommandType.GET_CATALOGS]: GetCatalogsCommandHandler,
+  };
 
   private sendError(command: CommandInterface, error: any): void {
     console.error(error);

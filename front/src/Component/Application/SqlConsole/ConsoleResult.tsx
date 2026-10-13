@@ -1,3 +1,4 @@
+import toast from 'react-hot-toast';
 import React, {useCallback, useEffect, useRef} from 'react';
 import RecordsView from '../../Table/RecordsView';
 import RecordsViewRefInterface from '../../Table/Interface/RecordsViewRefInterface';
@@ -53,7 +54,14 @@ export default (props: ConsoleResultPropsInterface) => {
   const onOpenReference = useCallback((column: ColumnInterface, value: CellValueType, newTab: boolean) => {
     const reference = column.reference;
     if (!reference) return;
-    const query = DriverFactory.getDriver(props.connection).getRowsQuery(reference.table, reference.table.databaseName, [{column: reference.columnName, value}]);
+    let query: string;
+    try {
+      query = DriverFactory.getDriver(props.connection).getRowsQuery(reference.table, reference.table.databaseName, [{column: reference.columnName, value}]);
+    } catch (e: any) {
+      // long binary value - only its preview is known
+      toast.error(e.message);
+      return;
+    }
     openTableTab(props.connection, reference.table, {query, newTab: true});
   }, [props.connection]);
 

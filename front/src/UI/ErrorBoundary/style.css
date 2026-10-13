@@ -1,0 +1,21 @@
+.tab-error-boundary {
+  margin: 24px;
+  padding: 16px 20px;
+  max-width: 720px;
+  border: solid 1px #d9534f;
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--text-strong);
+}
+
+.tab-error-boundary p {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.tab-error-boundary-buttons {
+  display: flex;
+  gap: 8px;
+}

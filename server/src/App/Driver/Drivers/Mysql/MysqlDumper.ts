@@ -34,10 +34,19 @@ class MysqlDumper {
       await this.query('SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ');
       await this.query('START TRANSACTION WITH CONSISTENT SNAPSHOT');
 
-      const objects = (await this.query(
+      // nothing is written yet - missing database or table is reported as error, not as empty dump
+      if (!(await this.query('SELECT 1 FROM `information_schema`.`SCHEMATA` WHERE `SCHEMA_NAME` = ?', [database])).length) {
+        throw new Error(`Database ${database} does not exist`);
+      }
+      const allObjects = await this.query(
         'SELECT `TABLE_NAME`, `TABLE_TYPE` FROM `information_schema`.`TABLES` WHERE `TABLE_SCHEMA` = ? ORDER BY `TABLE_NAME`',
         [database],
-      )).filter((row: any) => !this.options.tables.length || this.options.tables.includes(row.TABLE_NAME));
+      );
+      const missing = this.options.tables.filter((table) => !allObjects.some((row: any) => row.TABLE_NAME === table));
+      if (missing.length) {
+        throw new Error(`Tables do not exist: ${missing.join(', ')}`);
+      }
+      const objects = allObjects.filter((row: any) => !this.options.tables.length || this.options.tables.includes(row.TABLE_NAME));
       const tables = objects.filter((row: any) => row.TABLE_TYPE === 'BASE TABLE').map((row: any) => row.TABLE_NAME as string);
       const views = objects.filter((row: any) => /VIEW/.test(row.TABLE_TYPE)).map((row: any) => row.TABLE_NAME as string);
 

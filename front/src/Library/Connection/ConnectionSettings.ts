@@ -33,17 +33,21 @@ class ConnectionSettings {
   constructor() {
     const storedSettings = SettingsAPI.getSettings<ConnectionDataInterface[]>(this.SETTINGS_KEY_NAME);
     const storedEstablishedConnections = SettingsAPI.getSettings<{[key:string]: EstablishedConnectionInterface}>(this.SETTINGS_KEY_ESTABLISHED_NAME);
-    if (storedSettings) {
-      this.connections = storedSettings;
-    } else {
-      this.connections = [];
+    // stored data of other version or edited by hand - only items of valid shape are used
+    this.connections = Array.isArray(storedSettings) ? storedSettings.filter(ConnectionSettings.isConnection) : [];
+    this.establishedConnections = {};
+    if (storedEstablishedConnections && typeof storedEstablishedConnections === 'object' && !Array.isArray(storedEstablishedConnections)) {
+      Object.entries(storedEstablishedConnections).forEach(([id, established]) => {
+        if (established && typeof established === 'object' && typeof established.user?.token === 'string'
+          && ConnectionSettings.isConnection(established.connection) && established.connection.id === id) {
+          this.establishedConnections[id] = established;
+        }
+      });
     }
+  }
 
-    if (storedEstablishedConnections) {
-      this.establishedConnections = storedEstablishedConnections;
-    } else {
-      this.establishedConnections = {};
-    }
+  private static isConnection(item: any): item is ConnectionDataInterface {
+    return !!item && typeof item === 'object' && typeof item.id === 'string' && !!item.id && typeof item.dsn === 'string';
   }
 
 

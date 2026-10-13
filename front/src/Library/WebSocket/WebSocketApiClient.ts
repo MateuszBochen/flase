@@ -15,7 +15,7 @@ import WebsocketConnectionWasRestored from './Event/WebsocketConnectionWasRestor
 const CLOSE_SESSION_NOT_FOUND = 4001;
 
 /** waiting before next reconnect attempt, the last one is repeated */
-const RECONNECT_DELAYS_MS = [1000, 2000, 5000, 10000, 30000];
+const RECONNECT_DELAYS_MS = [1000, 2000, 5000, 10000];
 
 /** commands with answer for a tab, client must tell the tab when the answer will never come */
 const TAB_COMMANDS = [CommandType.SEND_SELECT_QUERY, CommandType.APPLY_ROW_CHANGES, CommandType.GET_TABLE_STRUCTURE, CommandType.CHANGE_STRUCTURE, CommandType.SEARCH_DATABASE,
@@ -51,6 +51,11 @@ class WebSocketApiClient {
       // sent after (re)connect
       this.queue.push(command);
     }
+  }
+
+  /** connection was lost and client is trying to open it again */
+  isReconnecting(): boolean {
+    return !this.closedByClient && this.reconnectAttempt > 0 && this.socket?.readyState !== WebSocket.OPEN;
   }
 
   /** close for good, e.g. logout */
@@ -100,10 +105,12 @@ class WebSocketApiClient {
         return;
       }
 
-      if (this.reconnectAttempt === 0) {
+      const firstAttempt = this.reconnectAttempt === 0;
+      // scheduled first - listeners of the event already see the client reconnecting
+      this.scheduleReconnect();
+      if (firstAttempt) {
         EventBus.emit(new WebsocketConnectionWasLost(this.connectionData));
       }
-      this.scheduleReconnect();
     };
   }
 
@@ -123,8 +130,8 @@ class WebSocketApiClient {
     this.reconnectTimer = setTimeout(() => this.open(), delay);
   }
 
-  /** network is back - do not wait for next attempt */
-  private reconnectNow = () => {
+  /** network is back or user asked for it - do not wait for next attempt */
+  reconnectNow = () => {
     if (!this.socket && !this.closedByClient && this.reconnectAttempt > 0) {
       clearTimeout(this.reconnectTimer);
       this.open();
@@ -136,7 +143,7 @@ class WebSocketApiClient {
     this.pendingTabCommands.forEach((command, tabId) => {
       const error = command === CommandType.APPLY_ROW_CHANGES || command === CommandType.CHANGE_STRUCTURE || command === CommandType.EXECUTE_STATEMENTS
         ? 'Connection to server was lost while saving. Changes may or may not be saved - reload to check.'
-        : 'Connection to server was lost. Run the query again.';
+        : 'Connection to server was lost - reconnecting (blinking icon of connection). Run the query again when it is back.';
 
       EventBus.emit(new WebsocketReceivedAMessage<QueryErrorInterface>({
         connection: this.connectionData.connection,

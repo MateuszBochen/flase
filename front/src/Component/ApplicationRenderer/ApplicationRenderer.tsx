@@ -1,7 +1,7 @@
 import ApplicationRendererPropsInterface from './Interface/ApplicationRendererPropsInterface';
 import {ApplicationRendererContext} from './API/Context/ApplicationRendererContext';
 import TabRender from './UI/TabRender';
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import ApplicationRendererContextInterface from './Interface/ApplicationRendererContextInterface';
 import defaultApplicationRendererContext from './API/Context/defaultApplicationRendererContext';
 import ApplicationRender from './UI/ApplicationRender';
@@ -20,6 +20,7 @@ import ConnectionDataInterface from '../../Library/Connection/Interface/Connecti
 import {SHORTCUT_HELP_EVENT} from '../../Library/Shortcuts/Shortcuts';
 import SqlConsole, {SqlConsolePropsInterface} from '../Application/SqlConsole/SqlConsole';
 import TabPersistence from './TabPersistence';
+import OpenTables from '../../Library/Tabs/OpenTables';
 
 /**
  * ApplicationRenderer
@@ -37,77 +38,86 @@ export default (props: ApplicationRendererPropsInterface) => {
 
   useEffect(() => {
     TabPersistence.save(context);
+    // sidebar marks tables of open tabs
+    OpenTables.publish(context.tabs, context.currentTab);
   }, [context]);
+
+  /**
+   * the current state for handlers - more events can come before next render (fast Alt+W), state of closure would be old
+   */
+  const stateRef = useRef<ApplicationRendererContextInterface>(context);
+  const update = useCallback((change: (state: ApplicationRendererContextInterface) => ApplicationRendererContextInterface) => {
+    const next = change(stateRef.current);
+    if (next === stateRef.current) return;
+    // current tab is always one of tabs - otherwise no tab is shown
+    stateRef.current = {...next, currentTab: Math.min(Math.max(0, next.currentTab), next.tabs.length - 1)};
+    setContext(stateRef.current);
+  }, []);
 
   useEffect(() => {
 
     /** Open component in same tab */
     const currentTabComponentWasSelectedSubscriber = EventBus.subscribe<TabInterface<any>>(CurrentTabComponentWasSelected.name, (tab: EventInterface<TabInterface<any>>) => {
-      const currentTabIndex = context.currentTab;
-      const newContext = {...context};
-      newContext.tabs[currentTabIndex] = { ...tab.getData(), id: uuidv4()};
-      setContext(newContext);
+      update((state) => ({
+        ...state,
+        tabs: state.tabs.map((tabItem, index) => index === state.currentTab ? {...tab.getData(), id: uuidv4()} : tabItem),
+      }));
     });
 
     /** Add new tab to tab list, no render */
     const newTabComponentWasSelectedSubscriber = EventBus.subscribe<TabInterface<any>>(NewTabComponentWasSelected.name, (tab: EventInterface<TabInterface<any>>) => {
-      const newContext = {...context};
-      newContext.tabs.push({ ...tab.getData(), id: uuidv4()});
-      // tab opened by explicit action is shown at once, links opened "in new tab" stay in background
-      if (tab.getData().activate) {
-        newContext.lastOpenTab = context.currentTab;
-        newContext.currentTab = newContext.tabs.length - 1;
-      }
-      setContext(newContext);
+      update((state) => {
+        const tabs = [...state.tabs, {...tab.getData(), id: uuidv4()}];
+        // tab opened by explicit action is shown at once, links opened "in new tab" stay in background
+        return tab.getData().activate
+          ? {...state, tabs, lastOpenTab: state.currentTab, currentTab: tabs.length - 1}
+          : {...state, tabs};
+      });
     });
 
     /** current tab was changed */
     const currentTabWasChangedSubscriber = EventBus.subscribe<number>(CurrentTabWasChanged.name, (newTabIndex: EventInterface<number>) => {
-      const currentTabIndex = context.currentTab;
-      if (currentTabIndex !== newTabIndex.getData()) {
-        setContext({
-          ...context,
-          currentTab: newTabIndex.getData(),
-          lastOpenTab: currentTabIndex,
-        });
-      }
+      update((state) => {
+        const index = newTabIndex.getData();
+        if (index === state.currentTab || !Number.isInteger(index) || index < 0 || index >= state.tabs.length) {
+          return state;
+        }
+        return {...state, currentTab: index, lastOpenTab: state.currentTab};
+      });
     });
 
     /** handle closing tab */
     const tabWasClosedSubscriber = EventBus.subscribe(TabWasClosed.name, (tabToCloseEvent: EventInterface<number>) => {
-      if (context.tabs.length > 1) {
-        const tabToClose = tabToCloseEvent.getData();
-        const newTabs = context.tabs.filter((tabItem, index) => index !== tabToClose);
-        const newContext = {
-          ...context,
-          tabs: newTabs,
-        };
-
-        // if close active tab, back to last open tab
-        if (context.currentTab === tabToClose) {
-          newContext.currentTab = context.lastOpenTab >= 0 ? context.lastOpenTab : tabToClose -1;
-          newContext.lastOpenTab = -1;
-        } else {
-          if (tabToClose < context.currentTab) {
-            newContext.currentTab = context.currentTab - 1;
-            newContext.lastOpenTab = context.lastOpenTab - 1;
-          }
+      update((state) => {
+        const closed = tabToCloseEvent.getData();
+        if (state.tabs.length <= 1 || closed < 0 || closed >= state.tabs.length) {
+          return state;
         }
-        setContext(newContext);
-      }
+        const tabs = state.tabs.filter((tabItem, index) => index !== closed);
+        /** index of tab after the closed one was removed, -1 for the closed one */
+        const shifted = (index: number) => index === closed ? -1 : index > closed ? index - 1 : index;
+        if (state.currentTab === closed) {
+          // back to last open tab, otherwise to the tab before
+          const last = shifted(state.lastOpenTab);
+          return {...state, tabs, currentTab: last >= 0 ? last : Math.max(0, closed - 1), lastOpenTab: -1};
+        }
+        return {...state, tabs, currentTab: shifted(state.currentTab), lastOpenTab: shifted(state.lastOpenTab)};
+      });
     });
 
     /** tabs of deleted connection are closed, at least one tab stays */
     const connectionWasRemovedSubscriber = EventBus.subscribe(ConnectionWasRemoved.name, (event: EventInterface<ConnectionDataInterface>) => {
       const removedId = event.getData().id;
-      const current = context.tabs[context.currentTab];
-      const tabs = context.tabs.filter((tabItem) => (tabItem.props as any)?.connection?.id !== removedId);
-      if (tabs.length === context.tabs.length) {
-        return;
-      }
-      const kept = tabs.length ? tabs : [{...props.defaultTab, id: uuidv4()}];
-      const currentIndex = kept.indexOf(current);
-      setContext({...context, tabs: kept, currentTab: currentIndex >= 0 ? currentIndex : 0, lastOpenTab: -1});
+      update((state) => {
+        const current = state.tabs[state.currentTab];
+        const tabs = state.tabs.filter((tabItem) => (tabItem.props as any)?.connection?.id !== removedId);
+        if (tabs.length === state.tabs.length) {
+          return state;
+        }
+        const kept = tabs.length ? tabs : [{...props.defaultTab, id: uuidv4()}];
+        const currentIndex = kept.indexOf(current);
+        return {...state, tabs: kept, currentTab: currentIndex >= 0 ? currentIndex : 0, lastOpenTab: -1};
+      });
     });
 
     return () => {
@@ -118,12 +128,13 @@ export default (props: ApplicationRendererPropsInterface) => {
       EventBus.unSub(tabWasClosedSubscriber);
     }
 
-  }, [context]);
+  }, [update, props.defaultTab]);
 
 
   /** global shortcuts - tabs, console, theme, help (list in Library/Shortcuts) */
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      const context = stateRef.current;
       if (event.key === 'F1') {
         event.preventDefault();
         window.dispatchEvent(new Event(SHORTCUT_HELP_EVENT));
@@ -169,7 +180,7 @@ export default (props: ApplicationRendererPropsInterface) => {
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [context]);
+  }, []);
 
   /** memo destructor */
   const value = useMemo(() => {

@@ -13,7 +13,7 @@ import EditableResultInterface from '../../../Library/Record/Interface/EditableR
 import {sendServerCommand} from '../../../Library/Server/useServerRequest';
 import ColumnDisplay, {TRANSFORMS, TransformType} from '../../../Library/CellTools/ColumnDisplay';
 import {BinaryValueResultInterface} from '../../../Library/CellTools/CellToolsInterface';
-import {isBinaryValue} from '../../../Library/Record/BinaryValue';
+import {isBinaryValue, valueKey} from '../../../Library/Record/BinaryValue';
 import {isUuidColumn} from '../../../Library/Record/Uuid';
 import {ContextMenuItem} from '../../../UI/ContextMenu/ContextMenu';
 import {SingleRowType} from '../Interface/RecordsViewPropsInterface';
@@ -125,13 +125,18 @@ const useGridDisplay = (
       const reference = column.reference!;
       const display = displayColumnOf(column);
       if (!display || display === reference.columnName) return;
-      const values = Array.from(new Set(records.map((row) => row[column.key]).filter((value) => value !== null && value !== undefined && !isBinaryValue(value)).map(String))).slice(0, MAX_LABEL_VALUES);
+      // binary keys by their bytes, long binary values are not known whole
+      const unique = new Map<string, any>();
+      records.map((row) => row[column.key])
+        .filter((value) => value !== null && value !== undefined && !(isBinaryValue(value) && value.truncated))
+        .forEach((value) => unique.size < MAX_LABEL_VALUES && unique.set(valueKey(value), isBinaryValue(value) ? value : String(value)));
+      const values = Array.from(unique.values());
       if (!values.length) return;
       const query = `SELECT ${sql.identifier(reference.columnName)} AS ${sql.identifier('k')}, ${sql.identifier(display)} AS ${sql.identifier('v')} `
         + `FROM ${sql.table(reference.table.databaseName, reference.table.name)} WHERE ${sql.identifier(reference.columnName)} IN (${values.map((value) => sql.value(value)).join(', ')})`;
       try {
         const rows = await selectRows(connection, query, reference.table.databaseName);
-        next[column.key] = Object.fromEntries(rows.map((row) => [String(row.k), row.v === null || row.v === undefined ? 'NULL' : typeof row.v === 'object' ? JSON.stringify(row.v) : String(row.v)]));
+        next[column.key] = Object.fromEntries(rows.map((row) => [valueKey(row.k), row.v === null || row.v === undefined ? 'NULL' : typeof row.v === 'object' ? JSON.stringify(row.v) : String(row.v)]));
       } catch (e) {
         // missing privileges or removed column - only key is shown
       }

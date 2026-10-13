@@ -5,6 +5,13 @@ import TableRecords from '../Application/TableRecords/TableRecords';
 import TableRecordsPropsInterface from '../Application/TableRecords/Interface/TableRecordsPropsInterface';
 import {useEffect, useRef} from 'react';
 
+/** highlighted - chosen by arrows, open-in-tab - used by some tab, active-in-tab - used by the current tab */
+const classNames = (props: TableItemPropsInterface): string => [
+  props.highlighted && 'highlighted',
+  props.openInTab && 'open-in-tab',
+  props.activeInTab && 'active-in-tab',
+].filter(Boolean).join(' ');
+
 /** TableItem */
 export default (props: TableItemPropsInterface) => {
   const itemRef = useRef<HTMLLIElement | null>(null);
@@ -28,13 +35,13 @@ export default (props: TableItemPropsInterface) => {
   };
 
   return (
-    <li ref={itemRef} className={props.highlighted ? 'highlighted' : undefined} onContextMenu={props.onContextMenu ? (event) => {
+    <li ref={itemRef} className={classNames(props) || undefined} onContextMenu={props.onContextMenu ? (event) => {
       event.preventDefault();
       event.stopPropagation();
       props.onContextMenu!(event, props.table);
     } : undefined}>
       <TabOpener<TableRecordsPropsInterface>
-        tooltip={'Open table records'}
+        tooltip={props.activeInTab ? 'Open table records (shown in current tab)' : props.openInTab ? 'Open table records (open in other tab)' : 'Open table records'}
         tab={tab}
       >
         {props.table.tableName}

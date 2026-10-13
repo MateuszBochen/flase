@@ -35,8 +35,16 @@ class PostgresDumper {
       // names of the schema are written without schema - dump can be imported into other schema
       await this.client.query(`SET LOCAL search_path TO ${id(schema)}`);
 
-      const relations = (await this.catalog.relations(schema))
-        .filter((relation) => !this.options.tables.length || this.options.tables.includes(relation.name));
+      // nothing is written yet - missing schema or table is reported as error, not as empty dump
+      if (!(await this.client.query('SELECT 1 FROM pg_namespace WHERE nspname = $1', [schema])).rowCount) {
+        throw new Error(`Schema ${schema} does not exist`);
+      }
+      const allRelations = await this.catalog.relations(schema);
+      const missing = this.options.tables.filter((table) => !allRelations.some((relation) => relation.name === table));
+      if (missing.length) {
+        throw new Error(`Tables do not exist: ${missing.join(', ')}`);
+      }
+      const relations = allRelations.filter((relation) => !this.options.tables.length || this.options.tables.includes(relation.name));
       const tables = relations.filter((relation) => ['r', 'p'].includes(relation.kind)).map((relation) => relation.name);
       const views = relations.filter((relation) => ['v', 'm'].includes(relation.kind));
       const columns = await this.catalog.columns(schema, tables.length ? tables : ['']);

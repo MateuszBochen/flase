@@ -126,6 +126,7 @@ INSERT INTO uuid_orders (id, customer_id, total) VALUES
   ('f6a7b8c9-d0e1-4f2a-8b3c-4d5e6f7a8b13', '7a8b9c0d-1e2f-4a3b-8c4d-5e6f7a8b9c02', 99.99);
 
 -- binary key (uuid stored as bytes)
+DROP TABLE IF EXISTS uuid_bin_notes;
 DROP TABLE IF EXISTS uuid_bin_test;
 CREATE TABLE uuid_bin_test (
   id bytea PRIMARY KEY DEFAULT decode(replace(gen_random_uuid()::text, '-', ''), 'hex'),
@@ -134,6 +135,18 @@ CREATE TABLE uuid_bin_test (
 INSERT INTO uuid_bin_test (id, name) VALUES
   (decode('3F2C1A9E6B7D4E8F9A0B1C2D3E4F5A01', 'hex'), 'first'),
   (decode('7A8B9C0D1E2F4A3B8C4D5E6F7A8B9C02', 'hex'), 'second');
+-- rows referencing bytea UUID key - foreign key navigation and display of referenced row
+CREATE TABLE uuid_bin_notes (
+  id SERIAL PRIMARY KEY,
+  item_id bytea NOT NULL REFERENCES uuid_bin_test (id),
+  note VARCHAR(200) NOT NULL,
+  created TIMESTAMP NOT NULL DEFAULT '2026-01-02 03:04:05'
+);
+CREATE INDEX idx_uuid_bin_notes_item ON uuid_bin_notes (item_id);
+INSERT INTO uuid_bin_notes (item_id, note) VALUES
+  (decode('3F2C1A9E6B7D4E8F9A0B1C2D3E4F5A01', 'hex'), 'first note of first'),
+  (decode('3F2C1A9E6B7D4E8F9A0B1C2D3E4F5A01', 'hex'), 'second note of first'),
+  (decode('7A8B9C0D1E2F4A3B8C4D5E6F7A8B9C02', 'hex'), 'note of second');
 -- bytea without UUID default: MD5 hashes (not UUID), UUID v4, UUID v1 of UUID_TO_BIN(uuid, 1)
 DROP TABLE IF EXISTS bin16_test;
 CREATE TABLE bin16_test (

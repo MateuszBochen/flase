@@ -2,7 +2,7 @@ import ColumnInterface from '../../../Library/Table/Interface/ColumnInterface';
 import {CellValueType, SingleRowType} from '../Interface/RecordsViewPropsInterface';
 import SqlLiteral from '../../../Library/Database/Driver/Adapter/MySql/SqlLiteral';
 import SqlLiteralInterface from '../../../Library/Database/Driver/SqlLiteralInterface';
-import {isBinaryValue} from '../../../Library/Record/BinaryValue';
+import {BinaryValueInterface, isBinaryValue} from '../../../Library/Record/BinaryValue';
 import {isBinary16, uuidOfHex} from '../../../Library/Record/Uuid';
 
 export type CopyFormatType = 'tsv' | 'tsv-header' | 'csv' | 'markdown' | 'insert' | 'json' | 'xml' | 'html' | 'latex';
@@ -111,7 +111,9 @@ export const formatCopy = (
     case 'insert': {
       const tableName = sql.identifier(table || columns.find((column) => column.table?.name)?.table.name || 'table');
       const columnList = columns.map((column) => sql.identifier(column.orgName || column.name)).join(', ');
-      return `INSERT INTO ${tableName} (${columnList}) VALUES\n${values.map((row) => `  (${row.map((value) => sql.value(value)).join(', ')})`).join(',\n')};`;
+      // binary values as bytes (X'..', decode()), long ones only as text of preview - whole value is not in the grid
+      const literal = (value: CellValueType, raw: any) => sql.value(isBinaryValue(raw) && !raw.truncated ? raw as BinaryValueInterface : value);
+      return `INSERT INTO ${tableName} (${columnList}) VALUES\n${values.map((row, rowIndex) => `  (${row.map((value, index) => literal(value, rows[rowIndex][columns[index].key])).join(', ')})`).join(',\n')};`;
     }
     case 'json':
       // key is unique also when name repeats (JOIN)

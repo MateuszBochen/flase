@@ -1,5 +1,5 @@
-import {CellValueType} from '../../../../../Component/Table/Interface/RecordsViewPropsInterface';
-import SqlLiteralInterface from '../../SqlLiteralInterface';
+import SqlLiteralInterface, {SqlValueType} from '../../SqlLiteralInterface';
+import {binaryHexForSql, isBinaryValue} from '../../../../Record/BinaryValue';
 
 /** escaping for SQL generated on client - PostgreSQL ("names", standard strings) */
 class PostgresSqlLiteral implements SqlLiteralInterface {
@@ -13,12 +13,16 @@ class PostgresSqlLiteral implements SqlLiteralInterface {
       : this.identifier(name);
   }
 
-  value(value: CellValueType | undefined): string {
+  value(value: SqlValueType): string {
     if (value === null || value === undefined) {
       return 'NULL';
     }
     if (typeof value === 'number') {
       return String(value);
+    }
+    if (isBinaryValue(value)) {
+      // without backslash - correct also when standard_conforming_strings is off
+      return `decode('${binaryHexForSql(value)}', 'hex')`;
     }
     const text = String(value);
     const quoted = `'${text.replace(/'/g, "''")}'`;
@@ -26,7 +30,7 @@ class PostgresSqlLiteral implements SqlLiteralInterface {
     return text.includes('\\') ? `E${quoted.replace(/\\/g, '\\\\')}` : quoted;
   }
 
-  equals(column: string, value: CellValueType | undefined, tableAlias?: string): string {
+  equals(column: string, value: SqlValueType, tableAlias?: string): string {
     const name = tableAlias ? `${this.identifier(tableAlias)}.${this.identifier(column)}` : this.identifier(column);
     return value === null || value === undefined ? `${name} IS NULL` : `${name} = ${this.value(value)}`;
   }

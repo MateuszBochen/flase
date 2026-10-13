@@ -26,22 +26,29 @@ import QueryBuilder from '../Application/QueryBuilder/QueryBuilder';
  */
 const STORAGE_KEY = 'open-tabs';
 
-/** kinds of tabs which can be restored */
-const TAB_TYPES: {type: string, component: FC<any>}[] = [
+const isName = (value: any): boolean => typeof value === 'string' && value.length > 0;
+const isNameOrNull = (value: any): boolean => value === null || value === undefined || isName(value);
+
+/**
+ * kinds of tabs which can be restored; valid - stored props have the shape the component needs
+ * (stored by other version or edited by hand), connection - tab works with connection
+ */
+const TAB_TYPES: {type: string, component: FC<any>, connection?: boolean, valid?: (props: any) => boolean}[] = [
   {type: 'welcome', component: WhatsNew},
   {type: 'new-connection', component: NewDatabaseConnection},
   {type: 'test-app', component: TestApp},
-  {type: 'table', component: TableRecords},
-  {type: 'console', component: SqlConsole},
-  {type: 'transfer', component: TransferTab},
-  {type: 'search', component: DatabaseSearch},
-  {type: 'er-diagram', component: ErDiagram},
-  {type: 'users', component: UserManager},
-  {type: 'processes', component: ProcessList},
-  {type: 'database-overview', component: DatabaseOverview},
-  {type: 'create-table', component: CreateTable},
-  {type: 'server-status', component: ServerStatus},
-  {type: 'query-builder', component: QueryBuilder},
+  {type: 'table', component: TableRecords, connection: true, valid: (props) => isName(props.database?.name) && isName(props.table?.tableName)},
+  {type: 'console', component: SqlConsole, connection: true, valid: (props) => isNameOrNull(props.database)},
+  {type: 'transfer', component: TransferTab, connection: true,
+    valid: (props) => isName(props.database) && isNameOrNull(props.table) && (props.tables === undefined || (Array.isArray(props.tables) && props.tables.every(isName)))},
+  {type: 'search', component: DatabaseSearch, connection: true, valid: (props) => isName(props.database?.name)},
+  {type: 'er-diagram', component: ErDiagram, connection: true, valid: (props) => isName(props.database)},
+  {type: 'users', component: UserManager, connection: true},
+  {type: 'processes', component: ProcessList, connection: true},
+  {type: 'database-overview', component: DatabaseOverview, connection: true, valid: (props) => isName(props.database)},
+  {type: 'create-table', component: CreateTable, connection: true, valid: (props) => isName(props.database)},
+  {type: 'server-status', component: ServerStatus, connection: true},
+  {type: 'query-builder', component: QueryBuilder, connection: true, valid: (props) => isName(props.database)},
 ];
 
 type StoredTabType = {id: string, type: string, tabName: string, props: {[key: string]: any} | null, connectionId?: string};
@@ -106,18 +113,22 @@ const TabPersistence = {
     if (!stored || !Array.isArray(stored.tabs)) {
       return null;
     }
-    const currentId = stored.tabs[stored.currentTab]?.id;
+    // stored by other version or edited by hand - items of wrong shape are left out
+    const items = stored.tabs.filter((item): item is StoredTabType => !!item && typeof item === 'object' && typeof item.type === 'string');
+    const currentId = Number.isInteger(stored.currentTab) ? stored.tabs[stored.currentTab]?.id : undefined;
     const tabs: (TabInterface<any> & {id: string})[] = [];
-    stored.tabs.forEach((item) => {
+    items.forEach((item) => {
       const known = TAB_TYPES.find((tabType) => tabType.type === item.type);
       if (!known) return;
-      let props: any = item.props;
+      let props: any = item.props && typeof item.props === 'object' && !Array.isArray(item.props) ? item.props : {};
+      if (known.valid && !known.valid(props)) return;
+      if (known.connection && typeof item.connectionId !== 'string') return;
       if (item.connectionId) {
         const connection = connectionOf(item.connectionId);
         if (!connection) return;
         props = {...props, connection};
       }
-      tabs.push({id: item.id || uuidv4(), component: known.component, props, tabName: item.tabName, isActive: false});
+      tabs.push({id: typeof item.id === 'string' && item.id ? item.id : uuidv4(), component: known.component, props, tabName: String(item.tabName ?? ''), isActive: false});
     });
     if (!tabs.length) {
       return null;

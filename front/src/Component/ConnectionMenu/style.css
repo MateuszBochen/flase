@@ -3,6 +3,16 @@
   color: var(--primary);
 }
 
+/* connection to server was lost - icon blinks red / blue while client reconnects */
+.invisible-button-root.is-reconnecting svg {
+  animation: connection-reconnecting 1s steps(1, end) infinite;
+}
+
+@keyframes connection-reconnecting {
+  0% { color: #d9534f; }
+  50% { color: #589df6; }
+}
+
 .vertical-slider-root .vertical-slider-item .vertical-slider-root {
   color: var(--text-strong);
 }
