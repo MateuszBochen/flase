@@ -3,6 +3,7 @@ import DriverFactory from '../Driver/DriverFactory';
 import EstablishConnectionResultInterface from './Interface/EstablishConnectionResultInterface';
 import AbstractCommandHandler from '../Websocket/CommandHandler/AbstractCommandHandler';
 import DriverInterface from '../Driver/DriverInterface';
+import Settings from '../Settings/Settings';
 
 /** */
 class EstablishConnection {
@@ -41,7 +42,23 @@ class EstablishConnection {
         username: connectionData.userData.username,
         error: null,
       };
-    }).catch((e) => EstablishConnection.failed(e));
+    }).catch((e) => EstablishConnection.failed(EstablishConnection.explain(e)));
+  }
+
+  /** errors of network say nothing to user - what probably is wrong */
+  private static explain(error: any): any {
+    const message = AbstractCommandHandler.errorToString(error);
+    const seconds = Math.round(Settings.getConnectTimeoutMs() / 1000);
+    if (error?.code === 'ETIMEDOUT' || /connection timeout|timeout expired/i.test(message)) {
+      return `Database server did not respond in ${seconds} s - check host, port and firewall (${message})`;
+    }
+    if (error?.code === 'PROTOCOL_SEQUENCE_TIMEOUT' || /^Handshake inactivity timeout/.test(message)) {
+      return `Server did not answer as MySQL / MariaDB in ${seconds} s - check port and driver of DSN (${message})`;
+    }
+    if (error?.code === 'ECONNREFUSED') {
+      return `Connection refused - database server does not listen on this host and port (${message})`;
+    }
+    return error;
   }
 
   private static failed(error: any): EstablishConnectionResultInterface {

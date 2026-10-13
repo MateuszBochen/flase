@@ -71,7 +71,7 @@ if [ "$GROUP" = "all" ] || [ "$GROUP" = "server" ]; then
     docker run --rm -v "$ROOT:/repo" -w /repo/server "$NODE_IMAGE" npx ts-node -T ../tests/server/split-test.ts > "$LOGS/split" 2>&1
     report split-test "$LOGS/split"
   fi
-  for test in ws-test edit-test structure-test ddl-test search-test console-test transfer-test release-test pg-test database-test server-test foreign-key-test cell-tools-test hibernate-test catalog-test pool-test; do
+  for test in ws-test edit-test structure-test ddl-test search-test console-test transfer-test release-test pg-test database-test server-test foreign-key-test cell-tools-test hibernate-test catalog-test pool-test crash-test; do
     selected "$test" || continue
     reset_data
     docker run --rm --network flase_default -v "$ROOT/server/node_modules:/nm:ro" -v "$TESTS/server:/t:ro" -e NODE_PATH=/nm \

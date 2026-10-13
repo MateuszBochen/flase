@@ -1,6 +1,6 @@
 import ConnectionDataInterface from '../../Connection/Interface/ConnectionDataInterface';
 import DriverInterface from './DriverInterface';
-import {parseDsnOrThrow} from '@soluble/dsn-parser';
+import {parseConnectionDsnOrThrow} from '../../Connection/Dsn';
 import MysqlAdapter from './Adapter/MySql/MysqlAdapter';
 import PostgresAdapter from './Adapter/Postgres/PostgresAdapter';
 
@@ -16,7 +16,7 @@ class DriverFactory {
     }
 
 
-    const parsedDsn = parseDsnOrThrow(connection.dsn);
+    const parsedDsn = parseConnectionDsnOrThrow(connection.dsn);
     switch (parsedDsn.driver) {
       // MariaDB speaks MySQL dialect
       case 'mysql':

@@ -1,4 +1,4 @@
-import {parseDsn} from '@soluble/dsn-parser';
+import {parseConnectionDsn} from './Dsn';
 import EventBus from '../EventBus/EventBus';
 import EventInterface from '../EventBus/EventInterface';
 import WebsocketReceivedAMessage from '../WebSocket/Event/WebsocketReceivedAMessage';
@@ -39,7 +39,7 @@ const Catalogs = {
   /** connection shows databases above schemas */
   hasCatalogs: (connection: ConnectionDataInterface): boolean => {
     if (connection.parentId) return false;
-    const parsed = parseDsn(connection.dsn);
+    const parsed = parseConnectionDsn(connection.dsn);
     return parsed.success && /^(postgresql|postgres|pgsql)$/i.test(parsed.value.driver) && !parsed.value.db;
   },
 

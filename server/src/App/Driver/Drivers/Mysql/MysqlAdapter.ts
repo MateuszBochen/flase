@@ -34,6 +34,7 @@ import TableStructureInterface, {
 } from '../../Interface/Data/TableStructureInterface';
 import {deserializeBinaryValue} from '../BinaryValue';
 import {nodeTlsOptions, tlsOfDsn} from '../../Tls/DsnTls';
+import Settings from '../../../Settings/Settings';
 import {installMysqlTlsIdentityCheck} from './MysqlTlsIdentity';
 import MysqlDatabaseOperations from './MysqlDatabaseOperations';
 import MysqlServerAdmin from './MysqlServerAdmin';
@@ -136,6 +137,7 @@ class MysqlAdapter implements DriverInterface {
       user: this.connectionData.userData.username,
       password: this.connectionData.userData.password,
       insecureAuth: true,
+      connectTimeout: Settings.getConnectTimeoutMs(),
       multipleStatements: true,
       connectionLimit: 5,
       // values must stay as they are in database - dates without timezone shift, big numbers without rounding

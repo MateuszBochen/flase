@@ -3,6 +3,24 @@
 All notable changes of Flase are documented here. Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versions follow [Semantic Versioning](https://semver.org/). A `v*` tag publishes the Docker image of the version.
 
+## [Unreleased]
+
+### Added
+- DSN with IPv6 address of host (`mysql://[::1]:3306`) and with slash without database (`mysql://db:3306/`)
+- `FLASE_CONNECT_TIMEOUT_SECONDS` (default 10) - login to unreachable PostgreSQL server waited for TCP timeout (minutes)
+
+### Changed
+- Login errors of network say what is probably wrong (no answer in time, refused connection, not a MySQL server)
+- Certificate in DSN without `sslmode` turns TLS on (`verify-ca` with `sslrootcert`, otherwise `require`) -
+  before it was ignored and connection was not encrypted
+- Errors of API (e.g. invalid JSON of request) are JSON instead of HTML page with stack trace
+
+### Fixed
+- Server stopped (all sessions of all users) after malformed websocket message (`null`, number, array), command
+  with `null` payload or import of corrupted / truncated gzip file
+- Dump of missing database or table downloaded an empty file - download fails with the error now
+- DSN with port 0 was accepted
+
 ## [0.2.1] - 2026-10-12
 
 ### Added

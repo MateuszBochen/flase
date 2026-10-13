@@ -165,13 +165,24 @@ app.get('/api/transfer/:ticket', async (req: Request, res: Response) => {
     ticket.notify(MessageType.DUMP_FINISHED, {...summary, bytes});
   } catch (e) {
     const error = AbstractCommandHandler.errorToString(e);
+    ticket.notify(MessageType.DUMP_FINISHED, {tables: 0, rows: 0, bytes, error});
+    if (!bytes && !aborted && !res.headersSent) {
+      // failed before first line (missing database / table) - error status instead of empty file
+      if (gzip) {
+        output.unpipe(res);
+        output.destroy();
+      }
+      res.removeHeader('Content-Disposition');
+      res.status(400).type('text/plain').send(`Dump failed: ${error}`);
+      return;
+    }
     if (!aborted) {
       output.write(`\n-- ERROR: dump is not complete: ${error}\n`);
     }
-    ticket.notify(MessageType.DUMP_FINISHED, {tables: 0, rows: 0, bytes, error});
-  } finally {
     output.end();
+    return;
   }
+  output.end();
 });
 
 /** import upload (SQL / CSV file as request body) - ticket was created by websocket command */
@@ -185,6 +196,9 @@ app.post('/api/transfer/:ticket', async (req: Request, res: Response) => {
   let input: Readable = req;
   if (request.gzip) {
     const gunzip = zlib.createGunzip();
+    // corrupted / truncated gzip: importer gets the error from the stream, unhandled 'error' event would stop the server
+    // (zlib may emit it after the input ended, so stream.pipeline is not enough)
+    gunzip.on('error', () => undefined);
     req.pipe(gunzip);
     input = gunzip;
   }
@@ -241,6 +255,21 @@ if (frontDirectory && fs.existsSync(path.join(frontDirectory, 'index.html'))) {
 } else if (frontDirectory) {
   console.error(`FLASE_FRONT_DIR ${frontDirectory} does not contain index.html - application is not served`);
 }
+
+/** invalid JSON body and other errors of middlewares - JSON like other errors of API, never HTML page with stack trace */
+app.use((error: any, req: Request, res: Response, next: (error?: any) => void) => {
+  if (res.headersSent) {
+    next(error);
+    return;
+  }
+  const status = Number(error?.status || error?.statusCode) || 500;
+  if (status >= 500) {
+    console.error(error);
+  }
+  res.status(status).send({
+    error: error?.type === 'entity.parse.failed' ? 'Invalid JSON in request body' : status >= 500 ? 'Internal server error' : String(error?.message || error),
+  });
+});
 
 const PORT = Number(process.env.PORT) || 3001;
 app.listen(PORT, () => {
