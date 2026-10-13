@@ -1,8 +1,8 @@
 import TableInformationInterface from '../../Table/Interface/TableInformationInterface';
 import QueryInterface from '../Interface/QueryInterface';
+import {SqlValueType} from './SqlLiteralInterface';
 import TableInterface from '../../Table/Interface/TableInterface';
 import {SearchModeType} from '../Interface/DatabaseSearchInterface';
-import {CellValueType} from '../../../Component/Table/Interface/RecordsViewPropsInterface';
 import SqlDialectType from './SqlDialectType';
 import SqlLiteralInterface from './SqlLiteralInterface';
 import DriverFeaturesInterface from './DriverFeaturesInterface';
@@ -34,7 +34,7 @@ interface DriverInterface {
   /**
    * SELECT of rows of table matching all conditions (column = value)
    */
-  getRowsQuery(table: TableInterface, currentDatabase: string, conditions: {column: string, value: CellValueType}[]): string;
+  getRowsQuery(table: TableInterface, currentDatabase: string, conditions: {column: string, value: SqlValueType}[]): string;
 
   /**
    * SELECT of rows containing (or equal to) term in any of given columns, same comparison as database search

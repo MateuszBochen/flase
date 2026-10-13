@@ -20,7 +20,12 @@ class SettingsAPI {
   public static getSettings = <T>(keyStore:string): T|undefined => {
     const value = localStorage.getItem(keyStore);
     if (value) {
-      return JSON.parse(value);
+      try {
+        return JSON.parse(value);
+      } catch (e) {
+        // corrupted value (edited by hand, other version) must not stop the application
+        console.warn(`Settings ${keyStore} are not valid JSON - ignored`);
+      }
     }
   }
 }

@@ -66,9 +66,23 @@
   overflow-y: auto;
 }
 
-/* table chosen by arrows in filter */
+/* table open in some tab - pale bar */
+.table-list-menu-root li.open-in-tab button {
+  color: var(--text-strong);
+  box-shadow: inset 2px 0 0 color-mix(in srgb, var(--primary) 40%, transparent);
+}
+
+/* table of the current tab - full bar, bold */
+.table-list-menu-root li.active-in-tab button {
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--primary);
+}
+
+/* table chosen by arrows in filter - background, bar of open / current table is kept */
 .table-list-menu-root li.highlighted button {
   color: var(--text-strong);
   background: var(--inset-soft);
+}
+.table-list-menu-root li.highlighted:not(.open-in-tab) button {
   box-shadow: inset 2px 0 0 var(--primary);
 }

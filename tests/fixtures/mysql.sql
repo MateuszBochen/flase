@@ -99,6 +99,7 @@ ORDER BY seq.n;
 -- UUID as primary key: CHAR(36) with foreign key and BINARY(16) (MySQL and MariaDB)
 DROP TABLE IF EXISTS uuid_orders;
 DROP TABLE IF EXISTS uuid_customers;
+DROP TABLE IF EXISTS uuid_bin_notes;
 DROP TABLE IF EXISTS uuid_bin_test;
 CREATE TABLE uuid_customers (
   id CHAR(36) NOT NULL DEFAULT (UUID()),
@@ -131,6 +132,20 @@ CREATE TABLE uuid_bin_test (
 INSERT INTO uuid_bin_test (id, name) VALUES
   (UNHEX('3F2C1A9E6B7D4E8F9A0B1C2D3E4F5A01'), 'first'),
   (UNHEX('7A8B9C0D1E2F4A3B8C4D5E6F7A8B9C02'), 'second');
+-- rows referencing BINARY(16) UUID key - foreign key navigation and display of referenced row
+CREATE TABLE uuid_bin_notes (
+  id INT NOT NULL AUTO_INCREMENT,
+  item_id BINARY(16) NOT NULL,
+  note VARCHAR(200) NOT NULL,
+  created DATETIME NOT NULL DEFAULT '2026-01-02 03:04:05',
+  PRIMARY KEY (id),
+  KEY idx_uuid_bin_notes_item (item_id),
+  CONSTRAINT fk_uuid_bin_notes_item FOREIGN KEY (item_id) REFERENCES uuid_bin_test (id)
+);
+INSERT INTO uuid_bin_notes (item_id, note) VALUES
+  (UNHEX('3F2C1A9E6B7D4E8F9A0B1C2D3E4F5A01'), 'first note of first'),
+  (UNHEX('3F2C1A9E6B7D4E8F9A0B1C2D3E4F5A01'), 'second note of first'),
+  (UNHEX('7A8B9C0D1E2F4A3B8C4D5E6F7A8B9C02'), 'note of second');
 -- BINARY(16) without UUID default: MD5 hashes (not UUID), UUID v4, UUID v1 of UUID_TO_BIN(uuid, 1)
 DROP TABLE IF EXISTS bin16_test;
 CREATE TABLE bin16_test (

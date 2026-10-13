@@ -1,6 +1,6 @@
 import Box from '../../UI/Box/Box';
 import TableListPropsInterface from './Interface/TableListPropsInterface';
-import React, {KeyboardEvent, useCallback, useEffect, useMemo, useState} from 'react';
+import React, {KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import toast from 'react-hot-toast';
 import TableInformationInterface from '../../Library/Table/Interface/TableInformationInterface';
 import TableItem from './TableItem';
@@ -27,6 +27,8 @@ import SqlConfirmPopup from '../Application/TableRecords/Structure/SqlConfirmPop
 import useDatabaseOperation from '../DatabaseOperations/useDatabaseOperation';
 import {maintenanceActions} from '../DatabaseOperations/MaintenanceResultsPopup';
 import {MaintenanceActionType} from '../../Library/Database/Interface/DatabaseOperationInterface';
+import {useOpenTables} from '../../Library/Tabs/OpenTables';
+import SidebarFill from '../../Library/Sidebar/SidebarFill';
 
 type MenuState = {x: number, y: number, table: string} | null;
 
@@ -40,6 +42,11 @@ export default (props: TableListPropsInterface) => {
   const [nameForm, setNameForm] = useState<{mode: 'rename' | 'copy', table: string} | null>(null);
   const connection = useConnectionSettings(props.connection);
   const database = props.database.name;
+  const openTables = useOpenTables(props.connection.id, database);
+  const listRef = useRef<HTMLUListElement | null>(null);
+
+  // list uses the free height of sidebar
+  useEffect(() => listRef.current ? SidebarFill.register(listRef.current) : undefined, []);
   const reloadTables = () => TableManager.getInstance().askForTableList(props.connection, props.database, true);
 
   /** rename / copy of table */
@@ -232,10 +239,12 @@ export default (props: TableListPropsInterface) => {
             <FontAwesomeIcon icon={faDiagramProject} />
           </TabOpener>
         </div>
-        <ul>
+        <ul ref={listRef}>
           {filtered.map((filteredItem, index) =>(
             <TableItem
               highlighted={index === highlighted}
+              openInTab={openTables.open.has(filteredItem.tableName)}
+              activeInTab={openTables.active === filteredItem.tableName}
               connection={props.connection}
               database={props.database}
               table={filteredItem}

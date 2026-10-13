@@ -3,19 +3,35 @@
 All notable changes of Flase are documented here. Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versions follow [Semantic Versioning](https://semver.org/). A `v*` tag publishes the Docker image of the version.
 
-## [Unreleased]
+## [0.3.0] - 2026-10-13
 
 ### Added
+- Download of binary value (BLOB, BINARY, bytea) as file - "Download value" in menu of cell and button in value editor;
+  long value is loaded whole from server (grid has only first 4 KiB), file name is table-column-key
+- Sidebar marks tables open in tabs (data, structure, import / export of table) - pale bar, table of the current tab
+  has full bar and bold name
 - DSN with IPv6 address of host (`mysql://[::1]:3306`) and with slash without database (`mysql://db:3306/`)
 - `FLASE_CONNECT_TIMEOUT_SECONDS` (default 10) - login to unreachable PostgreSQL server waited for TCP timeout (minutes)
 
 ### Changed
+- List of tables in sidebar uses the whole height of sidebar instead of fixed 300 px - it grows to the bottom of window,
+  shows all tables when they fit; more open lists share the space (short list keeps all its tables, at least 5 rows each)
+- Icon of connection blinks red / blue while connection to server is lost and client reconnects; it can be clicked
+  to try again at once (before it stayed blue and could not be clicked). Reconnect attempts are at most 10 s apart
 - Login errors of network say what is probably wrong (no answer in time, refused connection, not a MySQL server)
 - Certificate in DSN without `sslmode` turns TLS on (`verify-ca` with `sslrootcert`, otherwise `require`) -
   before it was ignored and connection was not encrypted
 - Errors of API (e.g. invalid JSON of request) are JSON instead of HTML page with stack trace
 
 ### Fixed
+- White page after start when data stored in browser were corrupted (connections, open tabs) or tab of other version
+  was restored - invalid items are left out; error of one tab is shown in the tab (Try again / Close tab), other tabs
+  and sidebar keep working
+- Table with backtick in name (`` a`b ``) could not be opened
+- Fast closing of tabs (Alt+W) left tabs without the shown one - empty page
+- Foreign key to binary key (`BINARY(16)`, `bytea`) opened `WHERE id = '[object Object]'` - binary values are written
+  as bytes (`X'..'`, `decode(.., 'hex')`) in navigation, quick filters (now also for short binary values) and copy as
+  SQL INSERT; name of referenced row is shown next to binary foreign key too, menu of cell has "Open ... row" for it
 - Server stopped (all sessions of all users) after malformed websocket message (`null`, number, array), command
   with `null` payload or import of corrupted / truncated gzip file
 - Dump of missing database or table downloaded an empty file - download fails with the error now
@@ -181,6 +197,7 @@ First public version - web database manager for MySQL, MariaDB and PostgreSQL, a
 - Production Docker image (`docker/production/Dockerfile`): application, API and websocket on one port
 - GitHub Actions workflow publishing the image to Docker Hub on a `v*` tag
 
+[0.3.0]: https://github.com/MateuszBochen/flase/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/MateuszBochen/flase/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/MateuszBochen/flase/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/MateuszBochen/flase/compare/v0.0.2...v0.1.0

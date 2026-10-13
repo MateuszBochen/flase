@@ -142,6 +142,36 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   }
 
   {
+    // --- foreign key to binary key: link opens referenced row (value was sent as "[object Object]"), name of row next to key
+    await openTable('uuid_bin_notes');
+    const noteRow = await rowOf('note', 'note of second');
+    const keyCell = await cell(noteRow, 'item_id');
+    check('binary foreign key shows name of referenced row', /second edited/.test(await keyCell.innerText()), await keyCell.innerText());
+    await keyCell.locator('.dtc-reference').click();
+    await page.waitForTimeout(1500);
+    const query = (await visibleTab().locator('.monaco-editor').innerText()).replace(/\s+/g, ' ');
+    check('binary foreign key opens referenced row', await rows().count() === 1 && await cellText(0, 'name') === 'second edited'
+      && /7a8b9c0d1e2f4a3b8c4d5e6f7a8b9c02/i.test(query) && !/object Object/.test(query), `${await rows().count()} row(s) ${query}`);
+    // quick filter by binary value
+    await openTable('uuid_bin_notes');
+    await (await cell(await rowOf('note', 'first note of first'), 'item_id')).click({button: 'right'});
+    await page.getByRole('menuitem', {name: /^Filter: item_id = /}).click();
+    await page.waitForTimeout(1500);
+    check('quick filter by binary value', await rows().count() === 2 && (await column('note')).every((note) => /of first/.test(note)), JSON.stringify(await column('note')));
+    // copy as INSERT writes bytes of binary key, not its text
+    await (await cell(0, 'note')).click();
+    await (await cell(0, 'note')).click({button: 'right'});
+    await page.getByRole('menuitem', {name: 'Copy selected rows as'}).hover();
+    await page.waitForTimeout(250);
+    await page.getByRole('menuitem', {name: 'SQL INSERT', exact: true}).click();
+    await page.waitForTimeout(300);
+    const insert = await page.evaluate(() => navigator.clipboard.readText());
+    check('copy as INSERT: binary key as bytes', engine === 'postgres'
+      ? insert.includes("decode('3f2c1a9e6b7d4e8f9a0b1c2d3e4f5a01', 'hex')")
+      : insert.includes("X'3f2c1a9e6b7d4e8f9a0b1c2d3e4f5a01'"), insert);
+  }
+
+  {
     // --- 16 bytes without UUID default: recognized by layout of values, MD5 hashes stay hex
     await openTable('bin16_test');
     const hashes = await column('hash');

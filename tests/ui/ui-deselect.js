@@ -83,8 +83,8 @@ const check = (name, ok, info = '') => {
   check('click on tab header clears selection', await selectedCells() === 0 && await selectedRows() === 0);
 
   await selectSomething();
-  // empty part of left menu, below the table list
-  await page.mouse.click(100, 700);
+  // part of left menu which does nothing (list of tables fills the sidebar to the bottom)
+  await page.locator('.workspace-menu-logo .logo-tagline').click();
   check('click in sidebar clears selection', await selectedCells() === 0 && await selectedRows() === 0);
 
   await selectSomething();

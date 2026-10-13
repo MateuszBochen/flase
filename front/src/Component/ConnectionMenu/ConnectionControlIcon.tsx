@@ -14,6 +14,10 @@ import ConnectionWasEstablished from '../../Library/Connection/Event/ConnectionW
 import ConnectionRequestWasRejected from '../../Library/Connection/Event/ConnectionRequestWasRejected';
 import ConnectionFormWasSubmitted from '../ConnectionForm/Event/ConnectionFormWasSubmitted';
 import PasswordVault from '../../Library/Connection/PasswordVault';
+import WebsocketConnectionWasLost from '../../Library/WebSocket/Event/WebsocketConnectionWasLost';
+import WebsocketConnectionWasRestored from '../../Library/WebSocket/Event/WebsocketConnectionWasRestored';
+import WebsocketConnectionWasClosed from '../../Library/WebSocket/Event/WebsocketConnectionWasClosed';
+import EstablishedConnectionInterface from '../../Library/Connection/Interface/EstablishedConnectionInterface';
 
 const connectionManger = ConnectionManager.getInstance();
 
@@ -24,7 +28,9 @@ const ACTIVITY_MS = 250;
 
 /** ConnectionControlIcon */
 export default (props: ConnectionControlIconPropsInterface) => {
-  const [connectionIsActive, setConnectionIsActive] = useState<boolean>(connectionManger.checkIfConnectionIsActive(props.connectionData));
+  const [connectionState, setConnectionState] = useState(connectionManger.getConnectionState(props.connectionData));
+  const connectionIsActive = connectionState === 'connected';
+  const reconnecting = connectionState === 'reconnecting';
   const connectPopup = useRef<PopupRefInterface | null>(null);
   const [activity, setActivity] = useState<boolean>(false);
   const activityTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -44,16 +50,22 @@ export default (props: ConnectionControlIconPropsInterface) => {
   }, [props.connectionData.id]);
 
   useEffect(() => {
-    // connection status checker
-    const interValId = setInterval(() => {
-      setConnectionIsActive(connectionManger.checkIfConnectionIsActive(props.connectionData));
-    }, 1000);
+    const update = () => setConnectionState(connectionManger.getConnectionState(props.connectionData));
+    // websocket events change the state at once, checker covers login / logout
+    const onWebsocket = (event: {getData: () => EstablishedConnectionInterface}) => {
+      if (event.getData().connection.id === props.connectionData.id) update();
+    };
+    const events = [WebsocketConnectionWasLost.name, WebsocketConnectionWasRestored.name, WebsocketConnectionWasClosed.name]
+      .map((name) => EventBus.subscribe<EstablishedConnectionInterface>(name, onWebsocket));
+    const interValId = setInterval(update, 1000);
+    update();
 
     return () => {
       clearInterval(interValId);
+      events.forEach((eventId) => EventBus.unSub(eventId));
     }
 
-  }, [props.connectionData, connectionIsActive]);
+  }, [props.connectionData]);
 
   const handleCloseConnectionDialog = useCallback(() => {
     connectPopup.current?.close();
@@ -75,6 +87,11 @@ export default (props: ConnectionControlIconPropsInterface) => {
 
   /** remembered password: connect at once, form only when the server refuses it (e.g. password was changed) */
   const handleOpenConnectionDialog = useCallback(() => {
+    // lost connection - try again at once; session which does not exist anymore ends with login
+    if (connectionManger.getConnectionState(props.connectionData) === 'reconnecting') {
+      connectionManger.reconnect(props.connectionData);
+      return;
+    }
     PasswordVault.load(props.connectionData.id).then((credentials) => {
       if (!credentials) {
         connectPopup.current?.open();
@@ -96,12 +113,14 @@ export default (props: ConnectionControlIconPropsInterface) => {
   return (
     <>
       <InvisibleButton
-        tooltip={connectionIsActive ? 'Connected (green = data are coming), disconnect in connection settings' : 'Click to connect to database'}
+        tooltip={connectionIsActive
+          ? 'Connected (green = data are coming), disconnect in connection settings'
+          : reconnecting ? 'Connection to server was lost, reconnecting - click to try now' : 'Click to connect to database'}
         onClickWheel={handleOpenConnectionDialog}
         onClickLeft={handleOpenConnectionDialog}
         position={'end'}
         disabled={connectionIsActive}
-        className={connectionIsActive ? 'is-connect' : ''}
+        className={connectionIsActive ? 'is-connect' : reconnecting ? 'is-reconnecting' : ''}
       >
         <FontAwesomeIcon icon={faSatelliteDish} color={connectionIsActive ? (activity ? activityColor : connectedColor) : undefined} />
       </InvisibleButton>

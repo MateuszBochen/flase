@@ -9,6 +9,8 @@ import {isBinary16, isUuidColumn, uuidOfHex} from '../../../Library/Record/Uuid'
 interface ValueEditorPropsInterface {
   column: ColumnInterface;
   value: CellValueType | BinaryValueInterface | undefined;
+  /** binary value as file */
+  onDownload?: () => void;
   /** value can be changed - otherwise only shown */
   editable: boolean;
   onSave: (value: CellValueType) => void;
@@ -49,6 +51,7 @@ export default (props: ValueEditorPropsInterface) => {
   const canSave = props.editable && !binary && changed && !(isJsonColumn && json && !json.ok);
 
   const buttons = [
+    ...(binary && props.onDownload ? [<Button key="download" size="small" label="Download" onClick={props.onDownload} />] : []),
     ...(props.editable && !binary ? [<Button key="save" size="small" colorVariant="success" label="Save" disabled={!canSave} onClick={() => props.onSave(isNull ? null : text)} />] : []),
     <Button key="close" size="small" label={props.editable && !binary ? 'Cancel' : 'Close'} onClick={props.onClose} />,
   ];

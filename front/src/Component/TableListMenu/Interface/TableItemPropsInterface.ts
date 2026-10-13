@@ -10,6 +10,10 @@ interface TableItemPropsInterface {
   key: string|number;
   /** chosen by arrows in filter - Enter opens it */
   highlighted?: boolean;
+  /** table is open in some tab */
+  openInTab?: boolean;
+  /** table is open in the current tab */
+  activeInTab?: boolean;
   onContextMenu?: (event: React.MouseEvent, table: TableInformationInterface) => void;
 }
 export default TableItemPropsInterface;

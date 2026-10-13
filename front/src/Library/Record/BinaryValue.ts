@@ -14,6 +14,21 @@ export const isBinaryValue = (value: any): value is BinaryValueInterface => {
   return value !== null && typeof value === 'object' && value.binary === true;
 };
 
+/** grid has only preview of long values - SQL with such value would compare other bytes */
+export const binaryHexForSql = (value: BinaryValueInterface): string => {
+  if (value.truncated) {
+    throw new Error(`Binary value of ${formatBytes(value.size)} is longer than its preview - it cannot be used in SQL`);
+  }
+  return value.hex.toLowerCase();
+};
+
+/** short binary values (keys, UUID) can be used in filters - not files */
+export const MAX_FILTER_BINARY_BYTES = 64;
+export const isFilterableBinary = (value: BinaryValueInterface): boolean => !value.truncated && value.size <= MAX_FILTER_BINARY_BYTES;
+
+/** key of value in maps (labels of referenced rows) - binary values by their bytes */
+export const valueKey = (value: any): string => isBinaryValue(value) ? `0x${value.hex.toLowerCase()}` : String(value);
+
 export const formatBytes = (bytes: number): string => {
   const units = ['B', 'KiB', 'MiB', 'GiB'];
   let value = bytes;

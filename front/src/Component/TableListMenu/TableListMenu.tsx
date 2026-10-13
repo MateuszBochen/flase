@@ -40,7 +40,8 @@ export default (props: TableListMenuPropsInterface) => {
   }, [props.connection, props.database]);
 
   return (
-    <Box maxPossibleHeight={true} style={{maxHeight: '300px'}} className="table-list-menu-root">
+    // height of list of tables is set by SidebarFill
+    <Box className="table-list-menu-root">
       <TableList
         connection={props.connection}
         database={props.database}

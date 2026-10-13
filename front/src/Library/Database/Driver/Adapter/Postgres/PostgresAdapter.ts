@@ -1,10 +1,10 @@
 import {Parser} from 'node-sql-parser';
+import {SqlValueType} from '../../SqlLiteralInterface';
 import DriverInterface from '../../DriverInterface';
 import TableInformationInterface from '../../../../Table/Interface/TableInformationInterface';
 import QueryInterface from '../../../Interface/QueryInterface';
 import QueryModel from '../MySql/QueryModel';
 import TableInterface from '../../../../Table/Interface/TableInterface';
-import {CellValueType} from '../../../../../Component/Table/Interface/RecordsViewPropsInterface';
 import {SearchModeType} from '../../../Interface/DatabaseSearchInterface';
 import SqlDialectType from '../../SqlDialectType';
 import DriverFeaturesInterface from '../../DriverFeaturesInterface';
@@ -41,7 +41,7 @@ class PostgresAdapter implements DriverInterface {
     return '';
   }
 
-  getRowsQuery(table: TableInterface, currentDatabase: string, conditions: {column: string, value: CellValueType}[]): string {
+  getRowsQuery(table: TableInterface, currentDatabase: string, conditions: {column: string, value: SqlValueType}[]): string {
     const where = conditions.length
       ? ` WHERE ${conditions.map((condition) => this.sql.equals(condition.column, condition.value)).join(' AND ')}`
       : '';

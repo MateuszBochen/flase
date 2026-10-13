@@ -41,7 +41,9 @@ const check = (name, ok, info = '') => {
   const highlighted = () => root.locator('li.highlighted').innerText().then((text) => text.trim()).catch(() => '');
   const activeTab = () => page.locator('.tab-label-list-item.active').innerText().then((text) => text.split('\n')[0].trim());
 
-  // --- only list scrolls, filter stays on top
+  // --- only list scrolls, filter stays on top (low window - list uses the whole sidebar, all tables would fit otherwise)
+  await page.setViewportSize({width: 1500, height: 500});
+  await page.waitForTimeout(400);
   const scrollable = await list.evaluate((ul) => ul.scrollHeight > ul.clientHeight);
   await list.evaluate((ul) => ul.scrollTop = ul.scrollHeight);
   await page.waitForTimeout(200);
@@ -51,6 +53,9 @@ const check = (name, ok, info = '') => {
     JSON.stringify({scrollable, inputBox, rootBox}));
   check('root itself does not scroll', await root.evaluate((element) => element.scrollTop === 0));
   await page.screenshot({path: `${OUT}/table-filter-01-scrolled.png`});
+  await list.evaluate((ul) => ul.scrollTop = 0);
+  await page.setViewportSize({width: 1500, height: 900});
+  await page.waitForTimeout(400);
 
   // --- typed filter chooses first table, arrows move, Enter opens
   await input.click();
