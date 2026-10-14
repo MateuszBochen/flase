@@ -436,6 +436,17 @@
   color: var(--text-muted);
   padding: 2px 3px;
 }
+.cmp-row-form .row-form-binary {
+  flex: 1;
+  text-align: left;
+  padding: 2px 6px;
+  border: solid 1px var(--border-strong);
+  border-radius: 3px;
+  color: var(--text);
+  background: var(--input-bg);
+  font-family: monospace;
+  cursor: pointer;
+}
 .cmp-row-form .row-form-default {
   flex: 1;
   text-align: left;
@@ -516,10 +527,12 @@
   flex-direction: column;
   gap: 6px;
   width: 70vw;
-  max-width: 1100px;
+  /* popup is not wider than 1100px with its padding - wider editor made horizontal scrollbar on big screens */
+  max-width: 100%;
 }
 .cmp-value-editor .value-editor-toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
 }

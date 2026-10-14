@@ -26,7 +26,7 @@ import PostgresDdlBuilder from './PostgresDdlBuilder';
 import PostgresDumper from './PostgresDumper';
 import PostgresUsers from './PostgresUsers';
 import {UserManagerInterface} from '../../Interface/Data/UserInterface';
-import {deserializeBinaryValue} from '../BinaryValue';
+import {deserializeBinaryValue, deserializeBinaryWriteValues} from '../BinaryValue';
 import {nodeTlsOptions, tlsOfDsn} from '../../Tls/DsnTls';
 import Settings from '../../../Settings/Settings';
 import PostgresDatabaseOperations from './PostgresDatabaseOperations';
@@ -356,8 +356,8 @@ class PostgresAdapter implements DriverInterface {
         orgName: column.name,
         type: column.type,
         enumValues: column.enumValues || undefined,
-        // ALWAYS identity cannot be updated, generated columns are computed
-        editable: !column.isBinary && !column.generated && column.identity !== 'a',
+        // ALWAYS identity cannot be updated, generated columns are computed, bytea is edited as bytes by value editor
+        editable: !column.generated && column.identity !== 'a',
         nullable: column.nullable,
         primaryKey: primaryKeys.some((item) => item.table === column.table && item.column === column.name),
         reference: key ? {
@@ -436,7 +436,7 @@ class PostgresAdapter implements DriverInterface {
     return changes.map((change) => {
       switch (change.kind) {
         case 'update': {
-          const entries = Object.entries(change.values || {});
+          const entries = Object.entries(deserializeBinaryWriteValues(change.values || {}));
           if (!entries.length) {
             throw new Error('Update without values');
           }
@@ -446,7 +446,7 @@ class PostgresAdapter implements DriverInterface {
         case 'delete':
           return {sql: `DELETE FROM ${tableName} WHERE ${where(change)}`, expectOneRow: true};
         case 'insert': {
-          const values = change.values || {};
+          const values = deserializeBinaryWriteValues(change.values || {});
           const columns = Object.keys(values);
           return {
             sql: columns.length
@@ -475,7 +475,7 @@ class PostgresAdapter implements DriverInterface {
       }
       const bytes = deserializeBinaryValue(value);
       if (Buffer.isBuffer(bytes)) {
-        return `${name} = '\\x${bytes.toString('hex')}'::bytea`;
+        return `${name} = ${PostgresSql.literal(bytes)}`;
       }
       return NO_EQUALITY_TYPE.test(types?.get(column) || '')
         ? `${name}::text = ${PostgresSql.literal(value)}`

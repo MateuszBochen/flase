@@ -3,7 +3,7 @@ import Popup from '../../../UI/Popup/Popup';
 import Button from '../../../UI/Button/Button';
 import ColumnInterface from '../../../Library/Table/Interface/ColumnInterface';
 import {CellValueType} from '../Interface/RecordsViewPropsInterface';
-import {isBinaryValue} from '../../../Library/Record/BinaryValue';
+import {isBinaryColumn, isBinaryValue} from '../../../Library/Record/BinaryValue';
 import CellEditor from './CellEditor';
 import ValueEditor from './ValueEditor';
 
@@ -19,13 +19,15 @@ const isTextColumn = (column: ColumnInterface): boolean => !column.enumValues &&
 
 /**
  * CellEditPopup - "Edit cell…" from context menu
- * text columns - value editor with big text area (NULL, JSON formatting), other types - editor matching type in popup
+ * text columns - value editor with big text area (NULL, JSON formatting), binary columns - value editor with hex, text and file,
+ * other types - editor matching type in popup
  */
 export default (props: CellEditPopupPropsInterface) => {
   const [value, setValue] = useState<CellValueType>(props.value === undefined ? null : props.value);
 
-  if (isTextColumn(props.column) && !isBinaryValue(props.value)) {
-    return <ValueEditor column={props.column} value={props.value} editable={true} onSave={props.onSave} onClose={props.onClose} />;
+  if ((isTextColumn(props.column) && !isBinaryValue(props.value)) || isBinaryColumn(props.column) || isBinaryValue(props.value)) {
+    // binary value is kept in the same form as values from server
+    return <ValueEditor column={props.column} value={props.value} editable={true} onSave={(value) => props.onSave(value as CellValueType)} onClose={props.onClose} />;
   }
 
   const save = () => props.onSave(value);

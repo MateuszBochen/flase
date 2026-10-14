@@ -117,6 +117,17 @@ let tabSeq = 0;
     r = await apply([{kind: 'delete', where: {a: null, b: 'n'}, limitOne: true}], false, 'edit_nopk');
     check('IS NULL where deletes row', r.message === 'ROW_CHANGES_APPLIED' && r.payload.affectedRows === 1, r.payload?.error || r.payload?.statements?.[0]);
 
+    // --- binary value from value editor is written as bytes, preview of long value is refused
+    s = await select('SELECT * FROM value_test ORDER BY id');
+    check('BLOB and VARBINARY editable', ['data', 'bin'].every((name) => s.columns.find((c) => c.name === name)?.editable === true), JSON.stringify(s.columns.map((c) => [c.name, c.editable])));
+    r = await apply([{kind: 'update', where: {id: 1}, values: {data: {binary: true, size: 3, hex: '00ff5c', truncated: false, text: null}}}], false, 'value_test');
+    s = await select('SELECT HEX(data) AS hex FROM value_test WHERE id = 1');
+    check('BLOB written as bytes', r.message === 'ROW_CHANGES_APPLIED' && s.rows[0]?.hex === '00FF5C', (r.payload?.error || '') + JSON.stringify(s.rows));
+    r = await apply([{kind: 'insert', values: {bin: {binary: true, size: 2, hex: 'cafe', truncated: false, text: null}}}], true, 'value_test');
+    check('VARBINARY inserted as bytes', r.message === 'ROW_CHANGES_PREVIEW' && r.payload.statements[0].includes("X'cafe'"), r.payload?.error || r.payload?.statements?.[0]);
+    r = await apply([{kind: 'update', where: {id: 1}, values: {data: {binary: true, size: 9000, hex: 'ab', truncated: true, text: null}}}], false, 'value_test');
+    check('preview of long value is not written', r.message === 'QUERY_ERROR' && /longer than its preview/.test(r.payload.error), r.payload?.error);
+
     ws.close();
     await fetch(`${BASE}/api/disconnect`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({token: user.token})});
   }

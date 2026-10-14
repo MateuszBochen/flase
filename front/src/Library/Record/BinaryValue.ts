@@ -40,6 +40,15 @@ export const formatBytes = (bytes: number): string => {
   return `${unit === 0 ? value : value.toFixed(1)} ${units[unit]}`;
 };
 
+/**
+ * value in text formats (copy, export): UTF-8 text as it is, other bytes as 0x hex like in SQL,
+ * only value longer than its preview stays label - grid does not have its bytes
+ */
+export const binaryAsText = (value: BinaryValueInterface): string => {
+  if (value.text !== null) return value.text;
+  return value.truncated ? `[BLOB ${formatBytes(value.size)}]` : `0x${value.hex.toUpperCase()}`;
+};
+
 /** short form for grid cell */
 export const binaryLabel = (value: BinaryValueInterface): string => {
   if (!value.truncated && value.size <= 16) {
@@ -61,3 +70,46 @@ export const hexDump = (hex: string): string => {
   }
   return lines.join('\n');
 };
+
+/** column of bytes (BLOB, BINARY, VARBINARY, bytea) - edited by value editor, not as text in grid */
+export const isBinaryColumn = (column: {type?: string | null}): boolean => /^((tiny|medium|long)?blob|(var)?binary|bytea)\b/i.test(column.type || '');
+
+/** largest value which can be written - server refuses bigger ones */
+export const MAX_BINARY_WRITE_BYTES = 16 * 1024 * 1024;
+
+/** same bytes - preview of long value is never same as whole value */
+export const isSameBinary = (a: BinaryValueInterface, b: BinaryValueInterface): boolean =>
+  a.size === b.size && a.truncated === b.truncated && a.hex.toLowerCase() === b.hex.toLowerCase();
+
+/** UTF-8 text like server tells it (not valid UTF-8 or control characters = not text) */
+const textOfBytes = (bytes: Uint8Array): string | null => {
+  try {
+    const text = new TextDecoder('utf-8', {fatal: true}).decode(bytes);
+    // eslint-disable-next-line no-control-regex
+    return /[\u0000-\u0008\u000B\u000C\u000E-\u001F]/.test(text) ? null : text;
+  } catch (e) {
+    return null;
+  }
+};
+
+/** new value of binary column in the same form as values from server - whole value, no preview */
+export const binaryOfBytes = (bytes: Uint8Array): BinaryValueInterface => {
+  let hex = '';
+  for (let index = 0; index < bytes.length; index++) {
+    hex += bytes[index].toString(16).padStart(2, '0');
+  }
+  return {binary: true, size: bytes.length, hex, truncated: false, text: textOfBytes(bytes)};
+};
+
+export const binaryOfText = (text: string): BinaryValueInterface => binaryOfBytes(new TextEncoder().encode(text));
+
+/** hex typed by user - spaces and new lines are ignored, 0x or \x prefix is allowed; null when it is not hex */
+export const parseHexInput = (input: string): string | null => {
+  const hex = input.replace(/\s+/g, '').replace(/^(0x|\\x)/i, '');
+  return /^([0-9a-f]{2})*$/i.test(hex) ? hex.toLowerCase() : null;
+};
+
+/** hex for editing - 16 bytes in line */
+export const hexForEditing = (hex: string): string => (hex.toUpperCase().match(/.{1,32}/g) || [])
+  .map((line) => (line.match(/../g) || []).join(' '))
+  .join('\n');

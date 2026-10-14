@@ -44,7 +44,7 @@ import ContextMenu, {ContextMenuItem} from '../../UI/ContextMenu/ContextMenu';
 import RowForm from './Edit/RowForm';
 import ValueEditor from './Edit/ValueEditor';
 import CellEditPopup from './Edit/CellEditPopup';
-import {binaryLabel, isBinaryValue, isFilterableBinary} from '../../Library/Record/BinaryValue';
+import {binaryLabel, isBinaryColumn, isBinaryValue, isFilterableBinary} from '../../Library/Record/BinaryValue';
 import {isBinary16, uuidOfHex} from '../../Library/Record/Uuid';
 import toast from 'react-hot-toast';
 import {downloadBinary} from '../../Library/Record/BinaryDownload';
@@ -295,6 +295,12 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
     onSelectRow: setSelectedRow,
     onStartEdit: (rowIndex: number, column: ColumnInterface) => {
       setSelectedRow(rowIndex);
+      // bytes are not typed in narrow cell - value editor has hex, text, UUID and file
+      if (isBinaryColumn(column)) {
+        setEditingCell(null);
+        setValueEditor({rowIndex, column});
+        return;
+      }
       setEditingCell({rowIndex, columnKey: column.key});
     },
     onCommitEdit,
@@ -725,8 +731,10 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
           column={valueEditor.column}
           value={getDisplayedRow(changes, getRecords(), valueEditor.rowIndex)[valueEditor.column.key]}
           editable={canEdit && !!valueEditor.column.editable && getRowState(changes, getRecords(), valueEditor.rowIndex) !== 'deleted'}
+          asUuid={gridDisplay.display.transforms[valueEditor.column.key] === 'uuid'}
           onSave={(value) => {
-            onCommitEdit(valueEditor.rowIndex, valueEditor.column, value);
+            // binary value is kept in the same form as values from server
+            onCommitEdit(valueEditor.rowIndex, valueEditor.column, value as CellValueType);
             setValueEditor(null);
           }}
           onClose={() => setValueEditor(null)}

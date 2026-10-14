@@ -2,7 +2,7 @@ import ColumnInterface from '../../../Library/Table/Interface/ColumnInterface';
 import {CellValueType, SingleRowType} from '../Interface/RecordsViewPropsInterface';
 import SqlLiteral from '../../../Library/Database/Driver/Adapter/MySql/SqlLiteral';
 import SqlLiteralInterface from '../../../Library/Database/Driver/SqlLiteralInterface';
-import {BinaryValueInterface, isBinaryValue} from '../../../Library/Record/BinaryValue';
+import {BinaryValueInterface, binaryAsText, isBinaryValue} from '../../../Library/Record/BinaryValue';
 import {isBinary16, uuidOfHex} from '../../../Library/Record/Uuid';
 
 export type CopyFormatType = 'tsv' | 'tsv-header' | 'csv' | 'markdown' | 'insert' | 'json' | 'xml' | 'html' | 'latex';
@@ -32,13 +32,13 @@ export const EXPORT_FILE: {[format in CopyFormatType]: {extension: string, mimeT
   'latex': {extension: 'tex', mimeType: 'application/x-tex'},
 };
 
-/** binary values come from server as preview, they are copied as text when possible */
+/** binary values come from server as preview, they are copied as text or hex when possible */
 const plain = (value: CellValueType | undefined | object, asUuid: boolean = false): CellValueType => {
   if (asUuid && isBinary16(value)) {
     return uuidOfHex(value.hex);
   }
   if (isBinaryValue(value)) {
-    return value.text !== null ? value.text : `[BLOB ${value.size} B]`;
+    return binaryAsText(value);
   }
   if (value !== null && typeof value === 'object') {
     return JSON.stringify(value);

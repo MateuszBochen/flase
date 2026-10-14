@@ -38,7 +38,7 @@ import and export dumps, draw ER diagrams and manage users - all from one self-h
 - **Find and replace** in column (text or regular expression) with preview of changed rows
 - Value of **referenced row next to foreign key** (display column) and **transformations** - image, link, date from Unix time, size, yes / no
 - Resizable columns (drag the header edge, double click to fit content) remembered per table
-- Value editor for JSON (format / minify), long texts and binary values (hex / text)
+- Value editor for JSON (format / minify), long texts and binary values - edited as hex, text, UUID or uploaded file
 - UUID and binary (BINARY(16), bytea) primary keys, tables without primary key
 
 ### Structure

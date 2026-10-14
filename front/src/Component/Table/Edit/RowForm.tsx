@@ -4,6 +4,8 @@ import Button from '../../../UI/Button/Button';
 import ColumnInterface from '../../../Library/Table/Interface/ColumnInterface';
 import {CellValueType, SingleRowType} from '../Interface/RecordsViewPropsInterface';
 import CellEditor from './CellEditor';
+import ValueEditor from './ValueEditor';
+import {binaryLabel, binaryOfBytes, isBinaryColumn, isBinaryValue} from '../../../Library/Record/BinaryValue';
 
 interface RowFormPropsInterface {
   title: string;
@@ -19,6 +21,8 @@ interface RowFormPropsInterface {
 /** RowForm - all columns of single row, one under another (good for wide tables and long texts) */
 export default (props: RowFormPropsInterface) => {
   const [values, setValues] = useState<SingleRowType>({...props.values});
+  /** binary column edited by value editor over the form */
+  const [binaryColumn, setBinaryColumn] = useState<ColumnInterface | null>(null);
 
   const setValue = (columnKey: string, value: CellValueType) => {
     setValues((previous) => ({...previous, [columnKey]: value}));
@@ -56,11 +60,20 @@ export default (props: RowFormPropsInterface) => {
               </label>
               <div className="row-form-editor">
                 {!column.editable ? (
-                  <span className="row-form-read-only">{values[column.key] === null ? 'NULL' : String(values[column.key] ?? '')}</span>
+                  <span className="row-form-read-only">{values[column.key] === null ? 'NULL' : isBinaryValue(values[column.key]) ? binaryLabel(values[column.key] as any) : String(values[column.key] ?? '')}</span>
                 ) : props.isNewRow && !hasValue ? (
-                  <button type="button" className="row-form-default" onClick={() => setValue(column.key, '')}>
+                  <button type="button" className="row-form-default" onClick={() => isBinaryColumn(column) ? setBinaryColumn(column) : setValue(column.key, '')}>
                     {column.autoIncrement ? 'auto increment' : `DEFAULT${column.defaultValue !== null && column.defaultValue !== undefined ? ` (${column.defaultValue})` : ''}`} - click to set value
                   </button>
+                ) : isBinaryColumn(column) || isBinaryValue(values[column.key]) ? (
+                  <>
+                    <button type="button" className="row-form-binary" title="Edit in value editor" onClick={() => setBinaryColumn(column)}>
+                      {values[column.key] === null ? 'NULL' : isBinaryValue(values[column.key]) ? binaryLabel(values[column.key] as any) : String(values[column.key] ?? '')} - edit…
+                    </button>
+                    {props.isNewRow && (
+                      <button type="button" className="row-form-use-default" onClick={() => resetToDefault(column.key)}>default</button>
+                    )}
+                  </>
                 ) : (
                   <>
                     <CellEditor
@@ -79,6 +92,19 @@ export default (props: RowFormPropsInterface) => {
           );
         })}
       </div>
+      {binaryColumn && (
+        <ValueEditor
+          column={binaryColumn}
+          value={binaryColumn.key in values ? values[binaryColumn.key] : binaryOfBytes(new Uint8Array(0))}
+          editable={true}
+          onSave={(value) => {
+            // binary value is kept in the same form as values from server
+            setValue(binaryColumn.key, value as CellValueType);
+            setBinaryColumn(null);
+          }}
+          onClose={() => setBinaryColumn(null)}
+        />
+      )}
     </Popup>
   );
 }

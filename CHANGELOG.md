@@ -3,6 +3,21 @@
 All notable changes of Flase are documented here. Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versions follow [Semantic Versioning](https://semver.org/). A `v*` tag publishes the Docker image of the version.
 
+## [0.4.0] - 2026-10-14
+
+### Added
+- Editing of binary values (BLOB, BINARY, VARBINARY, bytea) in value editor - as hex, as UTF-8 text, as UUID (16 bytes)
+  or by upload of a file (up to 16 MiB); double click on binary cell, "Edit cell…" and binary field of row form
+  open it. Value longer than preview of the grid (4 KiB) can be replaced by file or set to NULL
+
+### Fixed
+- Copy and export of rows as JSON, CSV, TSV, XML and other text formats wrote binary values which are not text
+  (BINARY hashes, BLOB) as "[BLOB 16 B]" - they are written as hex 0x… now, like in the grid; only values longer
+  than preview of the grid (4 KiB) stay label
+- Download of binary value after it was changed gave the old file (cache of loaded values)
+- Edit row form showed "[object Object]" for binary values of read only columns
+- Value editor was wider than its popup on big screens (from about 1600 px) and popup had horizontal scrollbar
+
 ## [0.3.1] - 2026-10-14
 
 ### Fixed
@@ -204,6 +219,7 @@ First public version - web database manager for MySQL, MariaDB and PostgreSQL, a
 - Production Docker image (`docker/production/Dockerfile`): application, API and websocket on one port
 - GitHub Actions workflow publishing the image to Docker Hub on a `v*` tag
 
+[0.4.0]: https://github.com/MateuszBochen/flase/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/MateuszBochen/flase/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/MateuszBochen/flase/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/MateuszBochen/flase/compare/v0.2.0...v0.2.1

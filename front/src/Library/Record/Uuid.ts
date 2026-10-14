@@ -30,6 +30,12 @@ export const uuidOfHex = (hex: string): string => {
   return `${text.slice(0, 8)}-${text.slice(8, 12)}-${text.slice(12, 16)}-${text.slice(16, 20)}-${text.slice(20, 32)}`;
 };
 
+/** UUID typed by user (with or without dashes and braces) as hex of 16 bytes, null when it is not UUID */
+export const hexOfUuidInput = (input: string): string | null => {
+  const text = input.trim().replace(/^\{(.*)\}$/, '$1');
+  return /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i.test(text) ? text.replace(/-/g, '').toLowerCase() : null;
+};
+
 /** column with 16 bytes values looks like UUID - by its default value, or by layout of all its values */
 export const isUuidColumn = (column: ColumnInterface, values: any[]): boolean => {
   if (column.type && !BINARY_16_TYPE.test(column.type)) return false;
