@@ -180,6 +180,15 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     check('UUID v4 recognized', refs.join() === '3f2c1a9e-6b7d-4e8f-9a0b-1c2d3e4f5a01,7a8b9c0d-1e2f-4a3b-8c4d-5e6f7a8b9c02,NULL,b1c2d3e4-f5a6-4b7c-9d8e-0f1a2b3c4d03', JSON.stringify(refs));
     check('swapped UUID v1 recognized', (await column('legacy'))[0] === '1026baba-6ccd-780c-9564-5b8c656024db', JSON.stringify(await column('legacy')));
     await page.screenshot({path: `${OUT}/uuid-04-${engine}-bin16.png`});
+    // copy as JSON: bytes as hex like in grid, not label of size
+    await (await cell(0, 'id')).click();
+    await (await cell(0, 'id')).click({button: 'right'});
+    await page.getByRole('menuitem', {name: 'Copy selected rows as'}).hover();
+    await page.waitForTimeout(250);
+    await page.getByRole('menuitem', {name: 'JSON', exact: true}).click();
+    await page.waitForTimeout(300);
+    const json = await page.evaluate(() => navigator.clipboard.readText());
+    check('copy as JSON: binary value as hex', JSON.parse(json)[0].hash === hashes[0] && !json.includes('[BLOB'), json);
 
     const columnMenu = async (name, path) => {
       await (await cell(0, name)).click({button: 'right'});
@@ -209,6 +218,21 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     await page.waitForTimeout(300);
     check('UUID copied', await page.evaluate(() => navigator.clipboard.readText()) === '7a8b9c0d-1e2f-4a3b-8c4d-5e6f7a8b9c02');
     await columnMenu('hash', ['Display column as', 'Value (default)']);
+
+    // UUID typed in value editor is saved as its 16 bytes
+    await (await cell(1, 'ref')).dblclick();
+    await page.waitForTimeout(400);
+    const uuidInput = page.locator('.cmp-value-editor textarea');
+    check('UUID column edited as UUID', await uuidInput.inputValue() === '7a8b9c0d-1e2f-4a3b-8c4d-5e6f7a8b9c02', await uuidInput.inputValue());
+    await uuidInput.fill('not uuid');
+    check('invalid UUID refused', await page.getByRole('button', {name: 'Save'}).isDisabled());
+    await uuidInput.fill('{C0FFEE00-1234-4ABC-8DEF-0123456789AB}');
+    await page.getByRole('button', {name: 'Save'}).click();
+    await page.waitForTimeout(300);
+    await submit();
+    await reload();
+    // PostgreSQL returns updated row at the end - table has no ORDER BY
+    check('UUID saved as bytes', (await column('ref')).includes('c0ffee00-1234-4abc-8def-0123456789ab') && !(await column('ref')).includes('7a8b9c0d-1e2f-4a3b-8c4d-5e6f7a8b9c02'), JSON.stringify(await column('ref')));
   }
 
   if (engine === 'mariadb') {

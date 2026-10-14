@@ -77,7 +77,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   s = await select('SELECT * FROM value_test ORDER BY id');
   check('bytea as binary, json as text, bool, array', s.rows[0]?.data?.binary && s.rows[0].data.text === 'plain text in blob' && s.rows[1].data.size === 2400
     && JSON.parse(s.rows[0].doc).address.city === 'Krakow' && s.rows[0].flag === 'true' && s.rows[1].flag === 'false' && s.rows[0].tags === '{x,y}', JSON.stringify(s.rows[0]).slice(0, 300));
-  check('bytea column not editable', s.columns.find((c) => c.name === 'data')?.editable === false && s.columns.find((c) => c.name === 'doc')?.editable === true);
+  check('bytea column editable as bytes', s.columns.find((c) => c.name === 'data')?.editable === true && s.columns.find((c) => c.name === 'doc')?.editable === true);
   s = await select('SELECT o.id, c.id, c.last_name FROM orders o JOIN customers c ON c.id = o.customer_id ORDER BY o.id LIMIT 3');
   check('join: repeated names get alias keys, read only', s.columns.map((c) => c.key).join() === 'o.id,c.id,last_name' && !s.colMsg.editable && /JOIN/.test(s.colMsg.readOnlyReason), s.columns.map((c) => c.key).join() + ' ' + s.colMsg?.readOnlyReason);
   s = await select('SELECT status, count(*) FROM orders GROUP BY status');
@@ -109,6 +109,16 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   s = await select('SELECT * FROM value_test ORDER BY id');
   r = await apply([{kind: 'update', where: {id: 1, doc: s.rows[0].doc}, values: {doc: '{"a": 1}'}}], 'value_test');
   check('json column in WHERE', r.message === 'ROW_CHANGES_APPLIED', JSON.stringify(r.payload));
+  // binary value from value editor is written as bytes, preview of long value is refused (it would cut the value)
+  r = await apply([{kind: 'update', where: {id: 1}, values: {data: {binary: true, size: 3, hex: '00ff5c', truncated: false, text: null}}}], 'value_test');
+  s = await select('SELECT encode(data, \'hex\') AS hex FROM value_test WHERE id = 1');
+  check('bytea written as bytes', r.message === 'ROW_CHANGES_APPLIED' && s.rows[0]?.hex === '00ff5c', JSON.stringify(r.payload) + JSON.stringify(s.rows));
+  r = await apply([{kind: 'insert', values: {data: {binary: true, size: 1, hex: 'ab', truncated: false, text: null}}}], 'value_test');
+  check('bytea inserted as bytes', r.message === 'ROW_CHANGES_APPLIED' && /decode\('ab'|'\\xab'::bytea/.test(r.payload.statements?.[0] || ''), JSON.stringify(r.payload));
+  r = await apply([{kind: 'update', where: {id: 1}, values: {data: {binary: true, size: 9000, hex: 'ab', truncated: true, text: null}}}], 'value_test');
+  check('preview of long value is not written', r.message === 'QUERY_ERROR' && /longer than its preview/.test(r.payload.error), JSON.stringify(r.payload));
+  r = await apply([{kind: 'update', where: {id: 1}, values: {data: {binary: true, size: 1, hex: "zz'", truncated: false, text: null}}}], 'value_test');
+  check('not hex value refused', r.message === 'QUERY_ERROR' && /not valid hexadecimal/.test(r.payload.error), JSON.stringify(r.payload));
 
   // --- structure
   let st = await structure('struct_test');

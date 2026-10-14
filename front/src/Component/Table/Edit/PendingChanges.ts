@@ -2,6 +2,7 @@ import {CellValueType, SingleRowType} from '../Interface/RecordsViewPropsInterfa
 import ColumnInterface from '../../../Library/Table/Interface/ColumnInterface';
 import EditableResultInterface from '../../../Library/Record/Interface/EditableResultInterface';
 import RowChangeInterface from '../../../Library/Record/Interface/RowChangeInterface';
+import {isBinaryValue, isSameBinary} from '../../../Library/Record/BinaryValue';
 
 /**
  * Not submitted changes of grid. Row index is index in records of current result,
@@ -26,6 +27,10 @@ export const countChanges = (changes: PendingChanges): number => {
 export const isSameValue = (a: CellValueType | undefined, b: CellValueType | undefined): boolean => {
   if (a === null || b === null || a === undefined || b === undefined) {
     return a === b;
+  }
+  // binary values are objects - String() would make all of them same
+  if (isBinaryValue(a) || isBinaryValue(b)) {
+    return isBinaryValue(a) && isBinaryValue(b) && isSameBinary(a, b);
   }
   return String(a) === String(b);
 };
@@ -150,8 +155,9 @@ export const buildRowChanges = (
 
   const limitOne = editable.primaryKey.length === 0;
   const whereOf = (row: SingleRowType): SingleRowType => {
+    // without primary key: preview of long binary value (BLOB) cannot identify row - other columns and LIMIT 1 do
     const identifying = limitOne
-      ? columns.filter((column) => column.editable).map((column) => column.key)
+      ? columns.filter((column) => column.editable && !(isBinaryValue(row[column.key]) && (row[column.key] as any).truncated)).map((column) => column.key)
       : editable.primaryKey;
     // key column does not have to be editable (e.g. BINARY(16) / bytea key) - it only identifies row
     const where: SingleRowType = {};

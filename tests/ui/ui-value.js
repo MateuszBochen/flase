@@ -77,6 +77,14 @@ const check = (name, ok, info = '') => {
 
   // JSON format / minify / save
   await openEditor(0, 'doc');
+  // editor fits in popup on big and small screen - no horizontal scrollbar
+  for (const width of [1920, 2560, 800]) {
+    await page.setViewportSize({width, height: 900});
+    await page.waitForTimeout(200);
+    const size = await page.locator('.popup-content').evaluate((element) => ({scroll: element.scrollWidth, client: element.clientWidth}));
+    check(`value editor fits popup at ${width}px`, size.scroll <= size.client, JSON.stringify(size));
+  }
+  await page.setViewportSize({width: 1500, height: 900});
   const textarea = editor().locator('textarea');
   await editor().getByRole('button', {name: 'Format JSON'}).click();
   const formatted = await textarea.inputValue();
@@ -96,16 +104,17 @@ const check = (name, ok, info = '') => {
   check('multi line text kept', (await editor().locator('textarea').inputValue()) === 'line 1\nline 2');
   await page.getByRole('button', {name: 'Cancel'}).click();
 
-  // blob as text and as hex dump
+  // blob as text and as hex - editable bytes
   await openEditor(0, 'data');
-  check('blob with text shown as text', (await editor().locator('pre').innerText()).trim() === 'plain text in blob' && await page.getByRole('button', {name: 'Save'}).count() === 0);
-  await page.getByRole('button', {name: 'Close'}).click();
+  check('blob with text shown as text', (await editor().locator('textarea').inputValue()) === 'plain text in blob'
+    && await page.getByRole('button', {name: 'Save'}).isDisabled());
+  await page.getByRole('button', {name: 'Cancel'}).click();
   await openEditor(1, 'data');
-  const dump = await editor().locator('pre').innerText();
+  const hex = await editor().locator('textarea').inputValue();
   await page.screenshot({path: `${OUT}/86-hex.png`});
-  check('binary blob as hex dump', dump.startsWith('00000000  de ad be ef de ad be ef') && (await editor().locator('.value-editor-info').innerText()).includes('2.3 KiB'), dump.slice(0, 60));
+  check('binary blob as hex', hex.startsWith('DE AD BE EF DE AD BE EF') && (await editor().locator('.value-editor-info').innerText()).includes('2.3 KiB'), hex.slice(0, 60));
   check('text view disabled for binary', await editor().getByRole('button', {name: 'Text'}).isDisabled());
-  await page.getByRole('button', {name: 'Close'}).click();
+  await page.getByRole('button', {name: 'Cancel'}).click();
 
   // binary cell has no quick filter / FK entries
   await (await cell(1, 'data')).click({button: 'right'});

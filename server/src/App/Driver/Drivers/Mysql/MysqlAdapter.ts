@@ -32,7 +32,7 @@ import TableStructureInterface, {
   StructureTableInfoInterface,
   StructureTriggerInterface,
 } from '../../Interface/Data/TableStructureInterface';
-import {deserializeBinaryValue} from '../BinaryValue';
+import {deserializeBinaryValue, deserializeBinaryWriteValues} from '../BinaryValue';
 import {nodeTlsOptions, tlsOfDsn} from '../../Tls/DsnTls';
 import Settings from '../../../Settings/Settings';
 import {installMysqlTlsIdentityCheck} from './MysqlTlsIdentity';
@@ -371,7 +371,7 @@ class MysqlAdapter implements DriverInterface {
             throw new Error('Update without values');
           }
           return {
-            sql: mysql.format('UPDATE ??.?? SET ? WHERE ', [table.databaseName, table.name, change.values])
+            sql: mysql.format('UPDATE ??.?? SET ? WHERE ', [table.databaseName, table.name, deserializeBinaryWriteValues(change.values)])
               + MysqlAdapter.buildWhere(change.where) + limit,
             expectOneRow: true,
           };
@@ -382,7 +382,7 @@ class MysqlAdapter implements DriverInterface {
             expectOneRow: true,
           };
         case 'insert': {
-          const values = change.values || {};
+          const values = deserializeBinaryWriteValues(change.values || {});
           const columns = Object.keys(values);
           return {
             sql: columns.length
@@ -908,9 +908,9 @@ class MysqlAdapter implements DriverInterface {
     return values;
   }
 
-  /** binary values are not sent to client in editable form */
+  /** binary values (BLOB, BINARY) are edited as bytes by value editor, bit and spatial values are not editable */
   private static isEditableType(type: string): boolean {
-    return !/blob|binary|^bit|geometry|point|linestring|polygon/i.test(type);
+    return !/^bit|geometry|point|linestring|polygon/i.test(type);
   }
 
   /** pool is opened again after releaseConnections */

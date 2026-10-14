@@ -161,7 +161,10 @@ const useGridDisplay = (
         const keyColumn = columns.find((item) => item.key === key);
         where[keyColumn?.orgName || key] = row[key];
       }
-      const cacheKey = JSON.stringify([connection.id, column.table, column.orgName || column.name, where]);
+      // value of the row as grid has it - changed value (saved by editor, reload) is loaded again, not old file from cache
+      const preview = row[column.key];
+      const cacheKey = JSON.stringify([connection.id, column.table, column.orgName || column.name, where,
+        isBinaryValue(preview) ? [preview.size, preview.hex] : null]);
       if (!binaryCache.has(cacheKey)) {
         binaryCache.set(cacheKey, new Promise((resolve, reject) => {
           const tabId = `binary-value:${++requestCounter}`;

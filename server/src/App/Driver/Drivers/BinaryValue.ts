@@ -33,3 +33,31 @@ export const deserializeBinaryValue = (value: any): any => {
   }
   return Buffer.from(value.hex, 'hex');
 };
+
+/** largest binary value which can be written from client (value editor, uploaded file) */
+export const MAX_BINARY_WRITE_BYTES = 16 * 1024 * 1024;
+
+/**
+ * new value of binary column (UPDATE / INSERT) as client sends it - same shape as serializeBinaryValue,
+ * preview of long value is only its beginning, it would cut the value
+ */
+export const deserializeBinaryWriteValue = (value: any): any => {
+  if (value === null || typeof value !== 'object' || value.binary !== true) {
+    return value;
+  }
+  if (value.truncated) {
+    throw new Error('Binary value longer than its preview cannot be saved - grid has only its beginning');
+  }
+  if (typeof value.hex !== 'string' || value.hex.length % 2 !== 0 || !/^[0-9a-f]*$/i.test(value.hex)) {
+    throw new Error('Binary value is not valid hexadecimal');
+  }
+  if (value.hex.length / 2 > MAX_BINARY_WRITE_BYTES) {
+    throw new Error(`Binary value is larger than ${MAX_BINARY_WRITE_BYTES / 1024 / 1024} MiB`);
+  }
+  return Buffer.from(value.hex, 'hex');
+};
+
+/** values of row change with binary values as bytes */
+export const deserializeBinaryWriteValues = (values: {[column: string]: any}): {[column: string]: any} => {
+  return Object.fromEntries(Object.entries(values).map(([column, value]) => [column, deserializeBinaryWriteValue(value)]));
+};
