@@ -31,6 +31,7 @@ async function session(dsn) {
   await new Promise((resolve) => { ws.on('open', resolve); ws.on('close', resolve); });
   const connectionData = {user: {token, username}, connection: conn(dsn)};
   state.send = (command, payload) => ws.send(JSON.stringify({connectionData, command, payload}));
+  state.token = token;
   return state;
 }
 
@@ -119,6 +120,15 @@ const COMMANDS = ['RELOAD_DATABASE_LIST', 'RELOAD_TABLES_LIST', 'SEND_SELECT_QUE
   }
   check('server alive after dumps', await alive());
   s.ws.close();
+
+  // session closed (expired token, logout) - its open websocket is closed with 4001, it must not answer "Not connected"
+  {
+    const s = await session('mysql://mariadb');
+    const closed = new Promise((resolve) => s.ws.on('close', (code) => resolve(code)));
+    await fetch(`${BASE}/api/disconnect`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({token: s.token})});
+    const code = await Promise.race([closed, sleep(3000).then(() => 'still open')]);
+    check('websocket of closed session is closed with 4001', code === 4001, String(code));
+  }
 
   console.log(failures ? `\n${failures} FAILED` : '\nALL PASSED');
   process.exit(failures ? 1 : 0);
