@@ -3,6 +3,13 @@
 All notable changes of Flase are documented here. Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versions follow [Semantic Versioning](https://semver.org/). A `v*` tag publishes the Docker image of the version.
 
+## [0.3.1] - 2026-10-14
+
+### Fixed
+- After session expired on server (e.g. computer slept longer than token lifetime) open tab kept blue icon of
+  connection and every query failed with "Not connected" - websockets of closed session are closed now, the tab
+  logs in again with saved password or the icon turns grey and opens login
+
 ## [0.3.0] - 2026-10-13
 
 ### Added
@@ -197,6 +204,7 @@ First public version - web database manager for MySQL, MariaDB and PostgreSQL, a
 - Production Docker image (`docker/production/Dockerfile`): application, API and websocket on one port
 - GitHub Actions workflow publishing the image to Docker Hub on a `v*` tag
 
+[0.3.1]: https://github.com/MateuszBochen/flase/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/MateuszBochen/flase/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/MateuszBochen/flase/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/MateuszBochen/flase/compare/v0.1.0...v0.2.0

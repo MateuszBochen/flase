@@ -4,7 +4,7 @@ import EstablishConnection from './App/Connection/EstablishConnection';
 import EstablishConnectionResultInterface from './App/Connection/Interface/EstablishConnectionResultInterface';
 import EstablishedUser from './App/Connection/Interface/EstablishedUser';
 import WebsocketRequest from './App/Websocket/WebsocketRequest';
-import SessionStore from './App/Session/SessionStore';
+import SessionStore, {CLOSE_SESSION_NOT_FOUND} from './App/Session/SessionStore';
 import TransferRegistry from './App/Transfer/TransferRegistry';
 import {importCsv, importSql} from './App/Transfer/Importers';
 import MessageType from './App/Websocket/Enum/MessageType';
@@ -19,11 +19,6 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 
-/**
- * websocket close code when session does not exist or token expired.
- * Client must log in again, reconnecting would not help.
- */
-const CLOSE_SESSION_NOT_FOUND = 4001;
 
 
 /** Server start here */
@@ -229,8 +224,8 @@ app.ws('/ws/:token', (ws:WebSocket, req: Request) => {
   }
 
   console.info('New websocket connection');
-  sessions.websocketOpened(found.sessionId);
-  ws.addEventListener('close', () => sessions.websocketClosed(found.sessionId));
+  sessions.websocketOpened(found.sessionId, ws);
+  ws.addEventListener('close', () => sessions.websocketClosed(found.sessionId, ws));
 
   new WebsocketRequest(found.session.driver, ws, found.session.readOnly).procedure();
 });
