@@ -10,6 +10,7 @@ import RowChangeStatementInterface from '../../Interface/Data/RowChangeStatement
 import {StatementResultType} from '../../Interface/Data/StatementInterface';
 import SelectAnalyser from '../../Query/SelectAnalyser';
 import {serializeBinaryValue} from '../BinaryValue';
+import {FOREIGN_KEY_CHECKS_OFF, TransactionOptionsInterface} from '../../ForeignKeyChecks';
 
 /**
  * Single pooled mysql connection with selected database
@@ -92,7 +93,22 @@ class MysqlSession implements DriverSessionInterface {
     });
   }
 
-  async executeInTransaction(statements: RowChangeStatementInterface[]): Promise<number> {
+  async executeInTransaction(statements: RowChangeStatementInterface[], options: TransactionOptionsInterface = {}): Promise<number> {
+    const checksOff = FOREIGN_KEY_CHECKS_OFF.mysql;
+    if (options.ignoreForeignKeys) {
+      for (const sql of checksOff.before) await this.query(sql);
+    }
+    try {
+      return await this.executeStatements(statements);
+    } finally {
+      // pooled connection is used again - checks are turned on also when transaction failed
+      if (options.ignoreForeignKeys) {
+        for (const sql of checksOff.after) await this.query(sql).catch(() => undefined);
+      }
+    }
+  }
+
+  private async executeStatements(statements: RowChangeStatementInterface[]): Promise<number> {
     let affectedRows = 0;
     await this.query('START TRANSACTION');
 

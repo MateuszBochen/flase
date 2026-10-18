@@ -11,6 +11,7 @@ import {StatementResultType} from '../../Interface/Data/StatementInterface';
 import SelectAnalyser from '../../Query/SelectAnalyser';
 import PostgresSql from './PostgresSql';
 import {serializeBinaryValue} from '../BinaryValue';
+import {FOREIGN_KEY_CHECKS_OFF, TransactionOptionsInterface} from '../../ForeignKeyChecks';
 const Cursor = require('pg-cursor');
 
 /** rows read from cursor at once */
@@ -73,11 +74,20 @@ class PostgresSession implements DriverSessionInterface {
     }));
   }
 
-  async executeInTransaction(statements: RowChangeStatementInterface[]): Promise<number> {
+  async executeInTransaction(statements: RowChangeStatementInterface[], options: TransactionOptionsInterface = {}): Promise<number> {
     let affectedRows = 0;
     await this.client.query('BEGIN');
 
     try {
+      // SET LOCAL - role is back to origin at end of transaction (commit or rollback)
+      for (const sql of options.ignoreForeignKeys ? FOREIGN_KEY_CHECKS_OFF.postgresql.before : []) {
+        try {
+          await this.client.query(sql);
+        } catch (e: any) {
+          e.message = `Foreign key checks cannot be turned off: ${e.message} (session_replication_role needs superuser). Nothing was saved.`;
+          throw e;
+        }
+      }
       for (const statement of statements) {
         let result;
         try {

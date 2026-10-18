@@ -28,11 +28,13 @@ class PostgresDdlBuilder {
         return this.alter(table, change.operations);
       case 'truncate':
         // the same as MySQL - auto increment starts again
-        return [`TRUNCATE TABLE ${tableName} RESTART IDENTITY`];
+        // CASCADE - also tables referencing this one are emptied
+        return [`TRUNCATE TABLE ${tableName} RESTART IDENTITY${change.ignoreForeignKeys ? ' CASCADE' : ''}`];
       case 'drop': {
         const kind = await this.relationKind(table);
         const object = kind === 'v' ? 'VIEW' : kind === 'm' ? 'MATERIALIZED VIEW' : kind === 'f' ? 'FOREIGN TABLE' : 'TABLE';
-        return [`DROP ${object} ${tableName}`];
+        // CASCADE - also foreign keys of other tables and views depending on this one are dropped
+        return [`DROP ${object} ${tableName}${change.ignoreForeignKeys ? ' CASCADE' : ''}`];
       }
       case 'rename': {
         const newName = PostgresDdlBuilder.requireName(change.newName, 'New table name');

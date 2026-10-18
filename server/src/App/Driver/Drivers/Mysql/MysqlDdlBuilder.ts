@@ -22,6 +22,10 @@ class MysqlDdlBuilder {
    * copyColumns - columns copied with data, generated columns are left out
    * charset - character set of collation for CONVERT TO CHARACTER SET
    */
+  private static withoutForeignKeyChecks(ignore: boolean | undefined, statements: string[]): string[] {
+    return ignore ? ['SET FOREIGN_KEY_CHECKS = 0', ...statements, 'SET FOREIGN_KEY_CHECKS = 1'] : statements;
+  }
+
   static build(table: TableInterface, change: StructureChangeType, extra: {copyColumns?: string[], charset?: string} = {}): string[] {
     const copyColumns = extra.copyColumns;
     const tableName = MysqlDdlBuilder.tableName(table);
@@ -32,10 +36,11 @@ class MysqlDdlBuilder {
           throw new Error('Nothing to change');
         }
         return [`ALTER TABLE ${tableName}\n  ${change.operations.map(MysqlDdlBuilder.alterOperation).join(',\n  ')}`];
+      // statements run on one connection - setting is valid for them and it is reset with the connection
       case 'truncate':
-        return [`TRUNCATE TABLE ${tableName}`];
+        return MysqlDdlBuilder.withoutForeignKeyChecks(change.ignoreForeignKeys, [`TRUNCATE TABLE ${tableName}`]);
       case 'drop':
-        return [`DROP TABLE ${tableName}`];
+        return MysqlDdlBuilder.withoutForeignKeyChecks(change.ignoreForeignKeys, [`DROP TABLE ${tableName}`]);
       case 'rename':
         return [`RENAME TABLE ${tableName} TO ${MysqlDdlBuilder.tableName({...table, name: MysqlDdlBuilder.requireName(change.newName, 'New table name')})}`];
       case 'copy': {

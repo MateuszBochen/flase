@@ -348,3 +348,11 @@
   color: inherit;
   background-color: rgba(95, 168, 79, 0.35);
 }
+
+/* option of truncate / drop in confirmation of sql */
+.sql-confirm-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}

@@ -46,8 +46,9 @@ export type AlterOperationType =
 
 export type StructureChangeType =
   | {kind: 'alter', operations: AlterOperationType[]}
-  | {kind: 'truncate'}
-  | {kind: 'drop'}
+  /** ignoreForeignKeys - FOREIGN_KEY_CHECKS = 0 (MySQL), CASCADE (PostgreSQL) */
+  | {kind: 'truncate', ignoreForeignKeys?: boolean}
+  | {kind: 'drop', ignoreForeignKeys?: boolean}
   | {kind: 'rename', newName: string}
   | {kind: 'copy', newName: string, withData: boolean}
   /** table options, only given (not undefined / null) are changed; convert - CONVERT TO CHARACTER SET also existing columns */

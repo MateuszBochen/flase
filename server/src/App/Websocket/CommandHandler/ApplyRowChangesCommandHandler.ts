@@ -5,6 +5,7 @@ import ApplyRowChangesRequestInterface from '../../Driver/Interface/Data/ApplyRo
 import RowChangesResultInterface from '../../Driver/Interface/Data/RowChangesResultInterface';
 import RowChangeStatementInterface from '../../Driver/Interface/Data/RowChangeStatementInterface';
 import DriverSessionInterface from '../../Driver/DriverSessionInterface';
+import {FOREIGN_KEY_CHECKS_OFF} from '../../Driver/ForeignKeyChecks';
 
 /**
  * Builds sql for edited / inserted / deleted rows.
@@ -20,6 +21,9 @@ class ApplyRowChangesCommandHandler extends AbstractCommandHandler<ApplyRowChang
         throw new Error('Invalid row changes request');
       }
       statements = this.driver.buildRowChangeStatements(data.table, data.changes);
+      if (data.ignoreForeignKeys !== undefined && typeof data.ignoreForeignKeys !== 'boolean') {
+        throw new Error('Invalid row changes request');
+      }
     } catch (e) {
       this.sendError(e, data?.tabId);
       return;
@@ -33,7 +37,7 @@ class ApplyRowChangesCommandHandler extends AbstractCommandHandler<ApplyRowChang
     let session: DriverSessionInterface | null = null;
     try {
       session = await this.driver.openSession(data.database?.name || data.table.databaseName);
-      const affectedRows = await session.executeInTransaction(statements);
+      const affectedRows = await session.executeInTransaction(statements, {ignoreForeignKeys: !!data.ignoreForeignKeys});
       this.sendResult(MessageType.ROW_CHANGES_APPLIED, data, statements, affectedRows);
     } catch (e) {
       this.sendError(e, data.tabId);
@@ -53,7 +57,10 @@ class ApplyRowChangesCommandHandler extends AbstractCommandHandler<ApplyRowChang
       message,
       {
         tabId: data.tabId,
-        statements: statements.map((statement) => statement.sql),
+        // statements turning foreign key checks off are executed by session, preview shows them too
+        statements: data.ignoreForeignKeys
+          ? [...FOREIGN_KEY_CHECKS_OFF[this.driver.dialect].before, ...statements.map((statement) => statement.sql), ...FOREIGN_KEY_CHECKS_OFF[this.driver.dialect].after]
+          : statements.map((statement) => statement.sql),
         affectedRows,
       },
     ));

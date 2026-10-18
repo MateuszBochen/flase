@@ -316,6 +316,14 @@
   color: var(--title-soft);
   margin-right: 6px;
 }
+.cmp-records-view-pager-root .pending-bar .pending-option {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 6px;
+  color: var(--text-strong);
+  cursor: pointer;
+}
 .cmp-records-view-pager-root .pending-bar .pending-action {
   padding: 1px 8px;
   border: none;
