@@ -172,6 +172,43 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   }
 
   {
+    // --- delete of row referenced by foreign key: refused, saved with foreign key checks turned off
+    await openTable('uuid_bin_test');
+    const fkOption = grid().getByRole('checkbox', {name: 'No foreign key checks'});
+    check('no foreign key option without deleted rows', await fkOption.count() === 0);
+    await menu(await cell(await rowOf('name', 'second edited'), 'name'), 'Delete row');
+    await page.screenshot({path: `${OUT}/uuid-05-${engine}-fk-delete.png`});
+    check('foreign key option for deleted rows', await fkOption.count() === 1 && !(await fkOption.isChecked()));
+    await submit();
+    check('delete of referenced row refused', await grid().locator('.pending-count').count() === 1 && (await column('name')).includes('second edited'));
+    await fkOption.check();
+    await submit();
+    await reload();
+    check('delete with foreign key checks off saved', !(await column('name')).includes('second edited') && await grid().locator('.pending-count').count() === 0, JSON.stringify(await column('name')));
+
+    // truncate from toolbar of the tab: option of foreign keys changes previewed sql
+    await visibleTab().getByRole('button', {name: 'Truncate table…'}).click();
+    await page.waitForTimeout(700);
+    const truncateOption = page.locator('.sql-confirm-option input');
+    check('truncate has foreign key option', await truncateOption.count() === 1 && !(await truncateOption.isChecked()));
+    await truncateOption.check();
+    await page.waitForTimeout(700);
+    const truncateSql = (await page.locator('.cmp-sql-preview').innerText()).trim();
+    await page.screenshot({path: `${OUT}/uuid-06-${engine}-truncate.png`});
+    check('truncate sql without foreign key checks', engine === 'postgres'
+      ? truncateSql === 'TRUNCATE TABLE "public"."uuid_bin_test" RESTART IDENTITY CASCADE;'
+      : truncateSql.startsWith('SET FOREIGN_KEY_CHECKS = 0;') && truncateSql.includes('TRUNCATE TABLE `shop`.`uuid_bin_test`;'), truncateSql);
+    const hold = page.getByRole('button', {name: 'Hold to execute'});
+    const box = await hold.boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.waitForTimeout(3000);
+    await page.mouse.up();
+    await page.waitForTimeout(1500);
+    check('referenced table truncated', await rows().count() === 0, String(await rows().count()));
+  }
+
+  {
     // --- 16 bytes without UUID default: recognized by layout of values, MD5 hashes stay hex
     await openTable('bin16_test');
     const hashes = await column('hash');

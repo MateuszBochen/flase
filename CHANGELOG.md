@@ -3,6 +3,20 @@
 All notable changes of Flase are documented here. Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versions follow [Semantic Versioning](https://semver.org/). A `v*` tag publishes the Docker image of the version.
 
+## [0.5.0] - 2026-10-18
+
+### Added
+- "No foreign key checks" option of pending changes when rows are deleted - rows referenced by other tables can be
+  deleted (MySQL / MariaDB: `FOREIGN_KEY_CHECKS = 0`, set back after the transaction also when it failed;
+  PostgreSQL: `session_replication_role = replica` for the transaction, needs superuser and skips also other triggers).
+  SQL preview shows these statements too
+- The same option in confirmation of "Truncate table…" and "Drop table…" from toolbar of table tab (it was only in
+  operations of tables list) - MySQL / MariaDB: `FOREIGN_KEY_CHECKS = 0`, PostgreSQL: `CASCADE`
+
+### Fixed
+- MySQL / MariaDB: statements of structure change were executed on different connections of pool - session settings
+  (e.g. `FOREIGN_KEY_CHECKS = 0`) did not apply to the following statements
+
 ## [0.4.0] - 2026-10-14
 
 ### Added
@@ -219,6 +233,7 @@ First public version - web database manager for MySQL, MariaDB and PostgreSQL, a
 - Production Docker image (`docker/production/Dockerfile`): application, API and websocket on one port
 - GitHub Actions workflow publishing the image to Docker Hub on a `v*` tag
 
+[0.5.0]: https://github.com/MateuszBochen/flase/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/MateuszBochen/flase/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/MateuszBochen/flase/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/MateuszBochen/flase/compare/v0.2.1...v0.3.0

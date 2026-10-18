@@ -669,18 +669,9 @@ class MysqlAdapter implements DriverInterface {
     return {tables: tables.size, warnings};
   }
 
+  /** one connection - session settings (FOREIGN_KEY_CHECKS = 0) apply to the following statements */
   async executeStatements(statements: string[]): Promise<void> {
-    for (let index = 0; index < statements.length; index++) {
-      try {
-        await this.queryRows(statements[index]);
-      } catch (e: any) {
-        // DDL is committed immediately - tell which statements were already executed
-        if (statements.length > 1 && e?.sqlMessage) {
-          e.sqlMessage = `${e.sqlMessage}. Executed ${index} of ${statements.length} statements.`;
-        }
-        throw e;
-      }
-    }
+    await this.runOnOneConnection(null, statements);
   }
 
   /**

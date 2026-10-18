@@ -6,6 +6,7 @@ import ResultFieldInterface from './Interface/Data/ResultFieldInterface';
 import RowChangeStatementInterface from './Interface/Data/RowChangeStatementInterface';
 import {StatementResultType} from './Interface/Data/StatementInterface';
 import RecordType from '../../Driver/Type/Data/RecordType';
+import {TransactionOptionsInterface} from './ForeignKeyChecks';
 
 /**
  * Dedicated database connection with a selected database.
@@ -29,7 +30,7 @@ interface DriverSessionInterface {
    * Execute statements in one transaction, resolves with sum of affected rows.
    * Rolls back when any statement fails or does not match expected row.
    */
-  executeInTransaction(statements: RowChangeStatementInterface[]): Promise<number>;
+  executeInTransaction(statements: RowChangeStatementInterface[], options?: TransactionOptionsInterface): Promise<number>;
 
   /**
    * Function execute update query.

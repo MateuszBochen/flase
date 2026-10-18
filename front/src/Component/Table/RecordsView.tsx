@@ -105,6 +105,13 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
   const footerRef = useRef<TableFooterRefInterface|null>(null);
 
   const pendingCount = countChanges(changes);
+  const hasDeletes = Object.keys(changes.deleted).length > 0;
+  const [ignoreForeignKeys, setIgnoreForeignKeys] = useState<boolean>(false);
+  // option is chosen again for next changes - it is not kept after submit or revert
+  useEffect(() => {
+    if (!pendingCount) setIgnoreForeignKeys(false);
+  }, [pendingCount]);
+  const rowChangesOptions = {ignoreForeignKeys: hasDeletes && ignoreForeignKeys};
   // read in reset, which can run before re-render after clearEditing
   const pendingCountRef = useRef<number>(0);
   pendingCountRef.current = pendingCount;
@@ -460,8 +467,8 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
   };
 
   const currentRowChanges = () => buildRowChanges(changes, getRecords(), columns, editable!);
-  const onPreview = () => props.onPreviewChanges?.(editable!, currentRowChanges());
-  const onSubmit = () => props.onSubmitChanges?.(editable!, currentRowChanges());
+  const onPreview = () => props.onPreviewChanges?.(editable!, currentRowChanges(), rowChangesOptions);
+  const onSubmit = () => props.onSubmitChanges?.(editable!, currentRowChanges(), rowChangesOptions);
 
   const copyToClipboard = (value: CellValueType | undefined) => {
     const text = value === null || value === undefined ? 'NULL' : String(value);
@@ -699,6 +706,9 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
             readOnlyReason={readOnlyReason}
             pendingCount={pendingCount}
             submitting={!!props.submitting}
+            hasDeletes={hasDeletes}
+            ignoreForeignKeys={ignoreForeignKeys}
+            onIgnoreForeignKeys={setIgnoreForeignKeys}
             onRevert={clearEditing}
             onPreview={onPreview}
             onSubmit={onSubmit}

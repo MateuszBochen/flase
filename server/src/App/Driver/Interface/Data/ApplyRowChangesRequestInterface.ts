@@ -9,6 +9,8 @@ interface ApplyRowChangesRequestInterface {
   changes: RowChangeInterface[];
   /** only build sql for preview, do not execute */
   dryRun: boolean;
+  /** foreign keys are not checked (e.g. delete of referenced rows) */
+  ignoreForeignKeys?: boolean;
 }
 
 export default ApplyRowChangesRequestInterface;

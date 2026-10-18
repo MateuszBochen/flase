@@ -123,6 +123,13 @@ const col = (name, type, extra = {}) => ({
     check('truncate', r.message === 'STRUCTURE_CHANGE_APPLIED' && r.payload.statements[0] === 'TRUNCATE TABLE `shop`.`ddl_test2`', r.payload?.error);
     r = await change('ddl_test2', {kind: 'drop'}, true);
     check('drop preview keeps table', r.payload?.statements?.[0] === 'DROP TABLE `shop`.`ddl_test2`' && (await structure('ddl_test2')).message === 'TABLE_STRUCTURE');
+
+    // --- truncate of table referenced by foreign key: refused, allowed with foreign key checks off
+    r = await change('uuid_bin_test', {kind: 'truncate'});
+    check('truncate of referenced table refused', r.message === 'QUERY_ERROR' && /foreign key/i.test(r.payload.error), r.payload?.error);
+    r = await change('uuid_bin_test', {kind: 'truncate', ignoreForeignKeys: true});
+    check('truncate with foreign key checks off', r.message === 'STRUCTURE_CHANGE_APPLIED'
+      && r.payload.statements.join(' | ') === 'SET FOREIGN_KEY_CHECKS = 0 | TRUNCATE TABLE `shop`.`uuid_bin_test` | SET FOREIGN_KEY_CHECKS = 1', r.payload?.error || r.payload?.statements?.join(' | '));
     r = await change('ddl_test2', {kind: 'drop'});
     check('drop', r.message === 'STRUCTURE_CHANGE_APPLIED' && (await structure('ddl_test2')).message === 'QUERY_ERROR', r.payload?.error);
     r = await change('struct_test', {kind: 'rename', newName: ' '}, true);

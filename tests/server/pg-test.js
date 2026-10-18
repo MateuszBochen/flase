@@ -47,7 +47,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       rows: (i) => messages.filter((m) => m.payload?.tabId === `${r.tabId}:${i}` && m.message === 'SINGLE_SELECT_RECORD').map((m) => m.payload.rowDataValue),
       columns: (i) => messages.find((m) => m.payload?.tabId === `${r.tabId}:${i}` && m.message === 'SINGLE_SELECT_COLUMN')?.payload.columns || []};
   };
-  const apply = async (changes, table = 'edit_test', dryRun = false) => request('APPLY_ROW_CHANGES', {database: {name: 'public'}, table: {databaseName: 'public', name: table}, changes, dryRun}, ['ROW_CHANGES_PREVIEW', 'ROW_CHANGES_APPLIED']);
+  const apply = async (changes, table = 'edit_test', dryRun = false, options = {}) => request('APPLY_ROW_CHANGES', {database: {name: 'public'}, table: {databaseName: 'public', name: table}, changes, dryRun, ...options}, ['ROW_CHANGES_PREVIEW', 'ROW_CHANGES_APPLIED']);
   const structure = async (name, schema = 'public') => (await request('GET_TABLE_STRUCTURE', {table: {databaseName: schema, name}}, ['TABLE_STRUCTURE'])).payload;
   const change = (name, changeData, dryRun = false) => request('CHANGE_STRUCTURE', {table: {databaseName: 'public', name}, change: changeData, dryRun}, ['STRUCTURE_CHANGE_PREVIEW', 'STRUCTURE_CHANGE_APPLIED']);
   const alter = (name, operations, dryRun = false) => change(name, {kind: 'alter', operations}, dryRun);
@@ -120,6 +120,16 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   r = await apply([{kind: 'update', where: {id: 1}, values: {data: {binary: true, size: 1, hex: "zz'", truncated: false, text: null}}}], 'value_test');
   check('not hex value refused', r.message === 'QUERY_ERROR' && /not valid hexadecimal/.test(r.payload.error), JSON.stringify(r.payload));
 
+  // --- delete of row referenced by foreign key: refused, allowed with foreign key checks off, checks are back after
+  r = await apply([{kind: 'delete', where: {id: {binary: true, size: 16, hex: '7a8b9c0d1e2f4a3b8c4d5e6f7a8b9c02', truncated: false, text: null}}}], 'uuid_bin_test');
+  check('delete of referenced row refused', r.message === 'QUERY_ERROR' && /foreign key/i.test(r.payload.error), r.payload?.error);
+  r = await apply([{kind: 'delete', where: {id: {binary: true, size: 16, hex: '7a8b9c0d1e2f4a3b8c4d5e6f7a8b9c02', truncated: false, text: null}}}], 'uuid_bin_test', true, {ignoreForeignKeys: true});
+  check('preview shows foreign key checks off', r.message === 'ROW_CHANGES_PREVIEW' && r.payload.statements[0] === "SET LOCAL session_replication_role = 'replica'", JSON.stringify(r.payload?.statements));
+  r = await apply([{kind: 'delete', where: {id: {binary: true, size: 16, hex: '7a8b9c0d1e2f4a3b8c4d5e6f7a8b9c02', truncated: false, text: null}}}], 'uuid_bin_test', false, {ignoreForeignKeys: true});
+  check('delete with foreign key checks off', r.message === 'ROW_CHANGES_APPLIED' && r.payload.affectedRows === 1, r.payload?.error);
+  r = await apply([{kind: 'delete', where: {id: {binary: true, size: 16, hex: '3f2c1a9e6b7d4e8f9a0b1c2d3e4f5a01', truncated: false, text: null}}}], 'uuid_bin_test');
+  check('foreign key checks are on again', r.message === 'QUERY_ERROR' && /foreign key/i.test(r.payload.error), r.payload?.error);
+
   // --- structure
   let st = await structure('struct_test');
   const col = (name) => st.columns.find((c) => c.name === name);
@@ -177,6 +187,15 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   check('truncate', r.message === 'STRUCTURE_CHANGE_APPLIED' && s.rows[0].c === '0', JSON.stringify(r.payload));
   r = await change('struct_copy2', {kind: 'drop'});
   check('drop table', r.message === 'STRUCTURE_CHANGE_APPLIED');
+  // truncate / drop of referenced table: CASCADE with the option
+  r = await change('uuid_bin_test', {kind: 'truncate'});
+  check('truncate of referenced table refused', r.message === 'QUERY_ERROR' && /foreign key/i.test(r.payload.error), JSON.stringify(r.payload));
+  r = await change('uuid_bin_test', {kind: 'drop', ignoreForeignKeys: true}, true);
+  check('drop with CASCADE', r.payload?.statements?.[0] === 'DROP TABLE "public"."uuid_bin_test" CASCADE', JSON.stringify(r.payload));
+  r = await change('uuid_bin_test', {kind: 'truncate', ignoreForeignKeys: true});
+  s = await select('SELECT (SELECT count(*) FROM uuid_bin_test) AS items, (SELECT count(*) FROM uuid_bin_notes) AS notes');
+  check('truncate with CASCADE', r.message === 'STRUCTURE_CHANGE_APPLIED' && r.payload.statements[0] === 'TRUNCATE TABLE "public"."uuid_bin_test" RESTART IDENTITY CASCADE'
+    && s.rows[0].items === '0' && s.rows[0].notes === '0', JSON.stringify(r.payload) + JSON.stringify(s.rows));
 
   // --- console
   let c = await sql(['SELECT 1 AS a, 2 AS a', 'CREATE TEMP TABLE tmp_x (id int)', 'INSERT INTO tmp_x VALUES (1), (2)', "DO $$ BEGIN RAISE NOTICE 'hello %', 1; END $$", 'USE blog', 'SELECT count(*) AS posts FROM posts', 'SELECT * FROM nope', 'SELECT 3']);

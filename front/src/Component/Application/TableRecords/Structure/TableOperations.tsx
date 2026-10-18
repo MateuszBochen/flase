@@ -5,6 +5,7 @@ import {StructureChangeType} from '../../../../Library/Table/Interface/Structure
 import useStructureChange from './useStructureChange';
 import SqlConfirmPopup from './SqlConfirmPopup';
 import TableNameForm from './TableNameForm';
+import DriverFactory from '../../../../Library/Database/Driver/DriverFactory';
 
 export type TableOperationType = 'rename' | 'copy' | 'truncate' | 'drop';
 
@@ -56,6 +57,8 @@ export default forwardRef<TableOperationsRefInterface, TableOperationsPropsInter
           statements={change.preview.statements}
           change={change.preview.change}
           busy={change.busy}
+          onChange={change.requestPreview}
+          isMysql={DriverFactory.getDriver(props.connection).dialect === 'mysql'}
           onExecute={change.execute}
           onCancel={change.closePreview}
         />

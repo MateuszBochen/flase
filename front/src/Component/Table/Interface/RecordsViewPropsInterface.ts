@@ -6,6 +6,9 @@ import EditableResultInterface from '../../../Library/Record/Interface/EditableR
 import RowChangeInterface from '../../../Library/Record/Interface/RowChangeInterface';
 import ConnectionDataInterface from '../../../Library/Connection/Interface/ConnectionDataInterface';
 
+/** foreign keys are not checked - deleted rows may be referenced by other tables */
+export type RowChangesOptionsType = {ignoreForeignKeys: boolean};
+
 export type CellValueType = string|number|null;
 export type QuickFilterOperatorType = '=' | '<>' | 'IS NULL' | 'IS NOT NULL' | 'clear';
 export type SingleRowType = {[key:string]: CellValueType};
@@ -21,8 +24,8 @@ interface RecordsViewPropsInterface {
   queryLoading: boolean,
   cellRender: any,
   /** editing is enabled only when handlers are passed */
-  onPreviewChanges?: (editable: EditableResultInterface, changes: RowChangeInterface[]) => void;
-  onSubmitChanges?: (editable: EditableResultInterface, changes: RowChangeInterface[]) => void;
+  onPreviewChanges?: (editable: EditableResultInterface, changes: RowChangeInterface[], options: RowChangesOptionsType) => void;
+  onSubmitChanges?: (editable: EditableResultInterface, changes: RowChangeInterface[], options: RowChangesOptionsType) => void;
   submitting?: boolean;
   /** filter rows by value of cell, 'clear' removes filter */
   onQuickFilter?: (column: ColumnInterface, value: CellValueType, operator: QuickFilterOperatorType) => void;

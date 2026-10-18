@@ -30,6 +30,7 @@ import and export dumps, draw ER diagrams and manage users - all from one self-h
 - Inline cell editing (double click) and **Edit cell** popup with big text area for long texts and JSON
 - Multi selection (drag, Shift + click, Ctrl + click), delete of selected rows, add / clone / edit row in a form
 - Pending changes with **SQL preview**, submit with Ctrl + S, optional confirmation of every change
+- Delete of rows referenced by other tables without foreign key checks (option of pending changes)
 - Copy selection or whole selected rows as **TSV, CSV, JSON, XML, Markdown, HTML, LaTeX or SQL INSERT**
 - Export rows as **CSV, Excel (XLSX), OpenDocument (ODS), JSON, XML, SQL, HTML, LaTeX or PDF**
 - **Charts** of results (bar, line, pie, scatter, grouping) and **map** of spatial values (OpenStreetMap background)

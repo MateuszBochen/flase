@@ -29,7 +29,7 @@ import QueryRefreshWasRequested from '../Event/QueryRefreshWasRequested';
 import Popup from '../../../../UI/Popup/Popup';
 import Button from '../../../../UI/Button/Button';
 import toast from 'react-hot-toast';
-import {CellValueType, QuickFilterOperatorType} from '../../../Table/Interface/RecordsViewPropsInterface';
+import {CellValueType, QuickFilterOperatorType, RowChangesOptionsType} from '../../../Table/Interface/RecordsViewPropsInterface';
 import FilterWasRequested from '../Event/FilterWasRequested';
 import DriverFactory from '../../../../Library/Database/Driver/DriverFactory';
 import openTableTab from '../openTableTab';
@@ -40,6 +40,7 @@ import useConnectionSettings from '../../../../Library/Connection/useConnectionS
 type PendingSubmitType = {
   editable: EditableResultInterface;
   changes: RowChangeInterface[];
+  options: RowChangesOptionsType;
 };
 
 type SqlPreviewType = {
@@ -201,30 +202,31 @@ export default (props: GridViewPropsInterface) => {
     }
   }, [props.tabId]);
 
-  const sendRowChanges = useCallback((editable: EditableResultInterface, changes: RowChangeInterface[], dryRun: boolean) => {
+  const sendRowChanges = useCallback((editable: EditableResultInterface, changes: RowChangeInterface[], options: RowChangesOptionsType, dryRun: boolean) => {
     setSubmitting(true);
-    pendingSubmit.current = {editable, changes};
+    pendingSubmit.current = {editable, changes, options};
     RecordManager.getInstance().applyRowChanges(props.connection, {
       tabId: props.tabId,
       database: props.database,
       table: editable.table,
       changes,
       dryRun,
+      ignoreForeignKeys: options.ignoreForeignKeys,
     });
   }, [props.connection, props.database, props.tabId]);
 
-  const onPreviewChanges = useCallback((editable: EditableResultInterface, changes: RowChangeInterface[]) => {
-    sendRowChanges(editable, changes, true);
+  const onPreviewChanges = useCallback((editable: EditableResultInterface, changes: RowChangeInterface[], options: RowChangesOptionsType) => {
+    sendRowChanges(editable, changes, options, true);
   }, [sendRowChanges]);
 
   /** with confirmation required, sql is shown first and executed after confirm */
-  const onSubmitChanges = useCallback((editable: EditableResultInterface, changes: RowChangeInterface[]) => {
-    sendRowChanges(editable, changes, !!props.connection.changeConfirmationRequired);
+  const onSubmitChanges = useCallback((editable: EditableResultInterface, changes: RowChangeInterface[], options: RowChangesOptionsType) => {
+    sendRowChanges(editable, changes, options, !!props.connection.changeConfirmationRequired);
   }, [sendRowChanges, props.connection]);
 
   const executePreviewedChanges = useCallback(() => {
     if (pendingSubmit.current) {
-      sendRowChanges(pendingSubmit.current.editable, pendingSubmit.current.changes, false);
+      sendRowChanges(pendingSubmit.current.editable, pendingSubmit.current.changes, pendingSubmit.current.options, false);
     }
   }, [sendRowChanges]);
 

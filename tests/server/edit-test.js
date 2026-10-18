@@ -42,9 +42,9 @@ let tabSeq = 0;
         rows: forTab(tabId).filter((m) => m.message === 'SINGLE_SELECT_RECORD').map((m) => m.payload.rowDataValue),
       };
     };
-    const apply = async (changes, dryRun, table = 'edit_test') => {
+    const apply = async (changes, dryRun, table = 'edit_test', options = {}) => {
       const tabId = 'a' + (++tabSeq);
-      send('APPLY_ROW_CHANGES', {tabId, database: {name: 'shop'}, table: {databaseName: 'shop', name: table}, changes, dryRun});
+      send('APPLY_ROW_CHANGES', {tabId, database: {name: 'shop'}, table: {databaseName: 'shop', name: table}, changes, dryRun, ...options});
       return (await waitFor(() => doneTab(tabId, ['ROW_CHANGES_PREVIEW', 'ROW_CHANGES_APPLIED', 'QUERY_ERROR']))) || {};
     };
 
@@ -127,6 +127,16 @@ let tabSeq = 0;
     check('VARBINARY inserted as bytes', r.message === 'ROW_CHANGES_PREVIEW' && r.payload.statements[0].includes("X'cafe'"), r.payload?.error || r.payload?.statements?.[0]);
     r = await apply([{kind: 'update', where: {id: 1}, values: {data: {binary: true, size: 9000, hex: 'ab', truncated: true, text: null}}}], false, 'value_test');
     check('preview of long value is not written', r.message === 'QUERY_ERROR' && /longer than its preview/.test(r.payload.error), r.payload?.error);
+
+    // --- delete of row referenced by foreign key: refused, allowed with foreign key checks off, checks are back after
+    r = await apply([{kind: 'delete', where: {id: {binary: true, size: 16, hex: '7a8b9c0d1e2f4a3b8c4d5e6f7a8b9c02', truncated: false, text: null}}}], false, 'uuid_bin_test');
+    check('delete of referenced row refused', r.message === 'QUERY_ERROR' && /foreign key/i.test(r.payload.error), r.payload?.error);
+    r = await apply([{kind: 'delete', where: {id: {binary: true, size: 16, hex: '7a8b9c0d1e2f4a3b8c4d5e6f7a8b9c02', truncated: false, text: null}}}], true, 'uuid_bin_test', {ignoreForeignKeys: true});
+    check('preview shows foreign key checks off', r.message === 'ROW_CHANGES_PREVIEW' && r.payload.statements[0] === 'SET FOREIGN_KEY_CHECKS = 0', JSON.stringify(r.payload?.statements));
+    r = await apply([{kind: 'delete', where: {id: {binary: true, size: 16, hex: '7a8b9c0d1e2f4a3b8c4d5e6f7a8b9c02', truncated: false, text: null}}}], false, 'uuid_bin_test', {ignoreForeignKeys: true});
+    check('delete with foreign key checks off', r.message === 'ROW_CHANGES_APPLIED' && r.payload.affectedRows === 1, r.payload?.error);
+    r = await apply([{kind: 'delete', where: {id: {binary: true, size: 16, hex: '3f2c1a9e6b7d4e8f9a0b1c2d3e4f5a01', truncated: false, text: null}}}], false, 'uuid_bin_test');
+    check('foreign key checks are on again', r.message === 'QUERY_ERROR' && /foreign key/i.test(r.payload.error), r.payload?.error);
 
     ws.close();
     await fetch(`${BASE}/api/disconnect`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({token: user.token})});
