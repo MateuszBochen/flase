@@ -14,6 +14,7 @@ import NewTabComponentWasSelected from './Event/NewTabComponentWasSelected';
 import CurrentTabWasChanged from './Event/CurrentTabWasChanged';
 import {v4 as uuidv4} from 'uuid';
 import TabWasClosed from './Event/TabWasClosed';
+import TabWasMoved, {TabMoveType} from './Event/TabWasMoved';
 import ThemeManager from '../../Library/Theme/ThemeManager';
 import ConnectionWasRemoved from '../../Library/Connection/Event/ConnectionWasRemoved';
 import ConnectionDataInterface from '../../Library/Connection/Interface/ConnectionDataInterface';
@@ -105,6 +106,21 @@ export default (props: ApplicationRendererPropsInterface) => {
       });
     });
 
+    /** tab moved to other place - current and last open tab stay the same tabs */
+    const tabWasMovedSubscriber = EventBus.subscribe(TabWasMoved.name, (event: EventInterface<TabMoveType>) => {
+      update((state) => {
+        const {from, to} = event.getData();
+        const count = state.tabs.length;
+        if (from === to || !Number.isInteger(from) || !Number.isInteger(to) || from < 0 || to < 0 || from >= count || to >= count) {
+          return state;
+        }
+        const tabs = [...state.tabs];
+        tabs.splice(to, 0, ...tabs.splice(from, 1));
+        const moved = (index: number) => index < 0 ? index : tabs.indexOf(state.tabs[index]);
+        return {...state, tabs, currentTab: moved(state.currentTab), lastOpenTab: moved(state.lastOpenTab)};
+      });
+    });
+
     /** tabs of deleted connection are closed, at least one tab stays */
     const connectionWasRemovedSubscriber = EventBus.subscribe(ConnectionWasRemoved.name, (event: EventInterface<ConnectionDataInterface>) => {
       const removedId = event.getData().id;
@@ -126,6 +142,7 @@ export default (props: ApplicationRendererPropsInterface) => {
       EventBus.unSub(newTabComponentWasSelectedSubscriber);
       EventBus.unSub(currentTabWasChangedSubscriber);
       EventBus.unSub(tabWasClosedSubscriber);
+      EventBus.unSub(tabWasMovedSubscriber);
     }
 
   }, [update, props.defaultTab]);
@@ -146,7 +163,12 @@ export default (props: ApplicationRendererPropsInterface) => {
       const count = context.tabs.length;
       const key = event.key.toLowerCase();
       let handled = true;
-      if (event.key === 'ArrowRight' && !event.shiftKey) {
+      if ((event.key === 'ArrowRight' || event.key === 'ArrowLeft') && event.shiftKey) {
+        const to = context.currentTab + (event.key === 'ArrowRight' ? 1 : -1);
+        if (to >= 0 && to < count) {
+          EventBus.emit(new TabWasMoved(context.currentTab, to));
+        }
+      } else if (event.key === 'ArrowRight' && !event.shiftKey) {
         EventBus.emit(new CurrentTabWasChanged((context.currentTab + 1) % count));
       } else if (event.key === 'ArrowLeft' && !event.shiftKey) {
         EventBus.emit(new CurrentTabWasChanged((context.currentTab - 1 + count) % count));
