@@ -3,6 +3,12 @@
 All notable changes of Flase are documented here. Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versions follow [Semantic Versioning](https://semver.org/). A `v*` tag publishes the Docker image of the version.
 
+## [0.6.0] - 2026-10-20
+
+### Added
+- Tabs can be moved as in browser - dragged by mouse (other tabs make room) or by Alt + Shift + → / ←. Content of moved
+  tab is kept, order is restored after reload
+
 ## [0.5.0] - 2026-10-18
 
 ### Added
@@ -233,6 +239,7 @@ First public version - web database manager for MySQL, MariaDB and PostgreSQL, a
 - Production Docker image (`docker/production/Dockerfile`): application, API and websocket on one port
 - GitHub Actions workflow publishing the image to Docker Hub on a `v*` tag
 
+[0.6.0]: https://github.com/MateuszBochen/flase/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/MateuszBochen/flase/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/MateuszBochen/flase/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/MateuszBochen/flase/compare/v0.3.0...v0.3.1

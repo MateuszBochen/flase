@@ -6,6 +6,7 @@ import TabLabelList from '../../../UI/TabLabelList/TabLabelList';
 import EventBus from '../../../Library/EventBus/EventBus';
 import CurrentTabWasChanged from '../Event/CurrentTabWasChanged';
 import TabWasClosed from '../Event/TabWasClosed';
+import TabWasMoved from '../Event/TabWasMoved';
 
 
 export default () => {
@@ -39,6 +40,11 @@ export default () => {
     EventBus.emit(new TabWasClosed(tabIndex));
   }, [context.tabs]);
 
+  /** handler for tab dragged to other place */
+  const moveTabHandler = useCallback((from: number, to: number) => {
+    EventBus.emit(new TabWasMoved(from, to));
+  }, []);
+
   return (
     <TabLabelList
       labels={getListOfLabels()}
@@ -46,6 +52,7 @@ export default () => {
       activeIndex={context.currentTab}
       onLabelClick={switchTabHandler}
       onLabelClose={closeTabHandler}
+      onLabelMove={moveTabHandler}
     />
   );
 }

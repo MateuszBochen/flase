@@ -25,6 +25,8 @@
   border-top-left-radius: 6px;
   border-top-right-radius: 6px;
   color: var(--text-strong);
+  /* no selection of text while tab is dragged */
+  user-select: none;
 }
 
 .tab-label-list-root .tab-label-list .tab-label-list-item:hover {
@@ -61,4 +63,17 @@
 
 .tab-label-list-root .tab-label-list .tab-label-list-item.colored {
   border-top: solid 3px;
+}
+
+/* dragging of tab - others make room for it */
+.tab-label-list-root .tab-label-list.dragging .tab-label-list-item {
+  transition: transform 0.15s ease;
+}
+
+.tab-label-list-root .tab-label-list.dragging .tab-label-list-item.dragged {
+  transition: none;
+  position: relative;
+  z-index: 1;
+  cursor: grabbing;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.35);
 }

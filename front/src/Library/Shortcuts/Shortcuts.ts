@@ -5,6 +5,7 @@ export const SHORTCUTS: {group: string, items: {keys: string, action: string}[]}
     group: 'Tabs and application',
     items: [
       {keys: 'Alt + → / Alt + ←', action: 'Next / previous tab'},
+      {keys: 'Alt + Shift + → / ←', action: 'Move tab right / left (or drag it)'},
       {keys: 'Alt + 1 … 9', action: 'Go to tab 1 … 8, 9 = last tab'},
       {keys: 'Alt + W', action: 'Close tab'},
       {keys: 'Middle click', action: 'Close tab / open table in new tab'},
