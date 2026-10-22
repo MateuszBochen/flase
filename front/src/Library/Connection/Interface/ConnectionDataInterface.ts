@@ -1,4 +1,4 @@
-
+import {SshConfigInterface} from '../Ssh/SshTunnelInterface';
 
 interface ConnectionDataInterface {
   dsn: string;
@@ -15,6 +15,10 @@ interface ConnectionDataInterface {
   /** PostgreSQL database chosen in tree - connection of it was opened with login of parentId */
   catalog?: string;
   parentId?: string;
+  /** database is reached through SSH server */
+  ssh?: SshConfigInterface | null;
+  /** predefined connection uses SSH tunnel of server configuration (its settings are not sent to browser) */
+  sshTunnel?: boolean;
 }
 
 export default ConnectionDataInterface;

@@ -8,6 +8,7 @@ import InvisibleButton from '../../UI/Button/InvisibleButton';
 import ThemeManager, {useTheme} from '../../Library/Theme/ThemeManager';
 import {SHORTCUT_HELP_EVENT} from '../../Library/Shortcuts/Shortcuts';
 import ShortcutHelp from '../Shortcuts/ShortcutHelp';
+import SshHostKeyPrompt from '../SshTunnel/SshHostKeyPrompt';
 import {useServerConfig} from '../../Library/Config/ServerConfig';
 import HorizontalButtonList from '../../UI/Button/HorizontalButtonList';
 
@@ -58,6 +59,7 @@ export default () => {
           </InvisibleButton>
         </HorizontalButtonList>
         <ShortcutHelp />
+        <SshHostKeyPrompt />
 
         {/*<IconButton
                     icon={faHome}

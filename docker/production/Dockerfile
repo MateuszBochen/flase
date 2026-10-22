@@ -1,7 +1,7 @@
 # Production image of Flase: built application served by Flase server, one port (3001).
 #   docker build -f docker/production/Dockerfile -t flase .
 #   docker run -p 3001:3001 flase
-# Configuration: JWT_SECRET (random when missing), FLASE_CONNECTIONS, FLASE_ALLOW_CUSTOM_CONNECTIONS, FLASE_CERT_DIR,
+# Configuration: JWT_SECRET (random when missing), FLASE_CONNECTIONS, FLASE_ALLOW_CUSTOM_CONNECTIONS, FLASE_CERT_DIR, FLASE_SSH_KEY_DIR,
 # IDLE_CONNECTION_RELEASE_SECONDS, JWT_TOKEN_EXPIRE, PORT
 
 # --- application (React)
@@ -26,7 +26,8 @@ RUN npx tsc -p . && npm prune --omit=dev
 FROM node:22-alpine
 ENV NODE_ENV=production PORT=3001 FLASE_FRONT_DIR=/app/public FLASE_CERT_DIR=/app/certs
 WORKDIR /app
-# CA / client certificates of database TLS (sslrootcert, sslcert, sslkey of DSN) - mount: -v ./certs:/app/certs:ro
+# CA / client certificates of database TLS (sslrootcert, sslcert, sslkey of DSN) and private keys of SSH tunnels
+# (FLASE_SSH_KEY_DIR, default the same directory) - mount: -v ./certs:/app/certs:ro
 RUN mkdir -p /app/certs && chown node:node /app/certs
 COPY --from=server --chown=node:node /build/server/node_modules ./node_modules
 COPY --from=server --chown=node:node /build/server/dist ./dist

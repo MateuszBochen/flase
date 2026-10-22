@@ -28,3 +28,36 @@
   cursor: default;
   opacity: 0.75;
 }
+
+/* secrets of SSH tunnel */
+.connection-form-ssh {
+  margin: 4px 0 8px;
+  padding: 8px 10px 2px;
+  border: solid 1px var(--border);
+  border-radius: 8px;
+}
+
+.connection-form-ssh-title {
+  margin-bottom: 6px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.connection-form-ssh-title code,
+.connection-form-ssh-hint code {
+  color: var(--text-strong);
+  font-family: var(--font-mono);
+}
+
+.connection-form-ssh-key {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.connection-form-ssh-hint {
+  margin-bottom: 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+}

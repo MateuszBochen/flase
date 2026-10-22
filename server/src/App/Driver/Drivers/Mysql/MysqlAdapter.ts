@@ -37,6 +37,7 @@ import {nodeTlsOptions, tlsOfDsn} from '../../Tls/DsnTls';
 import Settings from '../../../Settings/Settings';
 import {installMysqlTlsIdentityCheck} from './MysqlTlsIdentity';
 import MysqlDatabaseOperations from './MysqlDatabaseOperations';
+import SshTunnel from '../../Ssh/SshTunnel';
 import MysqlServerAdmin from './MysqlServerAdmin';
 import {ServerAdminInterface} from '../../Interface/Data/ServerInterface';
 import {
@@ -69,6 +70,8 @@ class MysqlAdapter implements DriverInterface {
   private parser: typeof Parser;
   private analyser: SelectAnalyser;
   private dsnOptions: ParsedDsn;
+  /** database behind SSH server - pools connect to local end of tunnel */
+  private tunnel: SshTunnel | null = null;
 
   constructor(connectionData: ConnectionRequestInterface, dsnOptions: ParsedDsn) {
     this.connectionData = connectionData;
@@ -77,7 +80,17 @@ class MysqlAdapter implements DriverInterface {
     this.dsnOptions = dsnOptions;
   }
 
-  connect(): Promise<DriverInterface> {
+  async connect(): Promise<DriverInterface> {
+    const {ssh} = this.connectionData.connectionData;
+    this.tunnel = await SshTunnel.open(ssh, this.connectionData.userData.ssh, {host: this.dsnOptions.host, port: this.dsnOptions.port || 3306});
+    return this.connectToDatabase().catch((e) => {
+      this.tunnel?.close();
+      this.tunnel = null;
+      throw e;
+    });
+  }
+
+  private connectToDatabase(): Promise<DriverInterface> {
     const pool = this.createPool();
 
     // check credentials with first connection
@@ -114,12 +127,16 @@ class MysqlAdapter implements DriverInterface {
       this.keepaliveIntervalId = null;
     }
     this.releaseConnections();
+    this.tunnel?.close();
+    this.tunnel = null;
   }
 
   releaseConnections(): void {
     [this.pool, this.sessionPool].forEach((pool) => pool?.end((err) => err && this.log(err)));
     this.pool = null;
     this.sessionPool = null;
+    // SSH connection of idle session too - opened again with next pool connection
+    this.tunnel?.release();
   }
 
   private createPool(): Pool {
@@ -129,11 +146,12 @@ class MysqlAdapter implements DriverInterface {
     if (dsnTls.mode === 'verify-full') {
       installMysqlTlsIdentityCheck();
     }
+    const address = this.tunnel?.address();
     return mysql.createPool({
-      host: this.dsnOptions.host,
+      host: address?.host ?? this.dsnOptions.host,
       ssl: tlsOptions ? {...tlsOptions, ...(dsnTls.mode === 'verify-full' ? {verifyIdentity: this.dsnOptions.host} : {})} : undefined,
       // undefined falls back to the driver default (3306)
-      port: this.dsnOptions.port,
+      port: address?.port ?? this.dsnOptions.port,
       user: this.connectionData.userData.username,
       password: this.connectionData.userData.password,
       insecureAuth: true,

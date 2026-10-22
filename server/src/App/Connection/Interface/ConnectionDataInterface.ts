@@ -1,4 +1,4 @@
-
+import {SshConfigInterface} from '../../Driver/Ssh/SshTunnel';
 
 interface ConnectionDataInterface {
   dsn: string;
@@ -9,6 +9,8 @@ interface ConnectionDataInterface {
   readOnly?: boolean;
   /** PostgreSQL - database opened instead of the one of DSN (database chosen in tree) */
   database?: string;
+  /** database is reached through SSH tunnel */
+  ssh?: SshConfigInterface | null;
 }
 
 export default ConnectionDataInterface;

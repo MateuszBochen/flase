@@ -24,6 +24,7 @@ import WebsocketConnectionWasRestored from '../WebSocket/Event/WebsocketConnecti
 import RefreshTokenRequest from '../API/Request/RefreshTokenRequest';
 import JwtExpiration from './JwtExpiration';
 import PasswordVault from './PasswordVault';
+import SshHostKeyWasRejected from './Event/SshHostKeyWasRejected';
 import LoginDatabaseRequest from '../API/Request/LoginDatabaseRequest';
 
 /** next try when token refresh failed because of network */
@@ -116,7 +117,8 @@ class ConnectionManager {
       toast.success('Connection was Established successfully');
       // only password which logged in successfully is remembered
       if (rememberPassword === true) {
-        PasswordVault.save(data.connectionData.id, {username: data.userData.username, password: data.userData.password})
+        PasswordVault.save(data.connectionData.id, {username: data.userData.username, password: data.userData.password,
+          ...(data.userData.ssh ? {ssh: data.userData.ssh} : {})})
           .catch(() => toast.error('Password could not be saved in this browser'));
       } else if (rememberPassword === false) {
         PasswordVault.remove(data.connectionData.id).catch(() => undefined);
@@ -135,8 +137,14 @@ class ConnectionManager {
       EventBus.emit(new ConnectionWasEstablished());
     }).catch((e) => {
       const reason = e?.response?.data?.error;
-      toast.error(reason ? `Connection request rejected: ${reason}` : 'Connection request rejected!');
+      const hostKey = e?.response?.data?.sshHostKey;
       EventBus.emit(new ConnectionRequestWasRejected());
+      // user confirms host key of SSH server (SshHostKeyPrompt) and connects again
+      if (hostKey && typeof hostKey.fingerprint === 'string') {
+        EventBus.emit(new SshHostKeyWasRejected({request, hostKey}));
+        return;
+      }
+      toast.error(reason ? `Connection request rejected: ${reason}` : 'Connection request rejected!');
     });
   }
 

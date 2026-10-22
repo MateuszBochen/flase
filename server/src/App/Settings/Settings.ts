@@ -24,6 +24,11 @@ class Settings {
     return process.env.FLASE_CERT_DIR || require('path').resolve(process.cwd(), 'certs');
   }
 
+  /** private keys of SSH tunnels (key file of connection) are read only from here - default is certificate directory */
+  public static getSshKeyDirectory(): string {
+    return process.env.FLASE_SSH_KEY_DIR || Settings.getCertDirectory();
+  }
+
   /** built front (index.html and assets) served by this server - production image */
   public static getFrontDirectory(): string | null {
     return process.env.FLASE_FRONT_DIR || null;

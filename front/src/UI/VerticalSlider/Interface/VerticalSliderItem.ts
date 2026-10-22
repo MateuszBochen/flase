@@ -13,6 +13,8 @@ interface VerticalSliderItem {
   onContextMenu?: (event: React.MouseEvent) => void;
   /** arrow showing that item opens / closes */
   chevron?: boolean;
+  /** item is a group of other items (e.g. databases of the same prefix) */
+  group?: boolean;
 }
 
 export default VerticalSliderItem;

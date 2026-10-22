@@ -1,0 +1,79 @@
+.cmp-ssh-host-key {
+  max-width: 620px;
+  color: var(--text);
+  line-height: 1.45;
+}
+
+.cmp-ssh-host-key p {
+  margin: 0 0 12px;
+}
+
+.cmp-ssh-host-key.changed p {
+  padding: 8px 10px;
+  border-left: solid 3px #d9534f;
+  background-color: rgba(217, 83, 79, 0.1);
+}
+
+.cmp-ssh-host-key dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 14px;
+  margin: 0 0 12px;
+}
+
+.cmp-ssh-host-key dt {
+  color: var(--text-muted);
+}
+
+.cmp-ssh-host-key dd {
+  margin: 0;
+}
+
+.cmp-ssh-host-key code {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  word-break: break-all;
+}
+
+.cmp-ssh-host-key .fingerprint {
+  color: var(--text-strong);
+  font-weight: 600;
+}
+
+.cmp-ssh-host-key .hint {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.cmp-ssh-key-input textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 72px;
+  padding: 6px 8px;
+  border: solid 1px var(--border-strong);
+  border-radius: 8px;
+  color: var(--text-strong);
+  background-color: var(--input-bg);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  resize: vertical;
+}
+
+.cmp-ssh-key-input .ssh-key-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.cmp-ssh-key-input .ssh-key-actions button {
+  padding: 3px 10px;
+  border: solid 1px var(--border-strong);
+  border-radius: 6px;
+  color: var(--text-strong);
+  background-color: var(--panel);
+  font: inherit;
+  cursor: pointer;
+}

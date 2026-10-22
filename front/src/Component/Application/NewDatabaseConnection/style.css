@@ -483,3 +483,87 @@
   color: var(--text-muted);
   cursor: default;
 }
+
+/* engine, server, TLS and user - disabled while connection is open (edit popup) */
+.cmp-new-connection .connection-address {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.cmp-new-connection .connection-address:disabled section {
+  opacity: 0.6;
+}
+
+.cmp-new-connection .connection-address:disabled button,
+.cmp-new-connection .connection-address:disabled label {
+  cursor: default;
+}
+
+.cmp-new-connection .locked-hint {
+  margin: 12px 28px 0;
+}
+
+/* the same form in edit popup */
+.cmp-new-connection.in-popup {
+  box-sizing: border-box;
+  width: min(760px, 90vw);
+  height: auto;
+  max-height: calc(100vh - 140px);
+  padding: 0 0 4px;
+}
+
+.cmp-new-connection.in-popup section {
+  padding: 12px 8px 2px;
+}
+
+.cmp-new-connection.in-popup .locked-hint {
+  margin: 10px 8px 0;
+}
+
+.cmp-new-connection.in-popup .popup-footer-info {
+  padding: 6px 8px 0;
+}
+
+.cmp-new-connection.in-popup .test-result {
+  margin-bottom: 4px;
+  white-space: normal;
+}
+
+/* SSH tunnel */
+.cmp-new-connection .ssh-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.cmp-new-connection .ssh-toggle input {
+  margin: 0;
+  accent-color: var(--primary);
+}
+
+.cmp-new-connection .ssh-auth-options {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.cmp-new-connection .test-result .trust-host-key {
+  height: 24px;
+  margin-left: 8px;
+  padding: 0 10px;
+  border: solid 1px var(--primary);
+  border-radius: 6px;
+  color: var(--text-strong);
+  background-color: var(--panel);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.cmp-new-connection .test-result .trust-host-key.changed {
+  border-color: #d9534f;
+  color: #d9534f;
+}
