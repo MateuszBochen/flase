@@ -8,7 +8,8 @@
 #   tests/run.sh image         production image (docker/production/Dockerfile): build, run, browser smoke test
 #
 # Requires running `docker compose up` (php_flase with server on :3001 and front on :3000,
-# flase_mysql, flase_mariadb, flase_postgres). Tests run in docker containers, nothing is installed on host.
+# flase_mysql, flase_mariadb, flase_postgres, flase_ssh). Tests run in docker containers, nothing is installed on host.
+# flase_ssh (docker/ssh) is the SSH server of ssh-test.
 # Not run here (need server with JWT_TOKEN_EXPIRE=20s): server/refresh-test.js, ui/ui-reconnect.js
 set -u
 
@@ -87,6 +88,24 @@ if [ "$GROUP" = "all" ] || [ "$GROUP" = "server" ]; then
       "$NODE_IMAGE" node /t/tls-test.js http://php_flase:3001 > "$LOGS/tls-test" 2>&1
     report tls-test "$LOGS/tls-test"
   fi
+  # SSH tunnel - flase_ssh is the bastion; second server instance (port 3003) with tunnel defined by administrator
+  if selected ssh-test; then
+    reset_data
+    mkdir -p "$ROOT/server/certs"
+    docker exec flase_ssh cat /keys/id_ed25519 > "$ROOT/server/certs/ssh-test-key"
+    docker exec flase_ssh cat /keys/id_rsa_pass > "$ROOT/server/certs/ssh-test-key-pass"
+    host_key=$(docker exec flase_ssh ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub | awk '{print $2}')
+    ssh_connections='[{"name": "Behind bastion", "dsn": "mariadb://127.0.0.1:13307/shop", "username": "flase",
+      "ssh": {"host": "ssh", "username": "tunnel", "keyFile": "ssh-test-key", "hostKey": "'"$host_key"'"}},
+      {"name": "Unknown key", "dsn": "mariadb://127.0.0.1:13307", "ssh": {"host": "ssh", "username": "tunnel", "password": "tunnel"}}]'
+    docker exec -d -e PORT=3003 -e FLASE_CONNECTIONS="$ssh_connections" php_flase \
+      sh -c 'cd /var/www/html/server && echo $$ > /tmp/flase-ssh.pid && exec node dist/index.js > /tmp/flase-ssh.log 2>&1'
+    for i in $(seq 1 50); do docker exec php_flase sh -c "curl -sf http://localhost:3003/api/config > /dev/null" && break; sleep 0.2; done
+    docker run --rm --network flase_default -v "$ROOT/server/node_modules:/nm:ro" -v "$TESTS/server:/t:ro" -v "$ROOT/server/certs:/certs:ro" \
+      -e NODE_PATH=/nm -e PREDEFINED_URL=http://php_flase:3003 "$NODE_IMAGE" node /t/ssh-test.js http://php_flase:3001 > "$LOGS/ssh-test" 2>&1
+    report ssh-test "$LOGS/ssh-test"
+    docker exec php_flase sh -c 'kill $(cat /tmp/flase-ssh.pid) 2>/dev/null; rm -f /tmp/flase-ssh.pid'
+  fi
   # second server instance (port 3002) with connections defined by administrator, development server is not touched
   if selected predefined-test; then
     reset_data
@@ -119,13 +138,16 @@ fi
 if [ "$GROUP" = "all" ] || [ "$GROUP" = "ui" ]; then
   echo "Browser tests"
   mkdir -p "$TESTS/ui/shots"
+  # key of test SSH server for ui-ssh (key file of Flase server)
+  mkdir -p "$ROOT/server/certs"
+  docker exec flase_ssh cat /keys/id_ed25519 > "$ROOT/server/certs/ssh-test-key" 2>/dev/null
   if [ ! -d "$TESTS/ui/node_modules/playwright" ]; then
     docker run --rm -v "$TESTS/ui:/pw" -w /pw "$PLAYWRIGHT_IMAGE" npm install --no-audit --no-fund > /dev/null 2>&1
   fi
   # file and arguments
   for test in "ui-test5.js 0" "ui-test.js 0" "ui-test.js 1" "ui-test2.js 0" "ui-test3.js 0" "ui-test4.js 0" "ui-structure.js 0" \
     "ui-ddl.js 0" "ui-browse.js 0" "ui-copy.js 0" "ui-deselect.js 0" "ui-value.js 0" "ui-completion.js 0" "ui-search.js 0" \
-    "ui-console.js 0" "ui-transfer.js 0" "ui-postgres.js" "ui-edit-popup.js" "ui-column-resize.js" "ui-new-connection.js" "ui-sidebar.js" "ui-predefined.js" "ui-restore.js" "ui-tab-drag.js" "ui-password.js" "ui-database.js" "ui-server.js" "ui-query-builder.js" "ui-export-chart.js" "ui-display.js" "ui-catalogs.js" "ui-save-shortcut.js" "ui-table-filter.js" "ui-open-tables.js" "ui-sidebar-height.js" "ui-robustness.js" "ui-blob-download.js mariadb" "ui-blob-download.js postgres" "ui-binary-edit.js mariadb" "ui-binary-edit.js postgres" "ui-connection-state.js" "ui-uuid.js mariadb" "ui-uuid.js mysql" "ui-uuid.js postgres" "ui-perf.js mysql" "ui-perf.js postgres"; do
+    "ui-console.js 0" "ui-transfer.js 0" "ui-postgres.js" "ui-edit-popup.js" "ui-column-resize.js" "ui-new-connection.js" "ui-sidebar.js" "ui-predefined.js" "ui-restore.js" "ui-tab-drag.js" "ui-password.js" "ui-connection-edit.js" "ui-ssh.js" "ui-database.js" "ui-database-groups.js" "ui-server.js" "ui-query-builder.js" "ui-export-chart.js" "ui-display.js" "ui-catalogs.js" "ui-save-shortcut.js" "ui-table-filter.js" "ui-multi-sort.js mariadb" "ui-multi-sort.js postgres" "ui-open-tables.js" "ui-sidebar-height.js" "ui-robustness.js" "ui-blob-download.js mariadb" "ui-blob-download.js postgres" "ui-binary-edit.js mariadb" "ui-binary-edit.js postgres" "ui-connection-state.js" "ui-uuid.js mariadb" "ui-uuid.js mysql" "ui-uuid.js postgres" "ui-perf.js mysql" "ui-perf.js postgres"; do
     file="${test%% *}"
     selected "$file" || continue
     reset_data

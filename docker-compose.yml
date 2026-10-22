@@ -12,7 +12,7 @@ services:
       - ./:/var/www/html/
     # environment:
     #   # connections defined by administrator - JSON array, item is DSN or object
-    #   # (name, dsn, username, readOnly, color, confirmChanges); readOnly is enforced by server
+    #   # (name, dsn, username, readOnly, color, confirmChanges, ssh); readOnly is enforced by server
     #   FLASE_CONNECTIONS: >-
     #     [{"name": "Shop production", "dsn": "mysql://10.0.0.5:3306", "username": "app", "readOnly": true, "color": "#d9534f"},
     #      "postgresql://10.0.0.6:5432/reports"]
@@ -81,6 +81,14 @@ services:
       interval: 5s
       timeout: 5s
       retries: 20
+
+  # SSH server for tests of SSH tunnel - databases are reachable only through it (127.0.0.1:13306 / 13307 / 15432
+  # of the bastion), user tunnel / tunnel or keys from /keys (tests copy them to server/certs)
+  ssh:
+    build: ./docker/ssh
+    container_name: flase_ssh
+    ports:
+      - "2222:22"
 
 volumes:
   mysql_data:

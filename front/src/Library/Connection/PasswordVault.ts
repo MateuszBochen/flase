@@ -11,6 +11,8 @@
  * It protects against reading of stored data (copied storage, synced profile, other site), not against someone
  * who uses the unlocked browser or malware on the computer.
  */
+import {SshSecretsInterface} from './Ssh/SshTunnelInterface';
+
 const DB_NAME = 'flase-vault';
 const KEYS = 'keys';
 const SECRETS = 'secrets';
@@ -19,6 +21,8 @@ const KEY_ID = 'main';
 export interface SavedCredentialsInterface {
   username: string;
   password: string;
+  /** password / private key of SSH tunnel */
+  ssh?: SshSecretsInterface;
 }
 
 type SecretRecordType = {iv: Uint8Array, data: ArrayBuffer};

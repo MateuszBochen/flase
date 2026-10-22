@@ -3,7 +3,11 @@
  *
  * FLASE_CONNECTIONS - JSON array, item is DSN or object:
  *   ["mysql://db-prod:3306", {"name": "Shop", "dsn": "postgresql://db:5432/shop", "username": "app", "readOnly": true,
- *    "color": "#d9534f", "confirmChanges": true}]
+ *    "color": "#d9534f", "confirmChanges": true,
+ *    "ssh": {"host": "bastion", "port": 22, "username": "deploy", "keyFile": "id_ed25519", "passphrase": "...",
+ *            "password": "...", "hostKey": "SHA256:..."}}]
+ *   ssh - database is reached through SSH server; key file is read from FLASE_SSH_KEY_DIR, hostKey is required
+ *   (fingerprint printed by ssh-keygen -lf, or shown by failed login). Settings of tunnel are never sent to browser.
  * FLASE_ALLOW_CUSTOM_CONNECTIONS - false = users can use only connections above (default true)
  *
  * Server is the source of truth: login to predefined connection uses DSN from here (not the one sent by browser)
@@ -18,7 +22,11 @@ export interface PredefinedConnectionInterface {
   readOnly: boolean;
   color?: string;
   changeConfirmationRequired: boolean;
+  /** tunnel with its secrets - only on server */
+  ssh?: {config: SshConfigInterface, secrets: SshSecretsInterface};
 }
+
+import SshTunnel, {SshConfigInterface, SshSecretsInterface} from '../Driver/Ssh/SshTunnel';
 
 const SUPPORTED_DSN = /^(mysql|mariadb|postgresql|postgres|pgsql):\/\/\S+$/i;
 
@@ -56,6 +64,23 @@ class PredefinedConnections {
         console.error(`FLASE_CONNECTIONS[${index}] skipped - expected mysql://, mariadb:// or postgresql:// DSN`);
         return;
       }
+      let ssh: PredefinedConnectionInterface['ssh'];
+      if (config.ssh !== undefined && config.ssh !== null) {
+        const tunnel = {
+          host: config.ssh.host, port: config.ssh.port, username: config.ssh.username,
+          hostKey: config.ssh.hostKey, keyFile: config.ssh.keyFile ?? config.ssh.privateKeyFile,
+        };
+        const secrets = {password: config.ssh.password, passphrase: config.ssh.passphrase};
+        const problem = SshTunnel.validate(tunnel, secrets);
+        if (problem) {
+          console.error(`FLASE_CONNECTIONS[${index}] skipped - ${problem}`);
+          return;
+        }
+        if (!tunnel.hostKey) {
+          console.error(`FLASE_CONNECTIONS[${index}] - ssh.hostKey is missing, login will fail and show fingerprint of SSH server`);
+        }
+        ssh = {config: tunnel, secrets};
+      }
       const displayName = typeof config.name === 'string' && config.name.trim() ? config.name.trim() : withoutCredentials(dsn);
       let id = `env:${slug(typeof config.id === 'string' && config.id.trim() ? config.id : displayName)}`;
       for (let suffix = 2; ids.has(id); suffix++) {
@@ -70,6 +95,7 @@ class PredefinedConnections {
         readOnly: config.readOnly === true,
         color: typeof config.color === 'string' && /^#[0-9a-f]{3,8}$/i.test(config.color) ? config.color : undefined,
         changeConfirmationRequired: config.confirmChanges === true,
+        ...(ssh ? {ssh} : {}),
       });
     });
 
@@ -100,7 +126,9 @@ class PredefinedConnections {
   static forClient() {
     return {
       allowCustomConnections: PredefinedConnections.allowCustom(),
-      connections: PredefinedConnections.config().connections.map((item) => ({...item, dsn: withoutCredentials(item.dsn), predefined: true})),
+      connections: PredefinedConnections.config().connections.map(({ssh, ...item}) => ({
+        ...item, dsn: withoutCredentials(item.dsn), predefined: true, ...(ssh ? {sshTunnel: true} : {}),
+      })),
     };
   }
 }

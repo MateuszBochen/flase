@@ -20,7 +20,7 @@ export default (props: VerticalSlideItemPropsInterface) => {
 
   return (
     <li
-      className={`vertical-slider-item ${props.slider.isActive ? 'active' : ''} ${props.slider.color ? 'colored' : ''}`}
+      className={`vertical-slider-item ${props.slider.isActive ? 'active' : ''} ${props.slider.color ? 'colored' : ''} ${props.slider.group ? 'group' : ''}`}
       style={props.slider.color ? {borderLeftColor: props.slider.color} : undefined}
       onClick={onClickHandler}
       onContextMenu={props.slider.onContextMenu ? (event) => {

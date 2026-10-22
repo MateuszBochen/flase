@@ -19,6 +19,9 @@ import Box from '../../UI/Box/Box';
 import TabOpener from '../TabOpener/TabOpener';
 import DatabaseListMenu from '../DatabaseListMenu/DatabaseListMenu';
 import SqlConsole, {SqlConsolePropsInterface} from '../Application/SqlConsole/SqlConsole';
+import groupedItems from '../../UI/VerticalSlider/groupedItems';
+import DatabaseGrouping, {useDatabaseGrouping} from '../../Library/Database/DatabaseGrouping';
+import ContextMenu from '../../UI/ContextMenu/ContextMenu';
 import './style.css';
 
 const manager = ConnectionManager.getInstance();
@@ -99,6 +102,9 @@ const CatalogItem = (props: {parent: ConnectionDataInterface, catalog: CatalogIn
 /** CatalogListMenu - databases of PostgreSQL server, each with its schemas */
 export default (props: {connection: ConnectionDataInterface, collapseSignal?: number}) => {
   const [list, setList] = useState<CatalogInterface[] | null>(Catalogs.listOf(props.connection));
+  const grouping = useDatabaseGrouping(props.connection.id);
+  const [menu, setMenu] = useState<{x: number, y: number} | null>(null);
+  const storageKey = `open-catalog:${props.connection.id}`;
 
   useEffect(() => {
     setList(Catalogs.listOf(props.connection));
@@ -111,7 +117,8 @@ export default (props: {connection: ConnectionDataInterface, collapseSignal?: nu
   if (!list) {
     return null;
   }
-  const items: VerticalSliderItem[] = list.map((catalog) => ({
+  const openMenu = (event: React.MouseEvent) => setMenu({x: event.clientX, y: event.clientY});
+  const catalogItems: VerticalSliderItem[] = list.map((catalog) => ({
     id: catalog.name,
     label: catalog.name,
     chevron: true,
@@ -122,11 +129,19 @@ export default (props: {connection: ConnectionDataInterface, collapseSignal?: nu
       </span>
     ),
     component: <CatalogItem parent={props.connection} catalog={catalog} key={catalog.name} />,
+    onContextMenu: openMenu,
   }));
+  const items = groupedItems(catalogItems, {enabled: grouping, storageKey, multiple: true, onGroupContextMenu: openMenu});
 
   return (
     <Box maxPossibleHeight={true} className="cmp-catalog-list">
-      <VerticalSlider items={items} multiple={true} allowClose={true} automateOpenFirst={false} storageKey={`open-catalog:${props.connection.id}`} labelIfEmpty="No database" collapseSignal={props.collapseSignal} />
+      <VerticalSlider items={items} multiple={true} allowClose={true} automateOpenFirst={false} storageKey={storageKey} labelIfEmpty="No database" collapseSignal={props.collapseSignal} />
+      {menu && (
+        <ContextMenu x={menu.x} y={menu.y} onClose={() => setMenu(null)} items={[{
+          label: grouping ? 'Do not group databases by prefix' : 'Group databases by prefix',
+          onClick: () => DatabaseGrouping.setEnabled(props.connection.id, !grouping),
+        }]} />
+      )}
     </Box>
   );
 };

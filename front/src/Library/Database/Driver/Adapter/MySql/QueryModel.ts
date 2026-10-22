@@ -1,10 +1,20 @@
-import QueryInterface from '../../../Interface/QueryInterface';
+import QueryInterface, {OrderItemType} from '../../../Interface/QueryInterface';
 import {AST, Parser, Select, Update} from 'node-sql-parser';
 import toast from 'react-hot-toast';
 import ColumnInterface from '../../../../Table/Interface/ColumnInterface';
 import {DirectionOrder} from '../../../../../Component/Table/Enum/DirectionOrder';
 import SortTableItemInterface from '../../../../../Component/Table/Interface/SortTableItemInterface';
 
+
+/** item of ORDER BY in AST: {expr: column_ref | other expression, type: ASC | DESC | null} */
+type OrderByAstType = {expr: any, type: string | null, [key: string]: any};
+
+/** name of column of ORDER BY item, null for other expressions; PostgreSQL parser wraps quoted name in expr */
+const orderColumnOf = (item: OrderByAstType): {column: string, table: string | null} | null => {
+  if (item?.expr?.type !== 'column_ref') return null;
+  const column = typeof item.expr.column === 'string' ? item.expr.column : item.expr.column?.expr?.value;
+  return typeof column === 'string' ? {column, table: item.expr.table || null} : null;
+};
 
 class QueryModel implements QueryInterface {
 
@@ -92,6 +102,46 @@ class QueryModel implements QueryInterface {
     });
 
     return this.changeQuery(this.parser.sqlify(localParsed, this.options));
+  }
+
+  getOrder(): OrderItemType[] {
+    const orderby = (this.singleSelect()?.orderby || []) as OrderByAstType[];
+    return orderby.flatMap((item, index) => {
+      const column = orderColumnOf(item);
+      return column ? [{
+        ...column,
+        direction: String(item.type).toUpperCase() === 'DESC' ? DirectionOrder.DESC : DirectionOrder.ASC,
+        position: index + 1,
+        size: orderby.length,
+      }] : [];
+    });
+  }
+
+  toggleOrder(column: ColumnInterface, direction: DirectionOrder, multiple: boolean): QueryInterface {
+    const select = this.singleSelect();
+    if (!select) {
+      return this.changeOrder([{column, direction}]);
+    }
+    // name repeated in result (JOIN) must be qualified by table alias
+    const table = column.key !== column.name && column.alias ? column.alias : null;
+    const item: OrderByAstType = {expr: {type: 'column_ref', table, column: column.name}, type: direction};
+    let orderby: OrderByAstType[] = [item];
+    if (multiple) {
+      const current = (select.orderby || []) as OrderByAstType[];
+      const index = current.findIndex((existing) => {
+        const name = orderColumnOf(existing);
+        return !!name && name.column === column.name && (!name.table || !table || name.table === table);
+      });
+      if (index < 0) {
+        orderby = [...current, item];
+      } else if (String(current[index].type || 'ASC').toUpperCase() === direction) {
+        orderby = current.filter((existing, position) => position !== index);
+      } else {
+        orderby = current.map((existing, position) => position === index ? {...existing, type: direction} : existing);
+      }
+    }
+    const ast = {...select, orderby: orderby.length ? orderby : null} as Select;
+    return this.changeQuery(this.parser.sqlify(ast, this.options));
   }
 
   getWhere(): string {

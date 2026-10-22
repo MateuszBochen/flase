@@ -3,6 +3,32 @@
 All notable changes of Flase are documented here. Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versions follow [Semantic Versioning](https://semver.org/). A `v*` tag publishes the Docker image of the version.
 
+## [0.7.0] - 2026-10-22
+
+### Added
+- **SSH tunnel** of connections - database reachable only from a bastion / jump host. Flase server logs in to the SSH
+  server and connects to the database through it (host of DSN as seen from SSH server). Login by password, private key
+  (file of this computer or pasted, encrypted keys with passphrase) or key file of the server (`FLASE_SSH_KEY_DIR`,
+  default `FLASE_CERT_DIR`). Host key of SSH server is confirmed at first connection (Test connection or prompt
+  when connecting), changed key stops the connection with a warning. SSH secrets are sent only with login and
+  remembered only with "Remember password" (encrypted). TLS of database works inside the tunnel, lost or idle
+  SSH connection is opened again by the next query
+- Predefined connections (`FLASE_CONNECTIONS`) with `ssh` - tunnel and its secrets only in configuration of server,
+  never sent to browser; `hostKey` is required
+- Databases (schemas, databases of PostgreSQL server) with the same prefix are grouped in sidebar - e.g. `shop_dev`,
+  `shop_prod`, `shop_test` in group `shop_` with count; group needs 3 databases, big groups are split by the next part
+  of name (`client_x_` in `client_`). Open groups are remembered, grouping can be turned off per connection in context
+  menu of database
+- Sort by more columns - Ctrl + click (Cmd on macOS) on sort arrow adds the column to ORDER BY; on a sorted column
+  the other arrow changes direction in place and the same arrow removes it. Headers show the active arrow and order
+  of sorted columns (1, 2…), also for ORDER BY written by hand; plain click sorts by one column as before
+
+### Changed
+- Edit of connection (settings of connection in sidebar) uses the same form as new connection, in popup - engine,
+  host / port / database or DSN, TLS, user, name, color and safety options; Test connection and Save & connect.
+  While connection is open, engine, server, TLS and user cannot be changed (disconnect in the popup unlocks them).
+  Saved password is forgotten when user of connection is changed
+
 ## [0.6.0] - 2026-10-20
 
 ### Added
@@ -239,6 +265,7 @@ First public version - web database manager for MySQL, MariaDB and PostgreSQL, a
 - Production Docker image (`docker/production/Dockerfile`): application, API and websocket on one port
 - GitHub Actions workflow publishing the image to Docker Hub on a `v*` tag
 
+[0.7.0]: https://github.com/MateuszBochen/flase/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/MateuszBochen/flase/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/MateuszBochen/flase/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/MateuszBochen/flase/compare/v0.3.1...v0.4.0

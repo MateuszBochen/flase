@@ -1,3 +1,4 @@
+import {OrderItemType} from '../../../../Library/Database/Interface/QueryInterface';
 import exportRows, {ExportFormatType} from '../../../../Library/Export/ExportRows';
 import RecordsView from '../../../Table/RecordsView';
 import GridViewPropsInterface from '../Interface/GridViewPropsInterface';
@@ -59,8 +60,15 @@ export default (props: GridViewPropsInterface) => {
   const [sqlPreview, setSqlPreview] = useState<SqlPreviewType | null>(null);
   /** changes waiting for preview answer / confirmation */
   const pendingSubmit = useRef<PendingSubmitType | null>(null);
+  /** ORDER BY of current query - shown in headers */
+  const [sortOrder, setSortOrder] = useState<OrderItemType[]>([]);
   /** next reload is refresh after save - keep scroll position */
   const keepScrollOnReload = useRef<boolean>(false);
+
+  // first query was sent by query place before this view listened (restored tab)
+  useEffect(() => {
+    if (props.queryRef?.current) setSortOrder(props.queryRef.current.getOrder());
+  }, []);
 
   /** handle query change */
   useEffect(() => {
@@ -69,6 +77,7 @@ export default (props: GridViewPropsInterface) => {
       if (eventData.tabId === props.tabId) {
         const queryModel = event.getData().query;
         const limit = queryModel.getRecordsLimits();
+        setSortOrder(queryModel.getOrder());
 
         const keepScroll = keepScrollOnReload.current;
         keepScrollOnReload.current = false;
@@ -345,11 +354,12 @@ export default (props: GridViewPropsInterface) => {
   /**
    * Handle change order
    */
-  const onSortHandler = useCallback((column: ColumnInterface, direction: DirectionOrder) => {
+  const onSortHandler = useCallback((column: ColumnInterface, direction: DirectionOrder, multiple?: boolean) => {
     const event = new OrderDirectionWasChanged({
       column: column,
       direction: direction,
       tabId: props.tabId,
+      multiple,
     });
     EventBus.emit<SortDirectionDataInterface>(event);
   }, [props.tabId]);
@@ -362,6 +372,7 @@ export default (props: GridViewPropsInterface) => {
         sqlLiteral={DriverFactory.getDriver(props.connection).sql}
         onPageChange={onPageChangeHandler}
         onSort={onSortHandler}
+        sortOrder={sortOrder}
         queryLoading={false}
         cellRender={undefined}
         onPreviewChanges={onPreviewChanges}

@@ -66,3 +66,40 @@
   color: var(--text-muted);
   font-size: 0.75rem;
 }
+
+/* group of items with the same prefix (databases) */
+.vertical-slider-root ul .vertical-slider-item.group > .vertical-slider-label {
+  font-weight: 600;
+}
+
+.vertical-slider-root .vertical-slider-group-count {
+  margin-left: 6px;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.vertical-slider-root .vertical-slider-group-count svg {
+  font-size: 0.65rem;
+  opacity: 0.7;
+}
+
+/* opened group - its items indented with a line, no second frame */
+.vertical-slider-root ul .vertical-slider-item.group.active > .vertical-slider-item-component {
+  margin: 2px 0 0 5px;
+  padding: 0 0 0 4px;
+  border-left: solid 1px var(--border-strong);
+  border-radius: 0;
+  background: none;
+}
+
+.vertical-slider-root .vertical-slider-item.group > .vertical-slider-item-component > .vertical-slider-root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  background: none;
+}
+
+.vertical-slider-root .vertical-slider-item.group > .vertical-slider-item-component > .vertical-slider-root > ul {
+  padding: 0;
+}

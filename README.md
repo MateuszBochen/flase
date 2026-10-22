@@ -35,7 +35,7 @@ import and export dumps, draw ER diagrams and manage users - all from one self-h
 - Export rows as **CSV, Excel (XLSX), OpenDocument (ODS), JSON, XML, SQL, HTML, LaTeX or PDF**
 - **Charts** of results (bar, line, pie, scatter, grouping) and **map** of spatial values (OpenStreetMap background)
 - Foreign key navigation (open referenced row in the same or a new tab)
-- Quick filters from cell values, sorting, paging, query bar with history and SQL completion
+- Quick filters from cell values, sorting by more columns (Ctrl + click), paging, query bar with history and SQL completion
 - **Find and replace** in column (text or regular expression) with preview of changed rows
 - Value of **referenced row next to foreign key** (display column) and **transformations** - image, link, date from Unix time, size, yes / no
 - Resizable columns (drag the header edge, double click to fit content) remembered per table
@@ -54,6 +54,7 @@ import and export dumps, draw ER diagrams and manage users - all from one self-h
 - Operations on **selected tables**: export, truncate, drop, **OPTIMIZE / ANALYZE / CHECK / REPAIR**
   (MySQL, MariaDB) or **VACUUM / ANALYZE / REINDEX** (PostgreSQL)
 - Create, rename and drop databases (schemas), change collation of database and its tables
+- Many databases with the same prefix (`client_a`, `client_b`…) are **grouped** in the sidebar
 - **Stored procedures, functions, triggers, events and views** - create from template, edit in SQL editor, drop,
   execute procedure with parameters, create view from query
 
@@ -88,6 +89,8 @@ import and export dumps, draw ER diagrams and manage users - all from one self-h
 - **State survives reload** - open tabs (with query, sort and filter of tables and text of SQL console), open servers and databases
 - **Remember password** in the browser - encrypted (AES-GCM) with a key the page cannot read, never stored on the server
 - **TLS / SSL** connections to the database (`sslmode` in DSN, own CA, client certificates)
+- **SSH tunnel** - database reachable only from a bastion / jump host (password, private key or key file of the server,
+  host key confirmed at first connection) - phpMyAdmin cannot do this
 
 ![New connection](docs/screenshot-new-connection.png)
 
@@ -144,6 +147,33 @@ A certificate given without `sslmode` turns TLS on: `verify-ca` with `sslrootcer
 Certificate files are read only from `FLASE_CERT_DIR` (`/app/certs` in the image: `-v ./certs:/app/certs:ro`),
 so a DSN typed in the browser cannot read other files of the server.
 
+## SSH tunnel
+
+When the database is reachable only from another machine (bastion, jump host, the database server itself with the port
+closed to the outside), turn on **SSH tunnel** in the connection form. Flase server logs in to the SSH server and every
+database connection goes through it - the host in DSN is then the address of the database **as seen from the SSH
+server** (often `127.0.0.1`).
+
+- Login to SSH by password, by private key (loaded from a file of your computer or pasted; sent with login like
+  a password, kept only when you choose to remember passwords) or by a key file on the Flase server
+  (`FLASE_SSH_KEY_DIR`); encrypted keys with passphrase
+- **Host key** of the SSH server is shown at first connection (`SHA256:...`, compare with
+  `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub`) and saved after you confirm it - a changed key stops
+  the connection with a warning
+- TLS of the database works inside the tunnel too; SSH connection is closed with idle database connections and
+  opened again with the next query, a lost SSH connection is opened again automatically
+
+Predefined connection with a tunnel - settings and secrets stay on the server, the browser never sees them:
+
+```json
+[{"name": "Shop production", "dsn": "mysql://127.0.0.1:3306", "username": "app",
+  "ssh": {"host": "bastion.example.com", "port": 22, "username": "deploy", "keyFile": "id_ed25519",
+          "passphrase": "optional", "hostKey": "SHA256:..."}}]
+```
+
+`password` can be used instead of `keyFile`. `hostKey` is required for predefined connections - a failed login prints
+the fingerprint to the log of the server and to the user.
+
 ## Configuration
 
 | Variable | Default | Description |
@@ -152,9 +182,10 @@ so a DSN typed in the browser cannot read other files of the server.
 | `JWT_SECRET` | random at start | Secret of session tokens. Set it when more instances run behind a load balancer |
 | `JWT_TOKEN_EXPIRE` | `1h` | Lifetime of a session token (it is refreshed while the application is open) |
 | `IDLE_CONNECTION_RELEASE_SECONDS` | `30` | Database connections of a closed browser are released after this time |
-| `FLASE_CONNECTIONS` | - | JSON array of predefined connections: a DSN string or an object with `name`, `dsn`, `username`, `readOnly`, `color`, `confirmChanges` |
+| `FLASE_CONNECTIONS` | - | JSON array of predefined connections: a DSN string or an object with `name`, `dsn`, `username`, `readOnly`, `color`, `confirmChanges`, `ssh` |
 | `FLASE_ALLOW_CUSTOM_CONNECTIONS` | `true` | `false` = users can use only predefined connections |
 | `FLASE_CERT_DIR` | `/app/certs` | Directory of CA / client certificates for TLS of database connections |
+| `FLASE_SSH_KEY_DIR` | `FLASE_CERT_DIR` | Directory of private keys of SSH tunnels (`keyFile`) |
 | `FLASE_CONNECT_TIMEOUT_SECONDS` | `10` | Login to an unreachable database server fails after this time |
 
 Predefined connections are resolved by the server: the address is never taken from the browser and `readOnly`

@@ -32,6 +32,7 @@ export const SHORTCUTS: {group: string, items: {keys: string, action: string}[]}
       {keys: 'Ctrl + S', action: 'Submit pending changes'},
       {keys: 'Delete', action: 'Mark rows of selected cells for delete'},
       {keys: 'Ctrl + click / Shift + click', action: 'Add cell / range to selection'},
+      {keys: 'Ctrl + click on sort arrow', action: 'Sort also by this column; on sorted column the other arrow changes direction, the same one removes it'},
       {keys: 'Ctrl + A', action: 'Select all cells'},
       {keys: 'Ctrl + C', action: 'Copy selection as TSV'},
       {keys: 'Escape', action: 'Clear selection'},

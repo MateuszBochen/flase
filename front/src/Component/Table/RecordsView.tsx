@@ -642,6 +642,7 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
            ref={columnsViewRef}
            onColumnDidMount={() => {}}
            onSort={props.onSort}
+           sortOrder={props.sortOrder}
            parentRef={dataGridRef}
            widthsKey={props.columnWidthsKey}
          />

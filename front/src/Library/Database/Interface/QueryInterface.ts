@@ -1,4 +1,12 @@
 import SortTableItemInterface from '../../../Component/Table/Interface/SortTableItemInterface';
+import ColumnInterface from '../../Table/Interface/ColumnInterface';
+import {DirectionOrder} from '../../../Component/Table/Enum/DirectionOrder';
+
+/**
+ * column of ORDER BY - table is set for qualified name (t.id); position (1, 2…) and size count also other
+ * expressions of ORDER BY, e.g. LENGTH(x)
+ */
+export type OrderItemType = {column: string, table: string | null, direction: DirectionOrder, position: number, size: number};
 
 
 interface QueryInterface {
@@ -27,6 +35,15 @@ interface QueryInterface {
   changeOffset(offset: number): QueryInterface;
 
   changeOrder(sortOrder: SortTableItemInterface[]): QueryInterface
+
+  /** columns of ORDER BY in their order (other expressions, e.g. LENGTH(x), are left out) */
+  getOrder(): OrderItemType[];
+
+  /**
+   * sort by column - alone, or with multiple added to current ORDER BY: new column is appended, the same
+   * column with other direction changes direction in place, with the same direction it is removed
+   */
+  toggleOrder(column: ColumnInterface, direction: DirectionOrder, multiple: boolean): QueryInterface;
 
   /** WHERE condition as text, empty when query has no condition (or WHERE 1) */
   getWhere(): string;

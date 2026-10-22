@@ -1,6 +1,8 @@
 import {Pool, PoolClient} from 'pg';
 import {Observable} from 'rxjs';
 import {ParsedDsn} from '@soluble/dsn-parser';
+import SshTunnel from '../../Ssh/SshTunnel';
+const net = require('net');
 import DriverInterface from '../../DriverInterface';
 import DriverSessionInterface from '../../DriverSessionInterface';
 import DatabaseInterface from '../../Interface/Data/DatabaseInterface';
@@ -77,7 +79,22 @@ class PostgresAdapter implements DriverInterface {
   /** database of connection - from DSN, otherwise database named as user (like psql), postgres when it does not exist */
   private database: string = '';
 
+  /** database behind SSH server - pools connect to local end of tunnel */
+  private tunnel: SshTunnel | null = null;
+
   async connect(): Promise<DriverInterface> {
+    const {ssh} = this.connectionData.connectionData;
+    this.tunnel = await SshTunnel.open(ssh, this.connectionData.userData.ssh, {host: this.dsnOptions.host, port: this.dsnOptions.port || 5432});
+    try {
+      return await this.connectToDatabase();
+    } catch (e) {
+      this.tunnel?.close();
+      this.tunnel = null;
+      throw e;
+    }
+  }
+
+  private async connectToDatabase(): Promise<DriverInterface> {
     const chosen = this.connectionData.connectionData?.database;
     const candidates = chosen
       ? [chosen]
@@ -118,25 +135,32 @@ class PostgresAdapter implements DriverInterface {
   disconnect(): void {
     this.connected = false;
     this.releaseConnections();
+    this.tunnel?.close();
+    this.tunnel = null;
   }
 
   releaseConnections(): void {
     [this.pool, this.sessionPool].forEach((pool) => pool?.end().catch((e) => console.log(e)));
     this.pool = null;
     this.sessionPool = null;
+    // SSH connection of idle session too - opened again with next pool connection
+    this.tunnel?.release();
   }
 
   private createPool(): Pool {
     // throws for invalid sslmode / certificate - login reports it
     const tlsOptions = nodeTlsOptions(tlsOfDsn(this.dsnOptions.params));
+    const address = this.tunnel?.address();
+    // through tunnel certificate is checked against host of DSN, not 127.0.0.1
+    const ssl = tlsOptions && address && !net.isIP(this.dsnOptions.host) ? {...tlsOptions, servername: this.dsnOptions.host} : tlsOptions;
     const pool = new Pool({
-      host: this.dsnOptions.host,
-      port: this.dsnOptions.port || 5432,
+      host: address?.host ?? this.dsnOptions.host,
+      port: address?.port ?? (this.dsnOptions.port || 5432),
       user: this.connectionData.userData.username,
       password: this.connectionData.userData.password,
       // connection is always made to one database
       database: this.database || this.dsnOptions.db || 'postgres',
-      ssl: tlsOptions,
+      ssl,
       max: 5,
       // default is no timeout - unreachable host would wait for TCP timeout (minutes)
       connectionTimeoutMillis: Settings.getConnectTimeoutMs(),

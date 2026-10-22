@@ -6,6 +6,8 @@ interface SortDirectionDataInterface {
   column: ColumnInterface;
   direction: DirectionOrder;
   tabId: string;
+  /** Ctrl / Cmd + click - column is added to current sort (or its direction changed / removed) */
+  multiple?: boolean;
 }
 
 export default SortDirectionDataInterface;

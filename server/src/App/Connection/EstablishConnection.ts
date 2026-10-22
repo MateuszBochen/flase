@@ -4,6 +4,7 @@ import EstablishConnectionResultInterface from './Interface/EstablishConnectionR
 import AbstractCommandHandler from '../Websocket/CommandHandler/AbstractCommandHandler';
 import DriverInterface from '../Driver/DriverInterface';
 import Settings from '../Settings/Settings';
+import SshTunnel, {SshHostKeyError} from '../Driver/Ssh/SshTunnel';
 
 /** */
 class EstablishConnection {
@@ -23,7 +24,7 @@ class EstablishConnection {
     if (typeof data.connectionData?.dsn !== 'string' || !data.connectionData.dsn) {
       return 'connectionData.dsn is required';
     }
-    return null;
+    return SshTunnel.validate(data.connectionData.ssh, data.userData.ssh);
   }
 
   connect(connectionData: ConnectionRequestInterface):Promise<EstablishConnectionResultInterface> {
@@ -42,7 +43,9 @@ class EstablishConnection {
         username: connectionData.userData.username,
         error: null,
       };
-    }).catch((e) => EstablishConnection.failed(EstablishConnection.explain(e)));
+    }).catch((e) => e instanceof SshHostKeyError
+      ? {...EstablishConnection.failed(e.message), sshHostKey: {fingerprint: e.fingerprint, changed: e.changed}}
+      : EstablishConnection.failed(EstablishConnection.explain(e)));
   }
 
   /** errors of network say nothing to user - what probably is wrong */

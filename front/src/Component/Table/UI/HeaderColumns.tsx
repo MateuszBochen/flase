@@ -132,11 +132,18 @@ export default forwardRef<HeaderColumnsRefInterface|null, HeaderColumnsPropsInte
     return <HeaderSkeleton />
   }
 
+  /** sorted column - name and (for qualified ORDER BY item) alias of its table */
+  const orderOf = (column: ColumnInterface) => {
+    const item = (props.sortOrder || []).find((order) => order.column === column.name && (!order.table || order.table === column.alias));
+    return item ? {direction: item.direction, position: item.size > 1 ? item.position : null} : undefined;
+  };
+
   return (
     <div className="header-columns-row" ref={rowRef}>
       {columns.map((column, index) => (<HeaderColumn
         column={column}
         onSort={props.onSort}
+        order={orderOf(column)}
         key={columnKey(column, index)}
         gridRef={props.parentRef}
         width={widths[columnKey(column, index)]}

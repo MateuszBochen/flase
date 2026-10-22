@@ -51,6 +51,9 @@ app.post('/api/login', (req:Request, res:Response) => {
   const predefined = PredefinedConnections.find((data.connectionData as any).id);
   if (predefined) {
     data.connectionData.dsn = predefined.dsn;
+    // tunnel of predefined connection only from configuration, browser does not know its secrets
+    data.connectionData.ssh = predefined.ssh?.config || null;
+    data.userData.ssh = predefined.ssh?.secrets;
     data.connectionData.readOnly = data.connectionData.readOnly || predefined.readOnly;
   } else if (!PredefinedConnections.allowCustom()) {
     res.status(403).send({error: 'Only connections defined by administrator are allowed'});
@@ -63,7 +66,11 @@ app.post('/api/login', (req:Request, res:Response) => {
       res.send(sessions.create(response.driver, response.username, {readOnly: !!predefined?.readOnly, request: data}));
     } else {
       console.log('login fail', response.error);
-      res.status(401).send({error: response.error});
+      // unknown host key of SSH server is confirmed by user, of predefined connection by administrator
+      const sshHostKey = response.sshHostKey && !predefined ? {sshHostKey: response.sshHostKey} : {};
+      res.status(401).send({error: predefined && response.sshHostKey
+        ? `${response.error} - administrator has to set ssh.hostKey of the connection`
+        : response.error, ...sshHostKey});
     }
   });
 });

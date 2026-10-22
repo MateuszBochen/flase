@@ -724,3 +724,31 @@ body.column-resizing * {
   max-width: 100%;
   background: repeating-conic-gradient(#ddd 0% 25%, #fff 0% 50%) 50% / 16px 16px;
 }
+
+/* sorted column - active arrow, order of column when more columns are sorted (Ctrl + click) */
+.cmp-records-view .header-cell .sort-box {
+  align-items: center;
+}
+
+.cmp-records-view .header-cell .sort-box.sorted .icon-button:not(.active) {
+  opacity: 0.35;
+}
+
+.cmp-records-view .header-cell .sort-box .icon-button.active {
+  color: var(--primary);
+  box-shadow: none;
+}
+
+.cmp-records-view .header-cell .sort-box .sort-position {
+  min-width: 13px;
+  height: 13px;
+  padding: 0 2px;
+  border-radius: 7px;
+  color: #ffffff;
+  background-color: var(--primary);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 13px;
+  text-align: center;
+  box-sizing: border-box;
+}

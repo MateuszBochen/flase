@@ -1,5 +1,5 @@
 import DatabaseManger from '../../Library/Database/DatabaseManger';
-import React, {useCallback, useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import toast from 'react-hot-toast';
 import ConnectionManager from '../../Library/Connection/ConnectionManager';
 import DatabaseListMenuPropsInterface from './DatabaseListMenuPropsInterface';
@@ -23,11 +23,14 @@ import TransferTab from '../Application/Transfer/TransferTab';
 import DatabaseSearch from '../Application/DatabaseSearch/DatabaseSearch';
 import ErDiagram from '../Application/ErDiagram/ErDiagram';
 import QueryBuilder from '../Application/QueryBuilder/QueryBuilder';
+import groupedItems from '../../UI/VerticalSlider/groupedItems';
+import DatabaseGrouping, {useDatabaseGrouping} from '../../Library/Database/DatabaseGrouping';
 
 const connectionManger = ConnectionManager.getInstance();
 const databaseManger = DatabaseManger.getInstance();
 
-type MenuState = {x: number, y: number, database: string} | null;
+/** database or group of databases with the same prefix */
+type MenuState = {x: number, y: number, database: string, group?: boolean} | null;
 
 /** DatabaseListMenu */
 export default (props: DatabaseListMenuPropsInterface) => {
@@ -37,6 +40,13 @@ export default (props: DatabaseListMenuPropsInterface) => {
   const [form, setForm] = useState<{mode: DatabaseFormModeType, database: string} | null>(null);
   const driver = DriverFactory.getDriver(props.connection);
   const label = driver.features.databaseLabel;
+  const grouping = useDatabaseGrouping(props.connection.id);
+  const storageKey = `open-database:${props.connection.id}`;
+  const items = useMemo(() => groupedItems(state, {
+    enabled: grouping,
+    storageKey,
+    onGroupContextMenu: (event, prefix) => setMenu({x: event.clientX, y: event.clientY, database: prefix, group: true}),
+  }), [state, grouping, storageKey]);
 
   const operation = useDatabaseOperation(props.connection, `sidebar:${props.connection.id}`, () => {
     setForm(null);
@@ -81,8 +91,16 @@ export default (props: DatabaseListMenuPropsInterface) => {
 
   const openTab = (tab: any) => EventBus.emit(new NewTabComponentWasSelected({...tab, isActive: false, activate: true}));
 
-  const menuItems = (database: string): ContextMenuItem[] => {
+  const groupingItem: ContextMenuItem = {
+    label: grouping ? `Do not group ${label.toLowerCase()}s by prefix` : `Group ${label.toLowerCase()}s by prefix`,
+    onClick: () => DatabaseGrouping.setEnabled(props.connection.id, !grouping),
+  };
+
+  const menuItems = (database: string, group?: boolean): ContextMenuItem[] => {
     const readOnly = !!connection.readOnly;
+    if (group) {
+      return [groupingItem, {label: 'Copy prefix', onClick: () => navigator.clipboard?.writeText(database).then(() => toast.success('Copied'))}];
+    }
     return [
       {label: 'Overview', onClick: () => openTab(overviewTab(props.connection, database))},
       {label: 'New table…', disabled: readOnly, onClick: () => openTab(createTableTab(props.connection, database))},
@@ -99,6 +117,7 @@ export default (props: DatabaseListMenuPropsInterface) => {
       {label: `Drop ${label.toLowerCase()}…`, danger: true, disabled: readOnly, onClick: () => operation.run({kind: 'dropDatabase', name: database})},
       'separator',
       {label: 'Copy name', onClick: () => navigator.clipboard?.writeText(database).then(() => toast.success('Copied'))},
+      groupingItem,
     ];
   };
 
@@ -107,15 +126,15 @@ export default (props: DatabaseListMenuPropsInterface) => {
       {state.length > 0 && (
         <Box maxPossibleHeight={true}>
           <VerticalSlider
-            items={state}
+            items={items}
             allowClose={true}
             automateOpenFirst={false}
             // opened database survives reload of page
-            storageKey={`open-database:${props.connection.id}`}
+            storageKey={storageKey}
           />
         </Box>
       )}
-      {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu.database)} onClose={() => setMenu(null)} />}
+      {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu.database, menu.group)} onClose={() => setMenu(null)} />}
       {form && (
         <DatabaseFormPopup
           connection={props.connection}

@@ -1,3 +1,4 @@
+import {OrderItemType} from '../../../Library/Database/Interface/QueryInterface';
 import {ExportFormatType} from '../../../Library/Export/ExportRows';
 import SqlLiteralInterface from '../../../Library/Database/Driver/SqlLiteralInterface';
 import ColumnInterface from '../../../Library/Table/Interface/ColumnInterface';
@@ -20,7 +21,10 @@ interface RecordsViewPropsInterface {
   sqlLiteral?: SqlLiteralInterface;
   /*tabIndex: PropTypes.number,*/
   onPageChange: (page: number, perPage: number, maxPages: number) => void;
-  onSort: (column: ColumnInterface, direction: DirectionOrder) => void;
+  /** multiple - Ctrl / Cmd + click: column is added to current sort */
+  onSort: (column: ColumnInterface, direction: DirectionOrder, multiple?: boolean) => void;
+  /** ORDER BY of current query - active arrows and order of sorted columns in headers */
+  sortOrder?: OrderItemType[];
   queryLoading: boolean,
   cellRender: any,
   /** editing is enabled only when handlers are passed */
