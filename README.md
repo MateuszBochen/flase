@@ -35,7 +35,7 @@ import and export dumps, draw ER diagrams and manage users - all from one self-h
 - Export rows as **CSV, Excel (XLSX), OpenDocument (ODS), JSON, XML, SQL, HTML, LaTeX or PDF**
 - **Charts** of results (bar, line, pie, scatter, grouping) and **map** of spatial values (OpenStreetMap background)
 - Foreign key navigation (open referenced row in the same or a new tab)
-- Quick filters from cell values, sorting, paging, query bar with history and SQL completion
+- Quick filters from cell values, sorting by more columns (Ctrl + click), paging, query bar with history and SQL completion
 - **Find and replace** in column (text or regular expression) with preview of changed rows
 - Value of **referenced row next to foreign key** (display column) and **transformations** - image, link, date from Unix time, size, yes / no
 - Resizable columns (drag the header edge, double click to fit content) remembered per table

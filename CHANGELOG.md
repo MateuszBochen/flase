@@ -19,6 +19,9 @@ versions follow [Semantic Versioning](https://semver.org/). A `v*` tag publishes
   `shop_prod`, `shop_test` in group `shop_` with count; group needs 3 databases, big groups are split by the next part
   of name (`client_x_` in `client_`). Open groups are remembered, grouping can be turned off per connection in context
   menu of database
+- Sort by more columns - Ctrl + click (Cmd on macOS) on sort arrow adds the column to ORDER BY; on a sorted column
+  the other arrow changes direction in place and the same arrow removes it. Headers show the active arrow and order
+  of sorted columns (1, 2…), also for ORDER BY written by hand; plain click sorts by one column as before
 
 ### Changed
 - Edit of connection (settings of connection in sidebar) uses the same form as new connection, in popup - engine,

@@ -20,7 +20,7 @@ export default (props: HeaderColumnPropsInterface) => {
         <div className="column-name" title={props.column.name}>
           {props.column.name}
         </div>
-        <SortIcons column={props.column} onSort={props.onSort} />
+        <SortIcons column={props.column} onSort={props.onSort} order={props.order} />
       </div>
       <div
         className="column-resize-handle"

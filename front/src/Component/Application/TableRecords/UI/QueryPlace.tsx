@@ -19,7 +19,6 @@ import MessageType from '../../../../Library/WebSocket/Enum/MessageType';
 import PaginationDataInterface from '../Interface/PaginationDataInterface';
 import SortDirectionDataInterface from '../Interface/SortDirectionDataInterface';
 import OrderDirectionWasChanged from '../Event/OrderDirectionWasChanged';
-import SortTableItemInterface from '../../../Table/Interface/SortTableItemInterface';
 import QueryRefreshWasRequested from '../Event/QueryRefreshWasRequested';
 import {CompletionTableType} from '../../../../UI/Editor/SqlCompletion';
 import FilterWasRequested, {FilterRequestType} from '../Event/FilterWasRequested';
@@ -60,12 +59,7 @@ export default (props: QueryPlacePropsInterface) => {
       const eventData = event.getData();
       if (eventData.tabId === props.tabId) {
         setCurrentQuery((previousQuery) => {
-
-          const sortItem: SortTableItemInterface = {
-            column: eventData.column,
-            direction: eventData.direction,
-          }
-          const newQueryModel = previousQuery.changeOrder([sortItem]);
+          const newQueryModel = previousQuery.toggleOrder(eventData.column, eventData.direction, !!eventData.multiple);
           changeQueryHandler(newQueryModel);
           return newQueryModel;
         });
