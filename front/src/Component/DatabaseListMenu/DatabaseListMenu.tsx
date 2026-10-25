@@ -45,8 +45,9 @@ export default (props: DatabaseListMenuPropsInterface) => {
   const items = useMemo(() => groupedItems(state, {
     enabled: grouping,
     storageKey,
+    fold: `${label.toLowerCase()}s`,
     onGroupContextMenu: (event, prefix) => setMenu({x: event.clientX, y: event.clientY, database: prefix, group: true}),
-  }), [state, grouping, storageKey]);
+  }), [state, grouping, storageKey, label]);
 
   const operation = useDatabaseOperation(props.connection, `sidebar:${props.connection.id}`, () => {
     setForm(null);
@@ -131,6 +132,7 @@ export default (props: DatabaseListMenuPropsInterface) => {
             automateOpenFirst={false}
             // opened database survives reload of page
             storageKey={storageKey}
+            fold={`${label.toLowerCase()}s`}
           />
         </Box>
       )}

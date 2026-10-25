@@ -503,6 +503,11 @@
 
 .cmp-new-connection .locked-hint {
   margin: 12px 28px 0;
+  padding: 7px 10px;
+  border-left: solid 3px var(--primary);
+  border-radius: 4px;
+  color: var(--text);
+  background-color: color-mix(in srgb, var(--primary) 9%, transparent);
 }
 
 /* the same form in edit popup */
@@ -519,7 +524,7 @@
 }
 
 .cmp-new-connection.in-popup .locked-hint {
-  margin: 10px 8px 0;
+  margin: 10px 8px 4px;
 }
 
 .cmp-new-connection.in-popup .popup-footer-info {

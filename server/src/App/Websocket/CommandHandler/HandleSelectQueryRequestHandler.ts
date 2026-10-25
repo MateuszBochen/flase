@@ -82,7 +82,7 @@ class HandleSelectQueryRequestHandler extends AbstractCommandHandler<QueryReques
     const onFields = (fields: ResultFieldInterface[]) => this.sendColumns(data, columnsBuilder.build(fields));
 
     return new Promise((resolve, reject) => {
-      session.streamSelect(data.query, onFields).subscribe({
+      session.streamSelect(data.query, onFields, !!data.fullValues).subscribe({
         next: (rowItem: RowDto) => {
           rows++;
           this.clientWebsocket.send<SingleSelectRecordInterface>(new WsMessage<SingleSelectRecordInterface>(

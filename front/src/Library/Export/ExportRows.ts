@@ -2,7 +2,7 @@ import ColumnInterface from '../Table/Interface/ColumnInterface';
 import SqlLiteralInterface from '../Database/Driver/SqlLiteralInterface';
 import {CellValueType, SingleRowType} from '../../Component/Table/Interface/RecordsViewPropsInterface';
 import {CopyFormatType, EXPORT_FILE, formatCopy, xmlText} from '../../Component/Table/Copy/CopyFormats';
-import {binaryAsText, isBinaryValue} from '../Record/BinaryValue';
+import {binaryAsText, isBinaryValue, isLongText, longTextLabel} from '../Record/BinaryValue';
 import createZip from './Zip';
 
 export type ExportFormatType = CopyFormatType | 'xlsx' | 'ods' | 'pdf';
@@ -32,6 +32,7 @@ type CellType = {kind: 'null'} | {kind: 'number', value: string} | {kind: 'strin
 const cellOf = (column: ColumnInterface, value: CellValueType | undefined | object): CellType => {
   if (value === null || value === undefined) return {kind: 'null'};
   if (isBinaryValue(value)) return {kind: 'string', value: binaryAsText(value)};
+  if (isLongText(value)) return {kind: 'string', value: longTextLabel(value)};
   if (typeof value === 'object') return {kind: 'string', value: JSON.stringify(value)};
   const text = String(value);
   if ((typeof value === 'number' || NUMERIC_TYPE.test(column.type || '')) && NUMBER.test(text) && text.replace(/[-.]|e.*$/gi, '').length <= SAFE_DIGITS) {

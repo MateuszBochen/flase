@@ -1,8 +1,8 @@
 import {CellValueType} from '../../../Component/Table/Interface/RecordsViewPropsInterface';
-import {BinaryValueInterface} from '../../Record/BinaryValue';
+import {BinaryValueInterface, LongTextInterface} from '../../Record/BinaryValue';
 
-/** value of cell - binary values come from server as preview object */
-export type SqlValueType = CellValueType | BinaryValueInterface | undefined;
+/** value of cell - binary values and long texts come from server as preview object */
+export type SqlValueType = CellValueType | BinaryValueInterface | LongTextInterface | undefined;
 
 /** escaping for SQL generated on client (navigation, filters, copy as INSERT) */
 interface SqlLiteralInterface {

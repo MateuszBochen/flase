@@ -1,5 +1,5 @@
 import SqlLiteralInterface, {SqlValueType} from '../../SqlLiteralInterface';
-import {binaryHexForSql, isBinaryValue} from '../../../../Record/BinaryValue';
+import {binaryHexForSql, isBinaryValue, isLongText, longTextForSql} from '../../../../Record/BinaryValue';
 
 /** escaping for SQL generated on client - PostgreSQL ("names", standard strings) */
 class PostgresSqlLiteral implements SqlLiteralInterface {
@@ -19,6 +19,9 @@ class PostgresSqlLiteral implements SqlLiteralInterface {
     }
     if (typeof value === 'number') {
       return String(value);
+    }
+    if (isLongText(value)) {
+      return longTextForSql(value);
     }
     if (isBinaryValue(value)) {
       // without backslash - correct also when standard_conforming_strings is off

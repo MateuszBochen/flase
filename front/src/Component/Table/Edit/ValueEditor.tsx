@@ -1,4 +1,4 @@
-import React, {useMemo, useRef, useState} from 'react';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
 import Popup from '../../../UI/Popup/Popup';
 import Button from '../../../UI/Button/Button';
 import ColumnInterface from '../../../Library/Table/Interface/ColumnInterface';
@@ -12,6 +12,7 @@ import {
   hexForEditing,
   isBinaryColumn,
   isBinaryValue,
+  isLongText,
   isSameBinary,
   MAX_BINARY_WRITE_BYTES,
   parseHexInput,
@@ -29,6 +30,8 @@ interface ValueEditorPropsInterface {
   editable: boolean;
   /** grid shows column as UUID (recognized by all its values or chosen by user) */
   asUuid?: boolean;
+  /** whole long text (grid has only its beginning), null when row cannot be identified */
+  loadText?: () => Promise<string> | null;
   onSave: (value: EditedValueType) => void;
   onClose: () => void;
 }
@@ -72,9 +75,35 @@ export default (props: ValueEditorPropsInterface) => {
   const original = isBinaryValue(props.value) ? props.value : null;
   // NULL of binary column is edited as bytes too
   const binaryMode = !!original || isBinaryColumn(props.column);
-  const initialText = binaryMode || props.value === null || props.value === undefined ? '' : String(props.value);
+  /** long text - its beginning until whole value is loaded */
+  const longText = isLongText(props.value) ? props.value : null;
+  const [loadedText, setLoadedText] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const loadingText = !!longText && loadedText === null;
+  const initialText = binaryMode || props.value === null || props.value === undefined ? ''
+    : longText ? (loadedText ?? longText.text) : String(props.value);
+  // preview is only shown, value can be changed when it is whole
+  const editable = props.editable && !loadingText;
 
   const [text, setText] = useState<string>(initialText);
+
+  useEffect(() => {
+    if (!longText) return;
+    const loading = props.loadText?.();
+    if (!loading) {
+      setLoadError('Row cannot be identified (no primary key) - only beginning of value is shown');
+      return;
+    }
+    let active = true;
+    loading.then((whole) => {
+      if (!active) return;
+      setLoadedText(whole);
+      setText(whole);
+    }).catch((e) => active && setLoadError(e?.message || 'Value could not be loaded'));
+    return () => {
+      active = false;
+    };
+  }, []);
   const [isNull, setIsNull] = useState<boolean>(props.value === null);
   const [wrap, setWrap] = useState<boolean>(true);
 
@@ -90,7 +119,7 @@ export default (props: ValueEditorPropsInterface) => {
 
   const isJsonColumn = /^json/i.test(props.column.type || '');
   const looksLikeJson = /^\s*[[{]/.test(text);
-  const json = useMemo(() => !binaryMode && (isJsonColumn || looksLikeJson) && !isNull ? parseJson(text) : null, [binaryMode, text, isJsonColumn, looksLikeJson, isNull]);
+  const json = useMemo(() => !binaryMode && !loadingText && (isJsonColumn || looksLikeJson) && !isNull ? parseJson(text) : null, [binaryMode, loadingText, text, isJsonColumn, looksLikeJson, isNull]);
 
   const formatJson = (indent: number | undefined) => {
     if (json?.ok) {
@@ -99,7 +128,7 @@ export default (props: ValueEditorPropsInterface) => {
   };
 
   // preview of long value (only its beginning is in grid) and big files are not typed - only replaced
-  const canType = props.editable && !isNull && !binary.truncated && binary.size <= MAX_TYPED_BINARY_BYTES;
+  const canType = editable && !isNull && !binary.truncated && binary.size <= MAX_TYPED_BINARY_BYTES;
   const showBinaryView = (view: BinaryViewType) => {
     setBinaryView(view);
     setBinaryInput(inputOf(binary, view));
@@ -136,17 +165,17 @@ export default (props: ValueEditorPropsInterface) => {
   const changed = binaryMode
     ? binaryChanged
     : isNull !== (props.value === null) || (!isNull && text !== initialText);
-  const canSave = props.editable && changed
+  const canSave = editable && changed
     && (binaryMode ? !binaryError : !(isJsonColumn && json && !json.ok));
   const save = () => props.onSave(isNull ? null : binaryMode ? binary : text);
 
   const buttons = [
     ...(original && props.onDownload && !binaryChanged ? [<Button key="download" size="small" label="Download" onClick={props.onDownload} />] : []),
-    ...(props.editable ? [<Button key="save" size="small" colorVariant="success" label="Save" disabled={!canSave} onClick={save} />] : []),
-    <Button key="close" size="small" label={props.editable ? 'Cancel' : 'Close'} onClick={props.onClose} />,
+    ...(editable ? [<Button key="save" size="small" colorVariant="success" label="Save" disabled={!canSave} onClick={save} />] : []),
+    <Button key="close" size="small" label={editable ? 'Cancel' : 'Close'} onClick={props.onClose} />,
   ];
 
-  const nullCheck = props.editable && props.column.nullable && (
+  const nullCheck = editable && props.column.nullable && (
     <label className="value-editor-check"><input type="checkbox" checked={isNull} onChange={(e) => setIsNull(e.target.checked)} />NULL</label>
   );
 
@@ -167,7 +196,7 @@ export default (props: ValueEditorPropsInterface) => {
               {(isBinary16(binary) || binaryView === 'uuid') && (
                 <button type="button" className={binaryView === 'uuid' ? 'active' : ''} disabled={isNull} onClick={() => showBinaryView('uuid')}>UUID</button>
               )}
-              {props.editable && (
+              {editable && (
                 <>
                   <button type="button" onClick={() => fileInput.current?.click()}>Upload file…</button>
                   <input
@@ -186,7 +215,12 @@ export default (props: ValueEditorPropsInterface) => {
             </>
           ) : (
             <>
-              <span className="value-editor-info">{isNull ? 'NULL' : `${text.length.toLocaleString()} characters`}</span>
+              <span className="value-editor-info">
+                {isNull ? 'NULL' : loadingText
+                  ? `${longText!.length.toLocaleString()} characters - ${loadError ? `first ${longText!.text.length.toLocaleString()} shown` : 'loading…'}`
+                  : `${text.length.toLocaleString()} characters`}
+              </span>
+              {loadError && <span className="value-editor-error">{loadError}</span>}
               {json && (
                 <>
                   <button type="button" disabled={!json.ok} onClick={() => formatJson(2)}>Format JSON</button>
@@ -220,20 +254,24 @@ export default (props: ValueEditorPropsInterface) => {
             value={isNull ? '' : text}
             placeholder={isNull ? 'NULL' : ''}
             disabled={isNull}
-            readOnly={!props.editable}
+            readOnly={!editable}
             spellCheck={false}
             autoFocus
             onChange={(e) => setText(e.target.value)}
           />
         )}
-        {props.editable && binaryMode && !isNull && !canType && (
+        {editable && binaryMode && !isNull && !canType && (
           <div className="value-editor-hint">
             {binary.truncated
               ? 'Grid has only beginning of this value - it can be replaced by file or set to NULL'
               : `Value is longer than ${formatBytes(MAX_TYPED_BINARY_BYTES)} - it can be replaced by file`}
           </div>
         )}
-        {!props.editable && <div className="value-editor-hint">Read only</div>}
+        {!editable && (
+          <div className="value-editor-hint">
+            {props.editable && loadingText ? (loadError ? 'Only beginning of value is shown - it cannot be changed here' : 'Loading whole value…') : 'Read only'}
+          </div>
+        )}
       </div>
     </Popup>
   );

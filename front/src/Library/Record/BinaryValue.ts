@@ -14,6 +14,34 @@ export const isBinaryValue = (value: any): value is BinaryValueInterface => {
   return value !== null && typeof value === 'object' && value.binary === true;
 };
 
+/** long text (TEXT, LONGTEXT) as sent by server - only its beginning, whole value is loaded when needed */
+export interface LongTextInterface {
+  longText: true;
+  /** characters of whole value */
+  length: number;
+  /** beginning of value */
+  text: string;
+  truncated: true;
+}
+
+export const isLongText = (value: any): value is LongTextInterface => {
+  return value !== null && typeof value === 'object' && value.longText === true;
+};
+
+/** texts longer than this are sent as preview (the same limit as server) */
+export const TEXT_PREVIEW_CHARS = 64 * 1024;
+
+/** text too long for narrow inline editor - preview from server or whole value loaded / saved before */
+export const isLongTextValue = (value: any): boolean => isLongText(value) || (typeof value === 'string' && value.length > TEXT_PREVIEW_CHARS);
+
+/** long text which could not be loaded whole (copy, export) */
+export const longTextLabel = (value: LongTextInterface): string => `[TEXT ${value.length.toLocaleString('en-US')} characters]`;
+
+/** grid has only beginning of long text - SQL with it would compare other text */
+export const longTextForSql = (value: LongTextInterface): never => {
+  throw new Error(`Text of ${value.length.toLocaleString('en-US')} characters is longer than its preview - it cannot be used in SQL`);
+};
+
 /** grid has only preview of long values - SQL with such value would compare other bytes */
 export const binaryHexForSql = (value: BinaryValueInterface): string => {
   if (value.truncated) {

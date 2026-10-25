@@ -16,6 +16,8 @@ export interface GridDisplayInterface {
 export interface GridDisplayActionsInterface {
   /** null when row cannot be identified */
   loadBinary: (column: ColumnInterface, rowIndex: number) => Promise<{url: string, mimeType: string | null}> | null;
+  /** whole long text (grid has its beginning), null when row cannot be identified */
+  loadText: (column: ColumnInterface, rowIndex: number) => Promise<string> | null;
   openImage: (url: string, title: string) => void;
 }
 

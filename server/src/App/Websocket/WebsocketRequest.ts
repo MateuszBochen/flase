@@ -34,11 +34,22 @@ import QueryErrorInterface from '../Driver/Interface/Data/QueryErrorInterface';
 class WebsocketRequest {
   /** same command sent again in this time is skipped (react strict mode runs effects twice) */
   private static readonly DUPLICATE_COMMAND_WINDOW_MS = 500;
+  /**
+   * commands sent by click of user - after their answer the same command is run again (Execute after error),
+   * skipped would leave the client waiting for answer forever; while running, the same one is skipped (double click)
+   */
+  private static readonly USER_ACTIONS: string[] = [
+    CommandType.APPLY_ROW_CHANGES, CommandType.CHANGE_STRUCTURE, CommandType.CHANGE_USER, CommandType.DATABASE_OPERATION,
+    CommandType.SET_SERVER_VARIABLE, CommandType.REPLICATION_ACTION, CommandType.FIND_REPLACE, CommandType.KILL_PROCESS,
+    CommandType.EXECUTE_STATEMENTS, CommandType.CANCEL_QUERY,
+  ];
 
   private databaseDriver: DriverInterface;
   private readonly clientWebsocket: WebSocket;
   private lastCommand: string = '';
   private lastCommandTimeStamp: number = 0;
+  /** raw commands whose handler did not finish yet */
+  private readonly running = new Set<string>();
 
   /** read only enforced by server - flag sent by browser is not trusted */
   private readonly forceReadOnly: boolean;
@@ -73,30 +84,31 @@ class WebsocketRequest {
         command.connectionData.connection = {...(command.connectionData.connection || {}), readOnly: true} as any;
       }
 
-      if (this.isDuplicate(event.data)) {
+      if (this.isDuplicate(event.data, command.command)) {
         console.log(`Command ${command.command} skipped - duplicate`);
         return;
       }
 
       try {
-        this.resolveCommand(command);
+        this.resolveCommand(command, event.data);
       } catch (e) {
         this.sendError(command, e);
       }
     }
   }
 
-  private isDuplicate(rawCommand: string): boolean {
+  private isDuplicate(rawCommand: string, commandType: string): boolean {
     const now = Date.now();
-    const isDuplicate = rawCommand === this.lastCommand
-      && now - this.lastCommandTimeStamp < WebsocketRequest.DUPLICATE_COMMAND_WINDOW_MS;
+    const isDuplicate = WebsocketRequest.USER_ACTIONS.includes(commandType)
+      ? this.running.has(rawCommand)
+      : rawCommand === this.lastCommand && now - this.lastCommandTimeStamp < WebsocketRequest.DUPLICATE_COMMAND_WINDOW_MS;
 
     this.lastCommand = rawCommand;
     this.lastCommandTimeStamp = now;
     return isDuplicate;
   }
 
-  private resolveCommand(command:CommandInterface) : void {
+  private resolveCommand(command: CommandInterface, rawCommand: string) : void {
     const refused = ReadOnlyGuard.refuseCommand(command);
     if (refused) {
       throw new Error(refused);
@@ -110,9 +122,13 @@ class WebsocketRequest {
     const payload = command.payload && typeof command.payload === 'object' && !Array.isArray(command.payload) ? command.payload : {};
     command.payload = payload;
     // async handlers reject also when their own error handling fails - unhandled rejection would stop the whole server
+    // only user actions wait for their end - reads are skipped by time (stream of rows can be long)
+    const tracked = WebsocketRequest.USER_ACTIONS.includes(command.command);
+    if (tracked) this.running.add(rawCommand);
     Promise.resolve()
       .then(() => new Handler(this.databaseDriver, new ClientWebSocket(this.clientWebsocket), command).handle(payload))
-      .catch((e) => this.sendError(command, e));
+      .catch((e) => this.sendError(command, e))
+      .finally(() => tracked && this.running.delete(rawCommand));
   }
 
   private static readonly HANDLERS: {[command: string]: new (driver: DriverInterface, ws: ClientWebSocket, command: CommandInterface) => {handle: (data: any) => void | Promise<void>}} = {

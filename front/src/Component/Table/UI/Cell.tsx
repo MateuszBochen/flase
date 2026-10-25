@@ -2,10 +2,13 @@ import {memo} from 'react';
 import CellPropsInterface from '../Interface/CellPropsInterface';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faArrowUpRightFromSquare} from '@fortawesome/free-solid-svg-icons';
-import {binaryLabel, isBinaryValue} from '../../../Library/Record/BinaryValue';
+import {binaryLabel, isBinaryValue, isLongText} from '../../../Library/Record/BinaryValue';
 import CellEditor from '../Edit/CellEditor';
 import {CellValueType} from '../Interface/RecordsViewPropsInterface';
 import {renderTransformed} from '../Display/GridDisplay';
+
+/** narrow cell shows only beginning - layout of megabytes of text in one line freezes the browser */
+const DISPLAY_CHARS = 1000;
 
 const renderValue = (value: CellValueType | undefined, placeholder?: string) => {
   if (value === undefined && placeholder) {
@@ -20,6 +23,12 @@ const renderValue = (value: CellValueType | undefined, placeholder?: string) => 
   }
   if (isBinaryValue(value)) {
     return <span className="dtc-binary">{binaryLabel(value)}</span>;
+  }
+  if (isLongText(value)) {
+    return value.text.slice(0, DISPLAY_CHARS);
+  }
+  if (typeof value === 'string' && value.length > DISPLAY_CHARS) {
+    return value.slice(0, DISPLAY_CHARS);
   }
   // other objects must not crash rendering
   if (typeof value === 'object') {
@@ -72,7 +81,9 @@ export default memo((props: CellPropsInterface) => {
         ) : (
           <div
             className={`dtc-content ${onOpenReference ? 'is-reference' : ''}`}
-            title={props.value === null ? 'NULL' : isBinaryValue(props.value) ? 'binary - open value editor' : String(props.value ?? '').slice(0, 500)}
+            title={props.value === null ? 'NULL' : isBinaryValue(props.value) ? 'binary - open value editor'
+              : isLongText(props.value) ? `${props.value.text.slice(0, 500)}… (${props.value.length.toLocaleString()} characters - open value editor)`
+              : String(props.value ?? '').slice(0, 500)}
           >
             {onOpenReference && (
               <button
@@ -96,7 +107,7 @@ export default memo((props: CellPropsInterface) => {
                 <FontAwesomeIcon icon={faArrowUpRightFromSquare} />
               </button>
             )}
-            {(props.transform && renderTransformed(props.value, props.transform, column, rowIndex)) || renderValue(props.value, props.placeholder)}
+            {(props.transform && !isLongText(props.value) && renderTransformed(props.value, props.transform, column, rowIndex)) || renderValue(props.value, props.placeholder)}
             {props.label !== undefined && <span className="dtc-label" title={props.label}>{props.label}</span>}
           </div>
         )}

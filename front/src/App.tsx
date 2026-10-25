@@ -11,6 +11,7 @@ import ServerConfig from './Library/Config/ServerConfig';
 import ResizableColumns from './UI/ResizableColumns/ResizableColumns';
 // last - overrides styles of components
 import './polish.css';
+import './theme-light.css';
 
 const styleOfMainLeftMenu = {
   background: 'var(--panel)',

@@ -44,7 +44,7 @@ const run = async (dsn, database, isPg) => {
   const replace = (column, find, replaceWith, options = {}) => c.request('FIND_REPLACE', {table, column, find, replace: replaceWith, regex: false, dryRun: true, ...options});
 
   await sql('DROP TABLE IF EXISTS ft_test');
-  await sql(`CREATE TABLE ft_test (id INT PRIMARY KEY, name VARCHAR(50), note TEXT, n INT, data ${isPg ? 'BYTEA' : 'LONGBLOB'})`);
+  await sql(`CREATE TABLE ft_test (id INT PRIMARY KEY, name VARCHAR(50), note ${isPg ? 'TEXT' : 'MEDIUMTEXT'}, n INT, data ${isPg ? 'BYTEA' : 'LONGBLOB'})`);
   await sql("INSERT INTO ft_test (id, name, note, n) VALUES (1, 'Hello World', 'a1b22', 1), (2, 'hello world', 'it''s', 2), (3, 'abc', NULL, 3), (4, NULL, 'x', 4)");
 
   let r = await replace('name', 'World', 'Earth');
@@ -95,6 +95,16 @@ const run = async (dsn, database, isPg) => {
   check('missing row reported', /does not exist/.test(r.error || ''), r.error);
   r = await c.request('GET_BINARY_VALUE', {table, column: 'data', where: {}});
   check('row without identity refused', /cannot be identified/.test(r.error || ''), r.error);
+
+  // --- long text: grid has preview of 64 Ki characters, export of all rows and value editor get whole value
+  await sql(`UPDATE ft_test SET note = ${isPg ? 'repeat' : 'REPEAT'}('abc', 30000) WHERE id = 2`);
+  const text = await sql('SELECT id, note FROM ft_test WHERE id = 2');
+  check('long text has preview', text.rows[0]?.note?.longText === true && text.rows[0].note.length === 90000 && text.rows[0].note.text.length === 65536,
+    JSON.stringify(text.rows[0]?.note).slice(0, 100));
+  const whole = await c.request('SEND_SELECT_QUERY', {query: 'SELECT id, note FROM ft_test WHERE id = 2', database: {name: database}, fullValues: true});
+  check('whole long text with fullValues (export)', typeof whole.rows[0]?.note === 'string' && whole.rows[0].note.length === 90000, whole.error);
+  r = await c.request('GET_BINARY_VALUE', {table, column: 'note', where: {id: 2}});
+  check('whole long text by key', Buffer.from(r.payload?.base64 || '', 'base64').toString('utf8') === 'abc'.repeat(30000), r.error);
 
   await sql('DROP TABLE ft_test');
   c.ws.close();

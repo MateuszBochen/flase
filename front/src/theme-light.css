@@ -1,0 +1,92 @@
+/**
+ * Light theme - corrections where colors made for dark theme do not work on white
+ * (nested grey layers of sidebar, pale table names, tabs without contrast). Dark theme is not changed.
+ */
+
+/* ---------- sidebar: one white card, nested levels without own background, tree line instead ---------- */
+
+:root[data-theme="light"] .vertical-slider-root {
+  background: var(--bg);
+  border: solid 1px var(--border);
+}
+
+:root[data-theme="light"] .vertical-slider-root .vertical-slider-root {
+  background: none;
+  border: none;
+}
+
+:root[data-theme="light"] .vertical-slider-root ul .vertical-slider-item {
+  border-bottom: none;
+  border-radius: 4px;
+}
+
+:root[data-theme="light"] .vertical-slider-root ul .vertical-slider-item.active {
+  background: none;
+}
+
+:root[data-theme="light"] .vertical-slider-root ul .vertical-slider-item:not(.active):hover {
+  background: var(--hover-strong);
+}
+
+:root[data-theme="light"] .vertical-slider-root ul .vertical-slider-item.active > .vertical-slider-item-component {
+  margin: 2px 0 2px 6px;
+  padding: 2px 0 2px 6px;
+  border-left: solid 1px var(--border-strong);
+  border-radius: 0;
+  background: none;
+}
+
+:root[data-theme="light"] .vertical-slider-root ul .vertical-slider-item.active > .vertical-slider-label {
+  color: var(--text-strong);
+  font-weight: 600;
+}
+
+/* ---------- tables of database ---------- */
+
+:root[data-theme="light"] .table-list-menu-root li {
+  border-bottom: none;
+}
+
+:root[data-theme="light"] .table-list-menu-root li button {
+  color: var(--text);
+}
+
+:root[data-theme="light"] .table-list-menu-root li button:hover,
+:root[data-theme="light"] .table-list-menu-root li.highlighted button {
+  background: var(--hover-strong);
+}
+
+:root[data-theme="light"] .table-list-menu-root input {
+  margin-bottom: 4px;
+  padding: 3px 6px;
+  border: solid 1px var(--border-strong);
+  border-radius: 4px;
+  color: var(--text);
+  background-color: var(--input-bg);
+}
+
+:root[data-theme="light"] .table-list-menu-root input:focus {
+  border-color: var(--primary);
+  outline: none;
+}
+
+/* ---------- tabs: grey bar, white active tab ---------- */
+
+:root[data-theme="light"] .tab-label-list-root {
+  background-color: var(--tab-bg);
+  border-bottom-color: var(--border-strong);
+}
+
+:root[data-theme="light"] .tab-label-list-root .tab-label-list .tab-label-list-item:hover {
+  background-color: var(--tab-hover);
+}
+
+:root[data-theme="light"] .tab-label-list-root .tab-label-list .tab-label-list-item.active {
+  background-color: var(--tab-active);
+}
+
+/* ---------- data grid ---------- */
+
+:root[data-theme="light"] .cmp-records-view .cmp-records-view-table-wrapper .cmp-data-grid .header-columns-row .header-cell .column-name-wrapper {
+  border-bottom: solid 1px var(--border-strong);
+}

@@ -2,7 +2,7 @@ import ColumnInterface from '../../../Library/Table/Interface/ColumnInterface';
 import {CellValueType, SingleRowType} from '../Interface/RecordsViewPropsInterface';
 import SqlLiteral from '../../../Library/Database/Driver/Adapter/MySql/SqlLiteral';
 import SqlLiteralInterface from '../../../Library/Database/Driver/SqlLiteralInterface';
-import {BinaryValueInterface, binaryAsText, isBinaryValue} from '../../../Library/Record/BinaryValue';
+import {BinaryValueInterface, binaryAsText, isBinaryValue, isLongText, longTextLabel} from '../../../Library/Record/BinaryValue';
 import {isBinary16, uuidOfHex} from '../../../Library/Record/Uuid';
 
 export type CopyFormatType = 'tsv' | 'tsv-header' | 'csv' | 'markdown' | 'insert' | 'json' | 'xml' | 'html' | 'latex';
@@ -39,6 +39,10 @@ const plain = (value: CellValueType | undefined | object, asUuid: boolean = fals
   }
   if (isBinaryValue(value)) {
     return binaryAsText(value);
+  }
+  // long text which could not be loaded whole
+  if (isLongText(value)) {
+    return longTextLabel(value);
   }
   if (value !== null && typeof value === 'object') {
     return JSON.stringify(value);

@@ -35,7 +35,8 @@ class RecordManager {
       const wsQuery = {
         query: query.query.query,
         database: query.database,
-        tabId: query.tabId
+        tabId: query.tabId,
+        fullValues: query.fullValues,
       } as WebSocketQueryRequestDataInterface;
 
       const command = {

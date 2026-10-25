@@ -1,11 +1,18 @@
 import VerticalSliderPropsInterface from './Interface/VerticalSliderPropsInterface';
-import {useCallback, useEffect, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useLayoutEffect, useRef, useState} from 'react';
 import SlideItemInterface from './Interface/SlideItemInterface';
 import VerticalSlideItem from './VerticalSlideItem';
 import './style.css';
 import Box from '../Box/Box';
 
 const itemId = (item: {id?: string, label: string}) => item.id ?? item.label;
+
+/** closed items are folded when their rows would take more than this part of sidebar */
+const FOLD_SHARE = 1 / 3;
+/** one or two closed items are shown - fold row would hardly save space */
+const FOLD_MIN_RUN = 3;
+/** names in tooltip of fold row */
+const FOLD_TITLE_NAMES = 30;
 
 const loadOpen = (storageKey?: string): Set<string> => {
   if (!storageKey) return new Set();
@@ -32,6 +39,7 @@ export default (props: VerticalSliderPropsInterface) => {
   const [open, setOpen] = useState<Set<string>>(() => loadOpen(props.storageKey));
   const refCurrentIndex = useRef<number>(0);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const listRef = useRef<HTMLUListElement | null>(null);
 
   /** default state */
   const [state, setState] = useState<SlideItemInterface[]>(props.items.map((newSlideItem, index) => {
@@ -98,20 +106,102 @@ export default (props: VerticalSliderPropsInterface) => {
 
   }, [state, props]);
 
+  const shown = state.map((slideItem) => props.multiple || props.storageKey ? {...slideItem, isActive: open.has(itemId(slideItem))} : slideItem);
+
+  /** height of sidebar and of one closed row - folding depends on them, not on lists of tables (no flicker) */
+  const [sidebarHeight, setSidebarHeight] = useState<number>(0);
+  const rowHeight = useRef<number>(24);
+  useLayoutEffect(() => {
+    if (!props.fold) return;
+    const sidebar = listRef.current?.closest<HTMLElement>('.resizable-column');
+    if (!sidebar) return;
+    const measure = () => setSidebarHeight(sidebar.clientHeight);
+    measure();
+    let frame: number | null = null;
+    // in next frame - state changed in callback would change layout in the same frame (ResizeObserver loop)
+    const observer = new ResizeObserver(() => {
+      if (frame === null) frame = requestAnimationFrame(() => { frame = null; measure(); });
+    });
+    observer.observe(sidebar);
+    return () => {
+      if (frame !== null) cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, [props.fold]);
+  useLayoutEffect(() => {
+    const closed = listRef.current?.querySelector<HTMLElement>(':scope > .vertical-slider-item:not(.active)');
+    if (closed?.offsetHeight) rowHeight.current = closed.offsetHeight;
+  });
+
+  /** fold rows opened by user - folded again when other item is opened */
+  const [unfolded, setUnfolded] = useState<Set<string>>(new Set());
+  const activeKey = shown.filter((item) => item.isActive).map(itemId).join('\n');
+  useEffect(() => setUnfolded(new Set()), [activeKey]);
+
+  const closedCount = shown.filter((item) => !item.isActive).length;
+  const folding = !!props.fold && activeKey !== '' && sidebarHeight > 0 && closedCount * rowHeight.current > sidebarHeight * FOLD_SHARE;
+
+  const rows: React.ReactNode[] = [];
+  let run: {item: SlideItemInterface, index: number}[] = [];
+  const renderItem = ({item, index}: {item: SlideItemInterface, index: number}) => (
+    <VerticalSlideItem key={itemId(item)} index={index} onClick={itemClickHandler} slider={item} />
+  );
+  const flushRun = () => {
+    const key = run.length ? itemId(run[0].item) : '';
+    if (folding && run.length >= FOLD_MIN_RUN && !unfolded.has(key)) {
+      const names = run.map(({item}) => item.label);
+      rows.push(
+        <li
+          key={`fold:${key}`}
+          className="vertical-slider-fold"
+          title={names.slice(0, FOLD_TITLE_NAMES).join('\n') + (names.length > FOLD_TITLE_NAMES ? '\n…' : '')}
+          onClick={(event) => {
+            event.stopPropagation();
+            setUnfolded((previous) => new Set(previous).add(key));
+          }}
+        >
+          ⋯ {run.length} {props.fold}
+        </li>,
+      );
+    } else {
+      if (folding && run.length >= FOLD_MIN_RUN) {
+        // unfolded by user - can be folded again
+        rows.push(
+          <li
+            key={`unfold:${key}`}
+            className="vertical-slider-fold unfolded"
+            onClick={(event) => {
+              event.stopPropagation();
+              setUnfolded((previous) => {
+                const next = new Set(previous);
+                next.delete(key);
+                return next;
+              });
+            }}
+          >
+            ▴ hide {run.length} {props.fold}
+          </li>,
+        );
+      }
+      run.forEach((entry) => rows.push(renderItem(entry)));
+    }
+    run = [];
+  };
+  shown.forEach((item, index) => {
+    if (item.isActive) {
+      flushRun();
+      rows.push(renderItem({item, index}));
+    } else {
+      run.push({item, index});
+    }
+  });
+  flushRun();
+
   return (
     <Box maxPossibleHeight={true} className="vertical-slider-root" possibleHeightOffset={3}>
-      <ul>
+      <ul ref={listRef}>
         {state.length === 0 ? (props.labelIfEmpty || 'No results') : ''}
-        {state.map((slideItem, index) => {
-          return (
-            <VerticalSlideItem
-              key={itemId(slideItem)}
-              index={index}
-              onClick={itemClickHandler}
-              slider={props.multiple || props.storageKey ? {...slideItem, isActive: open.has(itemId(slideItem))} : slideItem}
-            />
-          );
-        })}
+        {rows}
       </ul>
     </Box>
   );

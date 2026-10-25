@@ -10,7 +10,7 @@ import RowChangeStatementInterface from '../../Interface/Data/RowChangeStatement
 import {StatementResultType} from '../../Interface/Data/StatementInterface';
 import SelectAnalyser from '../../Query/SelectAnalyser';
 import PostgresSql from './PostgresSql';
-import {serializeBinaryValue} from '../BinaryValue';
+import {serializeValue} from '../BinaryValue';
 import {FOREIGN_KEY_CHECKS_OFF, TransactionOptionsInterface} from '../../ForeignKeyChecks';
 const Cursor = require('pg-cursor');
 
@@ -53,7 +53,7 @@ class PostgresSession implements DriverSessionInterface {
     return new TotalCountDto(Number(result.rows[0].total));
   }
 
-  streamSelect(query: string, onFields?: (fields: ResultFieldInterface[]) => void): Observable<RowDto> {
+  streamSelect(query: string, onFields?: (fields: ResultFieldInterface[]) => void, fullValues = false): Observable<RowDto> {
     console.log(`\x1b[33m Query Stream: ${query} \x1b[0m`);
 
     return new Observable(observer => {
@@ -61,7 +61,7 @@ class PostgresSession implements DriverSessionInterface {
         const resultFields = await this.resolveFields(fields, query);
         onFields?.(resultFields);
         return resultFields;
-      }, (row) => observer.next(new RowDto(row)))
+      }, (row) => observer.next(new RowDto(row)), fullValues)
         .then(() => observer.complete())
         .catch((error) => observer.error(error));
     });
@@ -196,6 +196,7 @@ class PostgresSession implements DriverSessionInterface {
     sql: string,
     onFields: (fields: PgFieldInterface[]) => Promise<ResultFieldInterface[]>,
     onRow: (row: RecordType) => void,
+    fullValues = false,
   ): Promise<{command: string, rowCount: number | null}> {
     const cursor = this.client.query(new Cursor(sql, [], {types: PostgresSql.types, rowMode: 'array'}));
     const read = (): Promise<{rows: any[][], result: any}> => new Promise((resolve, reject) => {
@@ -211,7 +212,7 @@ class PostgresSession implements DriverSessionInterface {
         }
         rows.forEach((values) => {
           const row: RecordType = {};
-          resultFields!.forEach((field, index) => row[field.key] = serializeBinaryValue(values[index]));
+          resultFields!.forEach((field, index) => row[field.key] = serializeValue(values[index], fullValues));
           onRow(row);
         });
         if (rows.length < BATCH_ROWS) {

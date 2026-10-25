@@ -35,6 +35,14 @@ INSERT INTO value_test (doc, body, data, bin) VALUES
 DROP TABLE IF EXISTS csv_target;
 SET FOREIGN_KEY_CHECKS = 1;
 
+-- long texts: grid has only preview, value editor and copy load whole value by primary key
+DROP TABLE IF EXISTS long_text_test;
+CREATE TABLE long_text_test (id INT PRIMARY KEY, title VARCHAR(20), body MEDIUMTEXT);
+INSERT INTO long_text_test VALUES (1, 'long', REPEAT('lorem ipsum ', 20000)), (2, 'short', 'short text');
+DROP TABLE IF EXISTS long_text_nokey;
+CREATE TABLE long_text_nokey (title VARCHAR(20), body MEDIUMTEXT);
+INSERT INTO long_text_nokey VALUES ('long', REPEAT('dolor sit ', 20000));
+
 -- wide table for render performance (50 columns, 1000 rows)
 DROP TABLE IF EXISTS wide_test;
 CREATE TABLE wide_test (id INT AUTO_INCREMENT PRIMARY KEY,
