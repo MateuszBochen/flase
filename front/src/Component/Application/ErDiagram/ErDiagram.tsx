@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import React, {memo, useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import ApplicationInterface from '../ApplicationInterface';
 import ConnectionDataInterface from '../../../Library/Connection/Interface/ConnectionDataInterface';
 import TableManager from '../../../Library/Table/TableManager';
@@ -16,6 +16,7 @@ import SqlConfirmPopup from '../TableRecords/Structure/SqlConfirmPopup';
 import ForeignKeyForm from '../TableRecords/Structure/ForeignKeyForm';
 import openTableTab from '../TableRecords/openTableTab';
 import '../TableRecords/Structure/style.css';
+import ErTable, {ErTableHandlersInterface} from './ErTable';
 import './style.css';
 
 export interface ErDiagramPropsInterface extends ApplicationInterface {
@@ -28,6 +29,57 @@ type DragType = {kind: 'table', table: string, startX: number, startY: number, b
   | {kind: 'pan', startX: number, startY: number, panX: number, panY: number};
 
 const storageKey = (connection: ConnectionDataInterface, database: string) => `er_positions:${connection.id}:${database}`;
+
+/** bounds = rectangle of both tables, the line is inside it */
+type RelationLineType = {relation: RelationType, path: string, bounds: BoxType};
+
+/** tables and lines this far (pixels of screen) out of the visible part are rendered too - no empty edge while panning */
+const VIEWPORT_MARGIN = 300;
+
+const intersects = (box: BoxType, area: {left: number, top: number, right: number, bottom: number}) =>
+  box.x <= area.right && box.x + box.width >= area.left && box.y <= area.bottom && box.y + box.height >= area.top;
+
+/** lines of relations - re-rendered only when tables moved or hovered table changed, not by pan and zoom */
+const ErRelations = memo((props: {
+  lines: RelationLineType[],
+  hovered: string | null,
+  onContextMenu: (event: React.MouseEvent, relation: RelationType) => void,
+}) => {
+  const {hovered} = props;
+  const isRelatedToHovered = (relation: RelationType) => !!hovered && (relation.from === hovered || relation.to === hovered);
+  return (
+    <>
+      {props.lines.map(({relation, path}, index) => (
+        <g key={index} onContextMenu={(event) => props.onContextMenu(event, relation)}>
+          <path
+            className={`er-relation ${isRelatedToHovered(relation) ? 'highlight' : ''} ${hovered && !isRelatedToHovered(relation) ? 'dimmed' : ''}`}
+            d={path}
+            markerEnd="url(#er-arrow)"
+          />
+          {/* wide invisible line - easier to hit with mouse */}
+          <path className="er-relation-hit" d={path} data-relation={`${relation.from}.${relation.fromColumn}`}>
+            <title>{`${relation.from}.${relation.fromColumn} → ${relation.to}.${relation.toColumn}${relation.constraint ? ` (${relation.constraint})` : ''}`}</title>
+          </path>
+        </g>
+      ))}
+    </>
+  );
+});
+
+/** line from column of referencing table to column of referenced one, from the nearer side */
+const relationPath = (from: BoxType, fromRow: number, to: BoxType, toRow: number, self: boolean): string => {
+  const y1 = from.y + HEADER_HEIGHT + fromRow * ROW_HEIGHT + ROW_HEIGHT / 2;
+  const y2 = to.y + HEADER_HEIGHT + toRow * ROW_HEIGHT + ROW_HEIGHT / 2;
+  const fromRight = from.x + from.width / 2 < to.x + to.width / 2;
+  const x1 = fromRight ? from.x + from.width : from.x;
+  const x2 = fromRight ? to.x : to.x + to.width;
+  if (self) {
+    // self reference - loop on the right side
+    return `M ${from.x + from.width} ${y1} C ${from.x + from.width + 50} ${y1}, ${from.x + from.width + 50} ${y2}, ${from.x + from.width} ${y2}`;
+  }
+  const bend = Math.max(40, Math.abs(x2 - x1) / 2);
+  return `M ${x1} ${y1} C ${x1 + (fromRight ? bend : -bend)} ${y1}, ${x2 + (fromRight ? -bend : bend)} ${y2}, ${x2} ${y2}`;
+};
 
 const loadPositions = (key: string): PositionsType => {
   try {
@@ -50,6 +102,8 @@ export default (props: ErDiagramPropsInterface) => {
   const [zoom, setZoom] = useState<number>(1);
   const [hovered, setHovered] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>('');
+  /** typing in filter does not wait for layout of thousands of tables */
+  const deferredFilter = useDeferredValue(filter);
   const drag = useRef<DragType | null>(null);
   const moved = useRef<boolean>(false);
   const svgRef = useRef<SVGSVGElement | null>(null);
@@ -108,8 +162,8 @@ export default (props: ErDiagramPropsInterface) => {
   }, [props.connection, props.database]);
 
   const shownTables = useMemo(() => {
-    if (!filter.trim()) return tables;
-    const term = filter.trim().toLowerCase();
+    if (!deferredFilter.trim()) return tables;
+    const term = deferredFilter.trim().toLowerCase();
     // matching tables and tables related to them
     const matching = new Set(tables.filter((table) => table.tableName.toLowerCase().includes(term)).map((table) => table.tableName));
     const relations = relationsOf(tables);
@@ -120,7 +174,7 @@ export default (props: ErDiagramPropsInterface) => {
       }
     });
     return tables.filter((table) => matching.has(table.tableName));
-  }, [tables, filter]);
+  }, [tables, deferredFilter]);
 
   const relations = useMemo(() => relationsOf(shownTables), [shownTables]);
   const layout = useMemo(() => autoLayout(shownTables, relations), [shownTables, relations]);
@@ -128,10 +182,63 @@ export default (props: ErDiagramPropsInterface) => {
   const boxes = useMemo(() => {
     const result: {[table: string]: BoxType} = {};
     Object.entries(layout).forEach(([name, box]) => {
-      result[name] = positions[name] && !filter.trim() ? {...box, ...positions[name]} : box;
+      result[name] = positions[name] && !deferredFilter.trim() ? {...box, ...positions[name]} : box;
     });
     return result;
-  }, [layout, positions, filter]);
+  }, [layout, positions, deferredFilter]);
+
+  const tableByName = useMemo(() => new Map(shownTables.map((table) => [table.tableName, table])), [shownTables]);
+  const lines = useMemo((): RelationLineType[] => relations.flatMap((relation) => {
+    const from = boxes[relation.from];
+    const to = boxes[relation.to];
+    const fromTable = tableByName.get(relation.from);
+    const toTable = tableByName.get(relation.to);
+    if (!from || !to || !fromTable || !toTable) return [];
+    const fromRow = Math.max(0, fromTable.columns.findIndex((column) => column.name === relation.fromColumn));
+    const toRow = Math.max(0, toTable.columns.findIndex((column) => column.name === relation.toColumn));
+    const x = Math.min(from.x, to.x);
+    const y = Math.min(from.y, to.y);
+    const bounds = {x, y, width: Math.max(from.x + from.width, to.x + to.width) - x, height: Math.max(from.y + from.height, to.y + to.height) - y};
+    return [{relation, path: relationPath(from, fromRow, to, toRow, relation.from === relation.to), bounds}];
+  }), [relations, boxes, tableByName]);
+
+  /**
+   * only tables and lines in visible part of canvas are rendered - layout of SVG with thousands of tables
+   * takes seconds on every pan, zoom and hover; export renders all of them
+   */
+  const [canvasSize, setCanvasSize] = useState<{width: number, height: number}>({width: 0, height: 0});
+  const [exporting, setExporting] = useState<boolean>(false);
+  useLayoutEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const measure = () => {
+      const rect = svg.getBoundingClientRect();
+      setCanvasSize((previous) => previous.width === rect.width && previous.height === rect.height ? previous : {width: rect.width, height: rect.height});
+    };
+    measure();
+    let frame: number | null = null;
+    // in next frame - state changed in callback would change layout in the same frame (ResizeObserver loop)
+    const observer = new ResizeObserver(() => {
+      if (frame === null) frame = requestAnimationFrame(() => { frame = null; measure(); });
+    });
+    observer.observe(svg);
+    return () => {
+      if (frame !== null) cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, []);
+  const visibleArea = exporting ? null : {
+    left: (-pan.x - VIEWPORT_MARGIN) / zoom,
+    top: (-pan.y - VIEWPORT_MARGIN) / zoom,
+    right: (canvasSize.width - pan.x + VIEWPORT_MARGIN) / zoom,
+    bottom: (canvasSize.height - pan.y + VIEWPORT_MARGIN) / zoom,
+  };
+  const visibleTables = visibleArea ? shownTables.filter((table) => boxes[table.tableName] && intersects(boxes[table.tableName], visibleArea)) : shownTables;
+  const visibleLines = useMemo(
+    () => visibleArea ? lines.filter((line) => intersects(line.bounds, visibleArea)) : lines,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [lines, visibleArea?.left, visibleArea?.top, visibleArea?.right, visibleArea?.bottom],
+  );
 
   const savePositions = (next: PositionsType) => {
     setPositions(next);
@@ -156,24 +263,53 @@ export default (props: ErDiagramPropsInterface) => {
       : {kind: 'pan', startX: event.clientX, startY: event.clientY, panX: pan.x, panY: pan.y};
   };
 
+  /** position of dragged table for mouse position */
+  const draggedPosition = (current: Extract<DragType, {kind: 'table'}>, clientX: number, clientY: number) => ({
+    x: Math.round(current.boxX + (clientX - current.startX) / zoom),
+    y: Math.round(current.boxY + (clientY - current.startY) / zoom),
+  });
+
+  /** mouse moves faster than diagram of thousands of tables renders - one change per frame */
+  const lastMouse = useRef<{x: number, y: number} | null>(null);
+  const moveFrame = useRef<number | null>(null);
+  useEffect(() => () => {
+    if (moveFrame.current !== null) cancelAnimationFrame(moveFrame.current);
+  }, []);
+  const applyMove = () => {
+    moveFrame.current = null;
+    const current = drag.current;
+    const mouse = lastMouse.current;
+    if (!current || !mouse) return;
+    if (current.kind === 'pan') {
+      setPan({x: current.panX + mouse.x - current.startX, y: current.panY + mouse.y - current.startY});
+    } else {
+      setPositions((previous) => ({...previous, [current.table]: draggedPosition(current, mouse.x, mouse.y)}));
+    }
+  };
+
   const onMouseMove = (event: React.MouseEvent) => {
     const current = drag.current;
     if (!current) return;
-    const dx = event.clientX - current.startX;
-    const dy = event.clientY - current.startY;
-    if (Math.abs(dx) + Math.abs(dy) > 3) moved.current = true;
-    if (current.kind === 'pan') {
-      setPan({x: current.panX + dx, y: current.panY + dy});
-    } else {
-      setPositions((previous) => ({...previous, [current.table]: {x: Math.round(current.boxX + dx / zoom), y: Math.round(current.boxY + dy / zoom)}}));
+    if (Math.abs(event.clientX - current.startX) + Math.abs(event.clientY - current.startY) > 3) moved.current = true;
+    lastMouse.current = {x: event.clientX, y: event.clientY};
+    if (moveFrame.current === null) {
+      moveFrame.current = requestAnimationFrame(applyMove);
     }
   };
 
   const onMouseUp = () => {
-    if (drag.current?.kind === 'table' && moved.current) {
-      savePositions(positions);
+    const current = drag.current;
+    if (moveFrame.current !== null) {
+      cancelAnimationFrame(moveFrame.current);
+      applyMove();
+    }
+    if (current?.kind === 'table' && moved.current) {
+      // last move may not be rendered yet - final position from mouse
+      const mouse = lastMouse.current;
+      savePositions(mouse ? {...positions, [current.table]: draggedPosition(current, mouse.x, mouse.y)} : positions);
     }
     drag.current = null;
+    lastMouse.current = null;
   };
 
   /** zoom to mouse position */
@@ -207,8 +343,26 @@ export default (props: ErDiagramPropsInterface) => {
     }));
   };
 
-  /** diagram as SVG file - styles are written into the file */
-  const exportSvg = () => {
+  /** callbacks given to memoized tables and relations read current state through ref */
+  const handlersRef = useRef({onMouseDown, onColumnClick, openTable, relationMenu, linkMode});
+  handlersRef.current = {onMouseDown, onColumnClick, openTable, relationMenu, linkMode};
+  const tableHandlers: ErTableHandlersInterface = useMemo(() => ({
+    onMouseDown: (event, table) => handlersRef.current.onMouseDown(event, table),
+    onHover: setHovered,
+    onClick: (table) => !moved.current && !handlersRef.current.linkMode && handlersRef.current.openTable(table),
+    onColumnClick: (event, table, column) => handlersRef.current.onColumnClick(event, table, column),
+  }), []);
+  const onRelationMenu = useCallback((event: React.MouseEvent, relation: RelationType) => handlersRef.current.relationMenu(event, relation), []);
+
+  /** diagram as SVG file - styles are written into the file; tables out of view are rendered first */
+  useEffect(() => {
+    if (!exporting) return;
+    writeSvgFile();
+    setExporting(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exporting]);
+
+  const writeSvgFile = () => {
     const svg = svgRef.current;
     if (!svg) return;
     const clone = svg.cloneNode(true) as SVGSVGElement;
@@ -234,23 +388,6 @@ export default (props: ErDiagramPropsInterface) => {
     setTimeout(() => URL.revokeObjectURL(link.href), 1000);
   };
 
-  /** line from column of referencing table to column of referenced one, from the nearer side */
-  const relationPath = (from: BoxType, fromRow: number, to: BoxType, toRow: number): string => {
-    const y1 = from.y + HEADER_HEIGHT + fromRow * ROW_HEIGHT + ROW_HEIGHT / 2;
-    const y2 = to.y + HEADER_HEIGHT + toRow * ROW_HEIGHT + ROW_HEIGHT / 2;
-    const fromRight = from.x + from.width / 2 < to.x + to.width / 2;
-    const x1 = fromRight ? from.x + from.width : from.x;
-    const x2 = fromRight ? to.x : to.x + to.width;
-    if (from === to) {
-      // self reference - loop on the right side
-      return `M ${from.x + from.width} ${y1} C ${from.x + from.width + 50} ${y1}, ${from.x + from.width + 50} ${y2}, ${from.x + from.width} ${y2}`;
-    }
-    const bend = Math.max(40, Math.abs(x2 - x1) / 2);
-    return `M ${x1} ${y1} C ${x1 + (fromRight ? bend : -bend)} ${y1}, ${x2 + (fromRight ? -bend : bend)} ${y2}, ${x2} ${y2}`;
-  };
-
-  const isRelatedToHovered = (relation: {from: string, to: string}) => !!hovered && (relation.from === hovered || relation.to === hovered);
-
   return (
     <div className="cmp-er-diagram">
       <div className="er-toolbar">
@@ -260,7 +397,7 @@ export default (props: ErDiagramPropsInterface) => {
         <button type="button" onClick={fit}>Fit</button>
         <button type="button" onClick={() => { setZoom(1); setPan({x: 0, y: 0}); }}>100%</button>
         <button type="button" title="Forget moved positions" onClick={() => savePositions({})}>Auto layout</button>
-        <button type="button" onClick={exportSvg}>Export SVG</button>
+        <button type="button" onClick={() => setExporting(true)}>Export SVG</button>
         {!connection.readOnly && (
           <button
             type="button"
@@ -292,66 +429,23 @@ export default (props: ErDiagramPropsInterface) => {
           </marker>
         </defs>
         <g className="er-viewport" transform={`translate(${pan.x} ${pan.y}) scale(${zoom})`}>
-          {relations.map((relation, index) => {
-            const from = boxes[relation.from];
-            const to = boxes[relation.to];
-            const fromTable = shownTables.find((table) => table.tableName === relation.from)!;
-            const toTable = shownTables.find((table) => table.tableName === relation.to)!;
-            if (!from || !to) return null;
-            const fromRow = Math.max(0, fromTable.columns.findIndex((column) => column.name === relation.fromColumn));
-            const toRow = Math.max(0, toTable.columns.findIndex((column) => column.name === relation.toColumn));
-            const path = relationPath(from, fromRow, to, toRow);
-            return (
-              <g key={index} onContextMenu={(event) => relationMenu(event, relation)}>
-                <path
-                  className={`er-relation ${isRelatedToHovered(relation) ? 'highlight' : ''} ${hovered && !isRelatedToHovered(relation) ? 'dimmed' : ''}`}
-                  d={path}
-                  markerEnd="url(#er-arrow)"
-                />
-                {/* wide invisible line - easier to hit with mouse */}
-                <path className="er-relation-hit" d={path} data-relation={`${relation.from}.${relation.fromColumn}`}>
-                  <title>{`${relation.from}.${relation.fromColumn} → ${relation.to}.${relation.toColumn}${relation.constraint ? ` (${relation.constraint})` : ''}`}</title>
-                </path>
-              </g>
-            );
-          })}
-          {shownTables.map((table) => {
+          <ErRelations lines={visibleLines} hovered={hovered} onContextMenu={onRelationMenu} />
+          {visibleTables.map((table) => {
             const box = boxes[table.tableName];
             if (!box) return null;
             return (
-              <g
+              <ErTable
                 key={table.tableName}
-                className={`er-table ${hovered === table.tableName ? 'hovered' : ''}`}
-                transform={`translate(${box.x} ${box.y})`}
-                onMouseDown={(event) => onMouseDown(event, table.tableName)}
-                onMouseEnter={() => setHovered(table.tableName)}
-                onMouseLeave={() => setHovered(null)}
-                onClick={() => !moved.current && !linkMode && openTable(table)}
-              >
-                <rect className="er-table-bg" width={box.width} height={box.height} rx={4} />
-                <rect className="er-header" width={box.width} height={HEADER_HEIGHT} rx={4} />
-                <text className="er-title" x={8} y={17}>{table.tableName}</text>
-                {table.columns.map((column, index) => (
-                  <g
-                    key={column.name}
-                    transform={`translate(0 ${HEADER_HEIGHT + index * ROW_HEIGHT})`}
-                    className={`er-column-row ${linkMode ? 'linkable' : ''}`}
-                    data-column={`${table.tableName}.${column.name}`}
-                    onClick={(event) => onColumnClick(event, table.tableName, column.name)}
-                  >
-                    <rect
-                      className={`er-column-hit ${linkSource?.table === table.tableName && linkSource.column === column.name ? 'selected' : ''}`}
-                      x={1}
-                      width={box.width - 2}
-                      height={ROW_HEIGHT}
-                    />
-                    <text className={column.primaryKey ? 'er-pk' : column.reference ? 'er-fk' : 'er-column'} x={8} y={13}>
-                      {column.primaryKey ? '🔑 ' : column.reference ? '↗ ' : '   '}{column.name}{column.nullable ? '' : ' *'}
-                    </text>
-                    <text className="er-type" x={box.width - 8} y={13} textAnchor="end">{column.type}</text>
-                  </g>
-                ))}
-              </g>
+                table={table}
+                x={box.x}
+                y={box.y}
+                width={box.width}
+                height={box.height}
+                hovered={hovered === table.tableName}
+                linkMode={linkMode}
+                selectedColumn={linkSource?.table === table.tableName ? linkSource.column : null}
+                handlers={tableHandlers}
+              />
             );
           })}
         </g>

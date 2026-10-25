@@ -43,6 +43,15 @@ prepare() {
   case "$1" in
     ui-browse.js) docker exec flase_mariadb mariadb -uroot -proot shop -e "UPDATE edit_test SET note = '' WHERE id = 2;" ;;
     ui-test4.js) docker exec flase_mariadb mariadb -uroot -proot shop -e "TRUNCATE edit_test; INSERT INTO edit_test (name) SELECT CONCAT('row ', a.d*100+b.d*10+c.d+1) FROM digits a, digits b, digits c WHERE a.d*100+b.d*10+c.d < 150 ORDER BY a.d*100+b.d*10+c.d;" ;;
+    # many databases around shop (without separator - not grouped by prefix)
+    ui-sidebar-fold.js) docker exec flase_mariadb mariadb -uroot -proot -e "$(for i in $(seq -w 1 15); do echo "CREATE DATABASE IF NOT EXISTS afold$i; CREATE DATABASE IF NOT EXISTS zfold$i; GRANT ALL ON afold$i.* TO 'flase'@'%'; GRANT ALL ON zfold$i.* TO 'flase'@'%';"; done)" ;;
+  esac
+}
+
+# data of prepare which other tests must not see
+cleanup() {
+  case "$1" in
+    ui-sidebar-fold.js) docker exec flase_mariadb mariadb -uroot -proot -e "$(for i in $(seq -w 1 15); do echo "DROP DATABASE IF EXISTS afold$i; DROP DATABASE IF EXISTS zfold$i; REVOKE ALL PRIVILEGES ON afold$i.* FROM 'flase'@'%'; REVOKE ALL PRIVILEGES ON zfold$i.* FROM 'flase'@'%';"; done)" ;;
   esac
 }
 
@@ -147,7 +156,7 @@ if [ "$GROUP" = "all" ] || [ "$GROUP" = "ui" ]; then
   # file and arguments
   for test in "ui-test5.js 0" "ui-test.js 0" "ui-test.js 1" "ui-test2.js 0" "ui-test3.js 0" "ui-test4.js 0" "ui-structure.js 0" \
     "ui-ddl.js 0" "ui-browse.js 0" "ui-copy.js 0" "ui-deselect.js 0" "ui-value.js 0" "ui-completion.js 0" "ui-search.js 0" \
-    "ui-console.js 0" "ui-transfer.js 0" "ui-postgres.js" "ui-edit-popup.js" "ui-column-resize.js" "ui-new-connection.js" "ui-sidebar.js" "ui-predefined.js" "ui-restore.js" "ui-tab-drag.js" "ui-password.js" "ui-connection-edit.js" "ui-ssh.js" "ui-database.js" "ui-database-groups.js" "ui-server.js" "ui-query-builder.js" "ui-export-chart.js" "ui-display.js" "ui-catalogs.js" "ui-save-shortcut.js" "ui-table-filter.js" "ui-multi-sort.js mariadb" "ui-multi-sort.js postgres" "ui-open-tables.js" "ui-sidebar-height.js" "ui-robustness.js" "ui-blob-download.js mariadb" "ui-blob-download.js postgres" "ui-binary-edit.js mariadb" "ui-binary-edit.js postgres" "ui-connection-state.js" "ui-uuid.js mariadb" "ui-uuid.js mysql" "ui-uuid.js postgres" "ui-perf.js mysql" "ui-perf.js postgres"; do
+    "ui-console.js 0" "ui-transfer.js 0" "ui-postgres.js" "ui-edit-popup.js" "ui-column-resize.js" "ui-new-connection.js" "ui-sidebar.js" "ui-predefined.js" "ui-restore.js" "ui-tab-drag.js" "ui-password.js" "ui-connection-edit.js" "ui-ssh.js" "ui-database.js" "ui-database-groups.js" "ui-server.js" "ui-query-builder.js" "ui-export-chart.js" "ui-display.js" "ui-catalogs.js" "ui-save-shortcut.js" "ui-table-filter.js" "ui-multi-sort.js mariadb" "ui-multi-sort.js postgres" "ui-open-tables.js" "ui-sidebar-height.js" "ui-robustness.js" "ui-blob-download.js mariadb" "ui-blob-download.js postgres" "ui-binary-edit.js mariadb" "ui-binary-edit.js postgres" "ui-connection-state.js" "ui-uuid.js mariadb" "ui-uuid.js mysql" "ui-uuid.js postgres" "ui-perf.js mysql" "ui-perf.js postgres" "ui-long-text.js" "ui-sidebar-fold.js"; do
     file="${test%% *}"
     selected "$file" || continue
     reset_data
@@ -155,6 +164,7 @@ if [ "$GROUP" = "all" ] || [ "$GROUP" = "ui" ]; then
     log="$LOGS/${test// /_}"
     docker run --rm --network host -v "$TESTS/ui:/pw" -w /pw -e SHOTS=/pw/shots "$PLAYWRIGHT_IMAGE" node $test > "$log" 2>&1
     report "$test" "$log"
+    cleanup "$file"
   done
 fi
 

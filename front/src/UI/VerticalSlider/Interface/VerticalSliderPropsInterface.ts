@@ -11,6 +11,11 @@ interface VerticalSliderPropsInterface {
   storageKey?: string;
   /** every change closes all items (button "collapse all") */
   collapseSignal?: number;
+  /**
+   * name of items (e.g. "databases") - when an item is open and closed items would take much of sidebar,
+   * closed items around it are folded into one row "⋯ 12 databases"
+   */
+  fold?: string;
 }
 
 export default VerticalSliderPropsInterface;

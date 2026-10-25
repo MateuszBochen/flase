@@ -322,6 +322,7 @@ export default (props: GridViewPropsInterface) => {
       query: currentQuery.withoutLimit(),
       database: props.database,
       tabId: exportTabId,
+      fullValues: true,
     });
   }, [props.connection, props.database, props.tabId, props.queryRef]);
 

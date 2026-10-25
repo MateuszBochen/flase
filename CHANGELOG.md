@@ -3,6 +3,26 @@
 All notable changes of Flase are documented here. Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versions follow [Semantic Versioning](https://semver.org/). A `v*` tag publishes the Docker image of the version.
 
+## [0.7.1] - 2026-10-22
+
+### Changed
+- Light theme: sidebar is one white panel - nested levels (connection, group, database, tables) without stacked grey
+  backgrounds, with a tree line; table names in normal text color, filter of tables as a white field; tab bar grey
+  with white active tab; header of grid distinct from rows. Hint "Connection is open" in edit popup is a highlighted box
+- Many databases in sidebar: when a database is open and closed databases would take more than a third of sidebar,
+  those above and below it are folded into one row "⋯ 35 databases" (names in its tooltip) - list of tables gets
+  the space. Click shows them (and hides again), opening other database folds the rest around it
+
+### Fixed
+- Endless loading after repeated action (e.g. Execute of new user again right after error) - server skipped the same
+  command sent within 500 ms as duplicate and never answered. User actions (changes of rows, structure, users,
+  databases, SQL console...) are skipped only while the same one still runs (double click), then run again
+- Long texts (TEXT, LONGTEXT over 64 Ki characters) no longer freeze the grid - server sends their beginning,
+  cell shows at most 1000 characters; value editor, copy and export of page load the whole value by primary key,
+  export of all rows gets whole values. Page of 100 rows × 1 MB opens in 0.8 s instead of 12 s, scrolling without freezes
+- ER diagram of large databases (thousands of tables) is smooth - only tables in view are rendered, moving of mouse
+  is applied once per frame, layout without repeated search of relations (pan of 2000 tables 0.1 s instead of 16 s of CPU)
+
 ## [0.7.0] - 2026-10-22
 
 ### Added
@@ -265,6 +285,7 @@ First public version - web database manager for MySQL, MariaDB and PostgreSQL, a
 - Production Docker image (`docker/production/Dockerfile`): application, API and websocket on one port
 - GitHub Actions workflow publishing the image to Docker Hub on a `v*` tag
 
+[0.7.1]: https://github.com/MateuszBochen/flase/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/MateuszBochen/flase/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/MateuszBochen/flase/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/MateuszBochen/flase/compare/v0.4.0...v0.5.0

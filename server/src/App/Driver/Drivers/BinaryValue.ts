@@ -20,11 +20,32 @@ export const serializeBinaryValue = (value: any): any => {
   };
 };
 
+/** longer texts (TEXT, LONGTEXT) are sent as preview - page of megabyte values would freeze the browser */
+export const TEXT_PREVIEW_CHARS = 64 * 1024;
+
+const isLongTextValue = (value: any): boolean => value !== null && typeof value === 'object' && value.longText === true;
+
+/**
+ * value of result row as client gets it - binary values and long texts as preview,
+ * fullText = texts whole (export of all rows)
+ */
+export const serializeValue = (value: any, fullText = false): any => {
+  if (typeof value === 'string') {
+    return !fullText && value.length > TEXT_PREVIEW_CHARS
+      ? {longText: true, length: value.length, text: value.slice(0, TEXT_PREVIEW_CHARS), truncated: true}
+      : value;
+  }
+  return serializeBinaryValue(value);
+};
+
 /**
  * binary value as client got it (see serializeBinaryValue) back to bytes - e.g. BINARY(16) key in WHERE of row change
  * preview of long value is not whole value, row cannot be identified by it
  */
 export const deserializeBinaryValue = (value: any): any => {
+  if (isLongTextValue(value)) {
+    throw new Error('Row cannot be identified by text longer than its preview - add primary key');
+  }
   if (value === null || typeof value !== 'object' || value.binary !== true || typeof value.hex !== 'string') {
     return value;
   }
@@ -42,6 +63,9 @@ export const MAX_BINARY_WRITE_BYTES = 16 * 1024 * 1024;
  * preview of long value is only its beginning, it would cut the value
  */
 export const deserializeBinaryWriteValue = (value: any): any => {
+  if (isLongTextValue(value)) {
+    throw new Error('Text longer than its preview cannot be saved - open value editor to load it whole');
+  }
   if (value === null || typeof value !== 'object' || value.binary !== true) {
     return value;
   }

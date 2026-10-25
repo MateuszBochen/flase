@@ -3,8 +3,12 @@
 CREATE DATABASE IF NOT EXISTS `shop` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE DATABASE IF NOT EXISTS `blog` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-GRANT ALL PRIVILEGES ON `shop`.* TO 'flase'@'%';
-GRANT ALL PRIVILEGES ON `blog`.* TO 'flase'@'%';
+-- WITH GRANT OPTION, CREATE USER and reading of mysql schema - flase can manage users and their privileges
+-- (not SUPER - server variables stay for root)
+GRANT ALL PRIVILEGES ON `shop`.* TO 'flase'@'%' WITH GRANT OPTION;
+GRANT ALL PRIVILEGES ON `blog`.* TO 'flase'@'%' WITH GRANT OPTION;
+GRANT CREATE USER ON *.* TO 'flase'@'%' WITH GRANT OPTION;
+GRANT SELECT ON `mysql`.* TO 'flase'@'%' WITH GRANT OPTION;
 FLUSH PRIVILEGES;
 
 -- ---------------------------------------------------------------- shop

@@ -3,7 +3,7 @@ import Popup from '../../../UI/Popup/Popup';
 import Button from '../../../UI/Button/Button';
 import ColumnInterface from '../../../Library/Table/Interface/ColumnInterface';
 import {CellValueType} from '../Interface/RecordsViewPropsInterface';
-import {isBinaryColumn, isBinaryValue} from '../../../Library/Record/BinaryValue';
+import {isBinaryColumn, isBinaryValue, isLongText} from '../../../Library/Record/BinaryValue';
 import CellEditor from './CellEditor';
 import ValueEditor from './ValueEditor';
 
@@ -12,6 +12,8 @@ interface CellEditPopupPropsInterface {
   value: CellValueType | undefined;
   onSave: (value: CellValueType) => void;
   onClose: () => void;
+  /** whole long text (grid has only its beginning) */
+  loadText?: () => Promise<string> | null;
 }
 
 /** texts are edited in big text area - inline editor in narrow column shows only few characters */
@@ -25,9 +27,9 @@ const isTextColumn = (column: ColumnInterface): boolean => !column.enumValues &&
 export default (props: CellEditPopupPropsInterface) => {
   const [value, setValue] = useState<CellValueType>(props.value === undefined ? null : props.value);
 
-  if ((isTextColumn(props.column) && !isBinaryValue(props.value)) || isBinaryColumn(props.column) || isBinaryValue(props.value)) {
+  if ((isTextColumn(props.column) && !isBinaryValue(props.value)) || isBinaryColumn(props.column) || isBinaryValue(props.value) || isLongText(props.value)) {
     // binary value is kept in the same form as values from server
-    return <ValueEditor column={props.column} value={props.value} editable={true} onSave={(value) => props.onSave(value as CellValueType)} onClose={props.onClose} />;
+    return <ValueEditor column={props.column} value={props.value} editable={true} loadText={props.loadText} onSave={(value) => props.onSave(value as CellValueType)} onClose={props.onClose} />;
   }
 
   const save = () => props.onSave(value);

@@ -9,7 +9,7 @@ import {GroupedType, groupByPrefix} from '../../Library/Database/DatabaseGroupin
  * items of the same prefix (by label) in a group item - opened group shows its items in own slider,
  * open items of groups are remembered under storageKey + prefix
  */
-type OptionsType = {enabled: boolean, storageKey: string, multiple?: boolean, onGroupContextMenu?: (event: React.MouseEvent, prefix: string) => void};
+type OptionsType = {enabled: boolean, storageKey: string, multiple?: boolean, fold?: string, onGroupContextMenu?: (event: React.MouseEvent, prefix: string) => void};
 
 const toItems = (entries: GroupedType<VerticalSliderItem>[], options: OptionsType, storageKey: string): VerticalSliderItem[] => entries.map((entry) => {
   if (entry.kind === 'item') return entry.item;
@@ -31,6 +31,7 @@ const toItems = (entries: GroupedType<VerticalSliderItem>[], options: OptionsTyp
         allowClose={true}
         automateOpenFirst={false}
         storageKey={`${storageKey}:${entry.prefix}`}
+        fold={options.fold}
       />
     ),
   };

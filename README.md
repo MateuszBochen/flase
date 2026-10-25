@@ -94,6 +94,45 @@ import and export dumps, draw ER diagrams and manage users - all from one self-h
 
 ![New connection](docs/screenshot-new-connection.png)
 
+## Performance compared with phpMyAdmin
+
+Rendering of rows measured in Chromium (Playwright, headless, window 1920 x 1080) - Flase 0.7.x (production image)
+and phpMyAdmin 5.2.3 (official Docker image, PHP 8.3), both connected to the same MariaDB 11.4 and showing the same
+table of 50 columns (texts, numbers, dates). Time from click to rendered rows, median of 7 runs after a warm-up run,
+AMD Ryzen 5 3600.
+
+| Browse table, 100 rows x 50 columns | Flase | phpMyAdmin |
+|---|---:|---:|
+| Click to rendered rows | **239 ms** | 1,350 ms |
+| CPU time of page (script + layout + style + other) | **224 ms** | 1,187 ms |
+| Layout + style recalculation | **57 ms** | 676 ms |
+| DOM elements | **5,073** | 14,546 |
+| JS heap after GC | 10.0 MB | **8.4 MB** |
+| Data received | 225 KB | **85 KB** |
+| CPU time of 20 wheel scroll steps | 725 ms | **514 ms** |
+
+| SQL query, 1000 rows x 50 columns | Flase | phpMyAdmin |
+|---|---:|---:|
+| Run to rendered rows | **541 ms** | 13,578 ms |
+| CPU time of page | **505 ms** | 11,913 ms |
+| Layout + style recalculation | **107 ms** | 7,026 ms |
+| DOM elements | **4,083** | 129,272 |
+| JS heap after GC | **19.7 MB** | 28.4 MB |
+| Data received | 1,782 KB | **358 KB** |
+| CPU time of 20 wheel scroll steps | **1,095 ms** | 1,948 ms |
+
+- Flase renders only visible rows and columns, so the size of the page stays the same for 100 and 1000 rows -
+  phpMyAdmin builds the whole HTML table (and its JavaScript processes every cell), its cost grows with every row.
+- phpMyAdmin sends compressed HTML, Flase sends rows as JSON over WebSocket - more bytes, but rendered without
+  layout of the whole table.
+- With a small page native scrolling of a static table of phpMyAdmin is cheaper than rendering of rows of the
+  virtualized grid during scroll; with 1000 rows it is the other way round.
+
+Reproduce: `docker compose up`, then run Flase production image and phpMyAdmin in network `flase_default`
+(phpMyAdmin with `$cfg['MaxRows'] = 100`) and
+`docker run --rm --network host -v $PWD/tests/ui:/pw -w /pw mcr.microsoft.com/playwright:v1.49.1-noble node bench-phpmyadmin.js http://localhost:3010 http://localhost:8090 7`
+(script [tests/ui/bench-phpmyadmin.js](tests/ui/bench-phpmyadmin.js)).
+
 ## Quick start (Docker)
 
 ```bash

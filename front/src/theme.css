@@ -53,9 +53,9 @@
   --text-muted: #6c707e;
   --border: #ebecf0;
   --border-strong: #dfe1e5;
-  --tab-bg: #f7f8fa;
+  --tab-bg: #e6e8ed;
   --tab-active: #ffffff;
-  --tab-hover: #ebecf0;
+  --tab-hover: #dcdfe5;
   --accent: #a65a00;
   --title: #8a5d00;
   --title-soft: #806400;
@@ -82,7 +82,7 @@
   --primary-hover: #2a62d4;
   --primary-text: #ffffff;
   --grid-line: #dcdfe4;
-  --grid-header: #f7f8fa;
+  --grid-header: #f1f3f6;
   --grid-zebra: rgba(0, 0, 0, 0.018);
   --shadow: 0 12px 40px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.06);
 }

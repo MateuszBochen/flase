@@ -141,6 +141,24 @@ const waitFor = async (fn, ms = 5000) => {
     const dupRows = forTab('dup').filter((m) => m.message === 'SINGLE_SELECT_RECORD').length;
     check('duplicate command skipped', dupRows === 5, `rows=${dupRows}`);
 
+    // --- user action repeated after its answer (Execute after error) is run again - client must not wait forever
+    const existing = {tabId: 'retry', user: null, change: {kind: 'create', name: 'flase', host: '%', password: 'x'}, dryRun: false};
+    send('CHANGE_USER', existing);
+    await waitFor(() => forTab('retry').some((m) => m.message === 'QUERY_ERROR'));
+    await sleep(100);
+    send('CHANGE_USER', existing);
+    await waitFor(() => forTab('retry').filter((m) => m.message === 'QUERY_ERROR').length === 2);
+    check('user action repeated after answer gets answer again', forTab('retry').filter((m) => m.message === 'QUERY_ERROR').length === 2, JSON.stringify(forTab('retry').map((m) => m.message)));
+    // the same action sent twice while it runs (double click) is done once
+    const create = {tabId: 'double', user: null, change: {kind: 'create', name: 'ws_double_click', host: '%', password: 'x'}, dryRun: false};
+    send('CHANGE_USER', create);
+    send('CHANGE_USER', create);
+    await waitFor(() => forTab('double').length > 0);
+    await sleep(500);
+    check('user action sent twice while running is done once', forTab('double').map((m) => m.message).join() === 'USER_CHANGE_APPLIED', JSON.stringify(forTab('double').map((m) => [m.message, m.payload.error])));
+    send('CHANGE_USER', {tabId: 'double-drop', user: {name: 'ws_double_click', host: '%'}, change: {kind: 'drop'}, dryRun: false});
+    await waitFor(() => forTab('double-drop').length > 0);
+
     ws.send('not json');
     send('UNKNOWN_COMMAND', {tabId: 'unk'});
     await waitFor(() => doneTab('unk'), 1000);

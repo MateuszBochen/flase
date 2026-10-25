@@ -44,7 +44,7 @@ import ContextMenu, {ContextMenuItem} from '../../UI/ContextMenu/ContextMenu';
 import RowForm from './Edit/RowForm';
 import ValueEditor from './Edit/ValueEditor';
 import CellEditPopup from './Edit/CellEditPopup';
-import {binaryLabel, isBinaryColumn, isBinaryValue, isFilterableBinary} from '../../Library/Record/BinaryValue';
+import {binaryLabel, isBinaryColumn, isBinaryValue, isFilterableBinary, isLongText, isLongTextValue} from '../../Library/Record/BinaryValue';
 import {isBinary16, uuidOfHex} from '../../Library/Record/Uuid';
 import toast from 'react-hot-toast';
 import {downloadBinary} from '../../Library/Record/BinaryDownload';
@@ -60,6 +60,8 @@ type RowFormState = {
   values: SingleRowType;
   /** undefined for new row */
   rowIndex?: number;
+  /** row with values of the form (edited or cloned) - long texts are loaded from it */
+  sourceRowIndex?: number;
 } | null;
 
 type ContextMenuState = {
@@ -302,8 +304,9 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
     onSelectRow: setSelectedRow,
     onStartEdit: (rowIndex: number, column: ColumnInterface) => {
       setSelectedRow(rowIndex);
-      // bytes are not typed in narrow cell - value editor has hex, text, UUID and file
-      if (isBinaryColumn(column)) {
+      // bytes are not typed in narrow cell - value editor has hex, text, UUID and file;
+      // long text is loaded whole and edited by value editor
+      if (isBinaryColumn(column) || isLongTextValue(getDisplayedRow(changes, getRecords(), rowIndex)[column.key])) {
         setEditingCell(null);
         setValueEditor({rowIndex, column});
         return;
@@ -318,13 +321,42 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
     onContextMenu,
   }), [changes, selectedRow, editingCell, canEdit, selection, onCellMouseDown, onCellMouseEnter, onCommitEdit, onContextMenu]);
 
-  /** rows and columns as text in given format */
-  const formatRows = (format: CopyFormatType, rowIndexes: number[], columnIndexes: number[]): string => {
+  /**
+   * displayed rows with long texts of given columns loaded whole - grid has only their beginning;
+   * missing = texts which could not be loaded (row without primary key), they stay as label
+   */
+  const rowsWithWholeTexts = async (rowIndexes: number[], columnIndexes: number[]): Promise<{rows: SingleRowType[], missing: number}> => {
     const records = getRecords();
+    let missing = 0;
+    const rows = await Promise.all(rowIndexes.map(async (rowIndex) => {
+      const row = getDisplayedRow(changes, records, rowIndex);
+      const longColumns = columnIndexes.map((index) => columns[index]).filter((column) => isLongText(row[column.key]));
+      if (!longColumns.length) return row;
+      const whole = {...row};
+      await Promise.all(longColumns.map(async (column) => {
+        try {
+          const loading = gridDisplay.actions.loadText(column, rowIndex);
+          if (!loading) throw new Error('Row cannot be identified');
+          whole[column.key] = await loading;
+        } catch (e) {
+          missing++;
+        }
+      }));
+      return whole;
+    }));
+    return {rows, missing};
+  };
+
+  const warnMissingTexts = (missing: number) => {
+    if (missing) toast.error(`${missing} long text(s) could not be loaded whole (no primary key) - copied as label`);
+  };
+
+  /** rows and columns as text in given format */
+  const formatRows = (format: CopyFormatType, rows: SingleRowType[], columnIndexes: number[]): string => {
     return formatCopy(
       format,
       columnIndexes.map((index) => columns[index]),
-      rowIndexes.map((rowIndex) => getDisplayedRow(changes, records, rowIndex)),
+      rows,
       editable?.table.name,
       props.sqlLiteral,
       Object.keys(gridDisplay.display.transforms).filter((key) => gridDisplay.display.transforms[key] === 'uuid'),
@@ -335,11 +367,13 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
    * selected cells as text in given format.
    * Ctrl selection does not have to be rectangle - rows and columns with any selected cell are copied.
    */
-  const copySelection = (format: CopyFormatType) => {
+  const copySelection = async (format: CopyFormatType) => {
     if (!selection) return;
     const rowsCount = getRecords().length + changes.inserted.length;
     const {rows, columns: columnIndexes} = selectedRowsAndColumns(selection, rowsCount);
-    const text = formatRows(format, rows, columnIndexes);
+    const whole = await rowsWithWholeTexts(rows, columnIndexes);
+    warnMissingTexts(whole.missing);
+    const text = formatRows(format, whole.rows, columnIndexes);
     const cells = rows.length * columnIndexes.length;
     navigator.clipboard?.writeText(text)
       .then(() => toast.success(cells === 1 ? 'Copied' : `Copied ${rows.length} × ${columnIndexes.length} cells`))
@@ -347,22 +381,28 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
   };
 
   /** whole rows (all columns) with at least one selected cell */
-  const copySelectedRows = (format: CopyFormatType) => {
+  const copySelectedRows = async (format: CopyFormatType) => {
     if (!selection) return;
     const rowsCount = getRecords().length + changes.inserted.length;
     const {rows} = selectedRowsAndColumns(selection, rowsCount);
-    const text = formatRows(format, rows, columns.map((column, index) => index));
+    const columnIndexes = columns.map((column, index) => index);
+    const whole = await rowsWithWholeTexts(rows, columnIndexes);
+    warnMissingTexts(whole.missing);
+    const text = formatRows(format, whole.rows, columnIndexes);
     navigator.clipboard?.writeText(text)
       .then(() => toast.success(rows.length === 1 ? 'Copied 1 row' : `Copied ${rows.length} rows`))
       .catch(() => toast.error('Unable to copy'));
   };
 
   /** rows loaded in grid (current page, with pending changes) as file */
-  const exportPage = (format: ExportFormatType) => {
-    const records = getRecords();
-    const rowsCount = records.length + changes.inserted.length;
-    const rows = Array.from({length: rowsCount}, (value, index) => getDisplayedRow(changes, records, index));
-    if (!exportRows(format, columns, rows, props.exportName || 'export', editable?.table.name, props.sqlLiteral)) {
+  const exportPage = async (format: ExportFormatType) => {
+    const rowsCount = getRecords().length + changes.inserted.length;
+    // window for printing must be opened by the click - texts are loaded before
+    const printWindow = format === 'pdf' ? window.open('', '_blank') : undefined;
+    const whole = await rowsWithWholeTexts(Array.from({length: rowsCount}, (value, index) => index), columns.map((column, index) => index));
+    warnMissingTexts(whole.missing);
+    const rows = whole.rows;
+    if (!exportRows(format, columns, rows, props.exportName || 'export', editable?.table.name, props.sqlLiteral, printWindow)) {
       toast.error('Window for printing was blocked by browser');
       return;
     }
@@ -440,11 +480,11 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
 
   const onCloneRow = (rowIndex: number) => {
     const source = getDisplayedRow(changes, getRecords(), rowIndex);
-    setRowForm({title: 'Clone row', values: valuesForNewRow(columns, source)});
+    setRowForm({title: 'Clone row', values: valuesForNewRow(columns, source), sourceRowIndex: rowIndex});
   };
 
   const onEditRow = (rowIndex: number) => {
-    setRowForm({title: 'Edit row', values: getDisplayedRow(changes, getRecords(), rowIndex), rowIndex});
+    setRowForm({title: 'Edit row', values: getDisplayedRow(changes, getRecords(), rowIndex), rowIndex, sourceRowIndex: rowIndex});
   };
 
   const onDeleteRow = (rowIndex: number) => {
@@ -501,9 +541,14 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
     if (rowIndex !== null && column) {
       const value = getDisplayedRow(changes, records, rowIndex)[column.key];
       items.push({label: 'Open value editor…', onClick: () => setValueEditor({rowIndex, column})});
-      items.push({label: 'Copy value', onClick: () => copyToClipboard(isBinary16(value) && gridDisplay.display.transforms[column.key] === 'uuid'
-        ? uuidOfHex(value.hex)
-        : isBinaryValue(value) ? (value.text ?? `0x${value.hex}`) as any : value)});
+      items.push({label: 'Copy value', onClick: () => isLongText(value)
+        ? rowsWithWholeTexts([rowIndex], [columns.findIndex((item) => item.key === column.key)]).then(({rows, missing}) => {
+          warnMissingTexts(missing);
+          copyToClipboard(rows[0][column.key]);
+        })
+        : copyToClipboard(isBinary16(value) && gridDisplay.display.transforms[column.key] === 'uuid'
+          ? uuidOfHex(value.hex)
+          : isBinaryValue(value) ? (value.text ?? `0x${value.hex}`) as any : value)});
       if (isBinaryValue(value)) {
         items.push({label: 'Download value', onClick: () => downloadValue(rowIndex, column)});
       }
@@ -527,7 +572,7 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
     // expressions (no table column) cannot be used in WHERE by their alias
     const filterValue = rowIndex !== null && column ? getDisplayedRow(changes, records, rowIndex)[column.key] : undefined;
     // binary value only when it is short (key, UUID) - files are not compared
-    if (rowIndex !== null && column && column.orgName && props.onQuickFilter && (!isBinaryValue(filterValue) || isFilterableBinary(filterValue))) {
+    if (rowIndex !== null && column && column.orgName && props.onQuickFilter && (!isBinaryValue(filterValue) || isFilterableBinary(filterValue)) && !isLongText(filterValue)) {
       const value = filterValue;
       const text = isBinaryValue(value) ? binaryLabel(value) : String(value);
       const shown = value === null || value === undefined ? 'NULL' : text.length > 30 ? `${text.slice(0, 30)}…` : text;
@@ -724,6 +769,7 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
           isNewRow={rowForm.rowIndex === undefined}
           onSave={onSaveRowForm}
           onCancel={() => setRowForm(null)}
+          loadText={rowForm.sourceRowIndex !== undefined ? (column) => gridDisplay.actions.loadText(column, rowForm.sourceRowIndex!) : undefined}
         />
       )}
       {cellPopup && (
@@ -735,6 +781,7 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
             setCellPopup(null);
           }}
           onClose={() => setCellPopup(null)}
+          loadText={() => gridDisplay.actions.loadText(cellPopup.column, cellPopup.rowIndex)}
         />
       )}
       {valueEditor && (
@@ -743,6 +790,7 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
           value={getDisplayedRow(changes, getRecords(), valueEditor.rowIndex)[valueEditor.column.key]}
           editable={canEdit && !!valueEditor.column.editable && getRowState(changes, getRecords(), valueEditor.rowIndex) !== 'deleted'}
           asUuid={gridDisplay.display.transforms[valueEditor.column.key] === 'uuid'}
+          loadText={() => gridDisplay.actions.loadText(valueEditor.column, valueEditor.rowIndex)}
           onSave={(value) => {
             // binary value is kept in the same form as values from server
             onCommitEdit(valueEditor.rowIndex, valueEditor.column, value as CellValueType);

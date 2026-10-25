@@ -2,7 +2,7 @@ import {CellValueType, SingleRowType} from '../Interface/RecordsViewPropsInterfa
 import ColumnInterface from '../../../Library/Table/Interface/ColumnInterface';
 import EditableResultInterface from '../../../Library/Record/Interface/EditableResultInterface';
 import RowChangeInterface from '../../../Library/Record/Interface/RowChangeInterface';
-import {isBinaryValue, isSameBinary} from '../../../Library/Record/BinaryValue';
+import {isBinaryValue, isLongText, isSameBinary} from '../../../Library/Record/BinaryValue';
 
 /**
  * Not submitted changes of grid. Row index is index in records of current result,
@@ -29,6 +29,10 @@ export const isSameValue = (a: CellValueType | undefined, b: CellValueType | und
     return a === b;
   }
   // binary values are objects - String() would make all of them same
+  // preview of long text is the same only as the same preview
+  if (isLongText(a) || isLongText(b)) {
+    return isLongText(a) && isLongText(b) && a.length === b.length && a.text === b.text;
+  }
   if (isBinaryValue(a) || isBinaryValue(b)) {
     return isBinaryValue(a) && isBinaryValue(b) && isSameBinary(a, b);
   }
@@ -155,9 +159,9 @@ export const buildRowChanges = (
 
   const limitOne = editable.primaryKey.length === 0;
   const whereOf = (row: SingleRowType): SingleRowType => {
-    // without primary key: preview of long binary value (BLOB) cannot identify row - other columns and LIMIT 1 do
+    // without primary key: preview of long binary value (BLOB) or text cannot identify row - other columns and LIMIT 1 do
     const identifying = limitOne
-      ? columns.filter((column) => column.editable && !(isBinaryValue(row[column.key]) && (row[column.key] as any).truncated)).map((column) => column.key)
+      ? columns.filter((column) => column.editable && !(isBinaryValue(row[column.key]) && (row[column.key] as any).truncated) && !isLongText(row[column.key])).map((column) => column.key)
       : editable.primaryKey;
     // key column does not have to be editable (e.g. BINARY(16) / bytea key) - it only identifies row
     const where: SingleRowType = {};

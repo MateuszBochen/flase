@@ -6,6 +6,8 @@ interface QueryRequestDataInterface {
   query: QueryInterface;
   database: Database;
   tabId?: string;
+  /** long texts whole, not as preview (export of all rows) */
+  fullValues?: boolean;
 }
 
 export default QueryRequestDataInterface;

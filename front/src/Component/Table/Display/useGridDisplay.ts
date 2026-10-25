@@ -149,44 +149,62 @@ const useGridDisplay = (
 
   const display = useMemo((): GridDisplayInterface => ({transforms, labels}), [transforms, labels]);
 
-  const actions = useMemo((): GridDisplayActionsInterface => ({
-    openImage,
-    loadBinary: (column, rowIndex) => {
-      // row is identified by primary key of editable result
-      if (!connection || !editable?.primaryKey.length || !column.table?.name) return null;
-      const row = getRecords()[rowIndex];
-      if (!row) return null;
+  const actions = useMemo((): GridDisplayActionsInterface => {
+    /** primary key values of row of editable result, null when row cannot be identified */
+    const whereOf = (column: ColumnInterface, row: SingleRowType | undefined): {[name: string]: any} | null => {
+      if (!editable?.primaryKey.length || !column.table?.name || !row) return null;
       const where: {[name: string]: any} = {};
       for (const key of editable.primaryKey) {
         const keyColumn = columns.find((item) => item.key === key);
         where[keyColumn?.orgName || key] = row[key];
       }
-      // value of the row as grid has it - changed value (saved by editor, reload) is loaded again, not old file from cache
-      const preview = row[column.key];
-      const cacheKey = JSON.stringify([connection.id, column.table, column.orgName || column.name, where,
-        isBinaryValue(preview) ? [preview.size, preview.hex] : null]);
-      if (!binaryCache.has(cacheKey)) {
-        binaryCache.set(cacheKey, new Promise((resolve, reject) => {
-          const tabId = `binary-value:${++requestCounter}`;
-          const eventId = EventBus.subscribe<MessageInterface<any>>(WebsocketReceivedAMessage.name, (event) => {
-            const message = event.getData();
-            if (message.payload?.tabId !== tabId) return;
-            EventBus.unSub(eventId);
-            if (message.message === MessageType.BINARY_VALUE) {
-              const result = message.payload as BinaryValueResultInterface;
-              const bytes = Uint8Array.from(atob(result.base64), (char) => char.charCodeAt(0));
-              resolve({url: URL.createObjectURL(new Blob([bytes], {type: result.mimeType || 'application/octet-stream'})), mimeType: result.mimeType});
-            } else {
-              binaryCache.delete(cacheKey);
-              reject(new Error(message.payload?.error));
-            }
-          });
-          sendServerCommand(connection, CommandType.GET_BINARY_VALUE, {tabId, table: editable.table, column: column.orgName || column.name, where});
-        }));
-      }
-      return binaryCache.get(cacheKey)!;
-    },
-  }), [connection, editable, columns, openImage]);
+      return where;
+    };
+    /** whole value of cell as bytes - server sends texts as UTF-8 too */
+    const requestValue = (column: ColumnInterface, where: {[name: string]: any}): Promise<{bytes: Uint8Array, mimeType: string | null}> => new Promise((resolve, reject) => {
+      const tabId = `binary-value:${++requestCounter}`;
+      const eventId = EventBus.subscribe<MessageInterface<any>>(WebsocketReceivedAMessage.name, (event) => {
+        const message = event.getData();
+        if (message.payload?.tabId !== tabId) return;
+        EventBus.unSub(eventId);
+        if (message.message === MessageType.BINARY_VALUE) {
+          const result = message.payload as BinaryValueResultInterface;
+          resolve({bytes: Uint8Array.from(atob(result.base64), (char) => char.charCodeAt(0)), mimeType: result.mimeType});
+        } else {
+          reject(new Error(message.payload?.error));
+        }
+      });
+      sendServerCommand(connection!, CommandType.GET_BINARY_VALUE, {tabId, table: editable!.table, column: column.orgName || column.name, where});
+    });
+
+    return {
+      openImage,
+      loadBinary: (column, rowIndex) => {
+        // row is identified by primary key of editable result
+        const row = getRecords()[rowIndex];
+        const where = whereOf(column, row);
+        if (!connection || !where) return null;
+        // value of the row as grid has it - changed value (saved by editor, reload) is loaded again, not old file from cache
+        const preview = row[column.key];
+        const cacheKey = JSON.stringify([connection.id, column.table, column.orgName || column.name, where,
+          isBinaryValue(preview) ? [preview.size, preview.hex] : null]);
+        if (!binaryCache.has(cacheKey)) {
+          const loading = requestValue(column, where).then(({bytes, mimeType}) => ({
+            url: URL.createObjectURL(new Blob([bytes], {type: mimeType || 'application/octet-stream'})),
+            mimeType,
+          }));
+          loading.catch(() => binaryCache.delete(cacheKey));
+          binaryCache.set(cacheKey, loading);
+        }
+        return binaryCache.get(cacheKey)!;
+      },
+      loadText: (column, rowIndex) => {
+        const where = whereOf(column, getRecords()[rowIndex]);
+        if (!connection || !where) return null;
+        return requestValue(column, where).then(({bytes}) => new TextDecoder().decode(bytes));
+      },
+    };
+  }, [connection, editable, columns, openImage]);
 
   /** "Display as" and "Show from referenced table" of column */
   const menuItems = (column: ColumnInterface): ContextMenuItem[] => {

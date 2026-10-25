@@ -23,8 +23,9 @@ interface DriverSessionInterface {
   /**
    * Stream rows of given select query. Observable completes when all rows were sent.
    * onFields is called once with description of result columns, before first row.
+   * Long texts are sent as preview, fullValues = whole.
    */
-  streamSelect(query: string, onFields?: (fields: ResultFieldInterface[]) => void): Observable<RowDto>;
+  streamSelect(query: string, onFields?: (fields: ResultFieldInterface[]) => void, fullValues?: boolean): Observable<RowDto>;
 
   /**
    * Execute statements in one transaction, resolves with sum of affected rows.

@@ -103,3 +103,20 @@
 .vertical-slider-root .vertical-slider-item.group > .vertical-slider-item-component > .vertical-slider-root > ul {
   padding: 0;
 }
+
+/* closed items around open one folded into one row - list of tables gets the space */
+.vertical-slider-root ul .vertical-slider-fold {
+  padding: 2px 3px 2px 15px;
+  border-bottom: solid 1px var(--panel);
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+  user-select: none;
+}
+.vertical-slider-root ul .vertical-slider-fold:hover {
+  color: var(--text-strong);
+  background: var(--inset-soft);
+}
+.vertical-slider-root ul .vertical-slider-fold:last-child {
+  border: none;
+}

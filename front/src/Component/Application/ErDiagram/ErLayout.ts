@@ -42,14 +42,25 @@ export const relationsOf = (tables: TableInformationInterface[]): RelationType[]
  * Tables without any relation are placed in grid after related ones.
  */
 export const autoLayout = (tables: TableInformationInterface[], relations: RelationType[]): {[table: string]: BoxType} => {
+  // referenced tables of each table - relations are not searched again for every table (thousands of tables)
+  const referencedBy = new Map<string, string[]>();
+  relations.forEach((relation) => {
+    if (relation.to === relation.from) return;
+    const referenced = referencedBy.get(relation.from);
+    if (referenced) referenced.push(relation.to);
+    else referencedBy.set(relation.from, [relation.to]);
+  });
   const level = new Map<string, number>();
   const visiting = new Set<string>();
   const levelOf = (name: string): number => {
     if (level.has(name)) return level.get(name)!;
     if (visiting.has(name)) return 0;
     visiting.add(name);
-    const referenced = relations.filter((relation) => relation.from === name && relation.to !== name);
-    const value = referenced.length ? 1 + Math.max(...referenced.map((relation) => levelOf(relation.to))) : 0;
+    const referenced = referencedBy.get(name) || [];
+    let value = 0;
+    referenced.forEach((to) => {
+      value = Math.max(value, 1 + levelOf(to));
+    });
     visiting.delete(name);
     level.set(name, value);
     return value;
@@ -60,11 +71,20 @@ export const autoLayout = (tables: TableInformationInterface[], relations: Relat
   const isolated = tables.filter((table) => !related.has(table.tableName));
   const boxes: {[table: string]: BoxType} = {};
 
+  // tables of each layer in one pass
+  const byLevel = new Map<number, TableInformationInterface[]>();
+  connected.forEach((table) => {
+    const current = levelOf(table.tableName);
+    const inLevel = byLevel.get(current);
+    if (inLevel) inLevel.push(table);
+    else byLevel.set(current, [table]);
+  });
+
   // columns of layers, long layer is wrapped
   let x = 20;
-  const levels = Array.from(new Set(connected.map((table) => levelOf(table.tableName)))).sort((a, b) => a - b);
+  const levels = Array.from(byLevel.keys()).sort((a, b) => a - b);
   levels.forEach((current) => {
-    const inLevel = connected.filter((table) => levelOf(table.tableName) === current).sort((a, b) => a.tableName.localeCompare(b.tableName));
+    const inLevel = byLevel.get(current)!.sort((a, b) => a.tableName.localeCompare(b.tableName));
     let y = 20;
     let columnWidth = 0;
     inLevel.forEach((table) => {

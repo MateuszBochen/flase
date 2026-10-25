@@ -9,7 +9,7 @@ import ResultFieldInterface from '../../Interface/Data/ResultFieldInterface';
 import RowChangeStatementInterface from '../../Interface/Data/RowChangeStatementInterface';
 import {StatementResultType} from '../../Interface/Data/StatementInterface';
 import SelectAnalyser from '../../Query/SelectAnalyser';
-import {serializeBinaryValue} from '../BinaryValue';
+import {serializeValue} from '../BinaryValue';
 import {FOREIGN_KEY_CHECKS_OFF, TransactionOptionsInterface} from '../../ForeignKeyChecks';
 
 /**
@@ -54,7 +54,7 @@ class MysqlSession implements DriverSessionInterface {
     });
   }
 
-  streamSelect(query: string, onFields?: (fields: ResultFieldInterface[]) => void): Observable<RowDto> {
+  streamSelect(query: string, onFields?: (fields: ResultFieldInterface[]) => void, fullValues = false): Observable<RowDto> {
     console.log(`\x1b[33m Query Stream: ${query} \x1b[0m`);
 
     return new Observable(observer => {
@@ -69,7 +69,7 @@ class MysqlSession implements DriverSessionInterface {
         })
         .on('result', (row: {[table: string]: RecordType}) => {
           const flatRow: RecordType = {};
-          resultFields.forEach((field) => flatRow[field.key] = serializeBinaryValue(row[field.table]?.[field.name]));
+          resultFields.forEach((field) => flatRow[field.key] = serializeValue(row[field.table]?.[field.name], fullValues));
           observer.next(new RowDto(flatRow));
         })
         // 'end' is emitted also after error - complete is then ignored by rxjs
@@ -169,7 +169,7 @@ class MysqlSession implements DriverSessionInterface {
           // rest of rows is read but not sent - result without LIMIT must not flood client
           if (rows <= maxRows) {
             const flatRow: RecordType = {};
-            resultFields.forEach((field) => flatRow[field.key] = serializeBinaryValue(row[field.table]?.[field.name]));
+            resultFields.forEach((field) => flatRow[field.key] = serializeValue(row[field.table]?.[field.name]));
             onRow(flatRow);
           }
         })
