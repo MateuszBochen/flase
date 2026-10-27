@@ -22,6 +22,13 @@ import useConnectionSettings from '../../../Library/Connection/useConnectionSett
 import TabState from '../../../Library/Tabs/TabState';
 import useDatabaseOperation from '../../DatabaseOperations/useDatabaseOperation';
 import CreateViewPopup from '../../DatabaseOperations/CreateViewPopup';
+import TableInformationWasReceived from '../../../Library/Table/Event/TableInformationWasReceived';
+import {bindParameters, parametersOf} from '../../../Library/Console/SqlParameters';
+import {inspectSql, unsafeChangeOf} from '../../../Library/Console/SqlInspections';
+import ParametersPopup, {ParameterValuesType} from './ParametersPopup';
+import Popup from '../../../UI/Popup/Popup';
+import Button from '../../../UI/Button/Button';
+import ExplainPopup from '../TableRecords/UI/ExplainPopup';
 
 export interface SqlConsolePropsInterface extends ApplicationInterface {
   connection: ConnectionDataInterface;
@@ -34,6 +41,12 @@ export interface SqlConsolePropsInterface extends ApplicationInterface {
 }
 
 const MAX_ROWS = 1000;
+/** owner of markers of inspections in editor model */
+const INSPECTIONS = 'flase-inspections';
+
+/** statements waiting for values of :parameters or for confirmation of change of all rows */
+type PendingRunType = {kind: 'parameters', statements: string[], names: string[], then: (statements: string[]) => void}
+  | {kind: 'unsafe', statements: string[], unsafe: string[]};
 
 /** RAISE NOTICE / WARNING of PostgreSQL statement */
 const noticesOf = (log: StatementLogType): string[] => log.result?.kind === 'ok'
@@ -66,6 +79,9 @@ export default (props: SqlConsolePropsInterface) => {
   const [activeResult, setActiveResult] = useState<'messages' | number>('messages');
   const [editorHeight, setEditorHeight] = useState<number>(220);
   const editorRef = useRef<any>(null);
+  const monacoRef = useRef<any>(null);
+  const [pendingRun, setPendingRun] = useState<PendingRunType | null>(null);
+  const [explainQuery, setExplainQuery] = useState<string | null>(null);
   const store = QueryStore.getInstance();
   const driver = DriverFactory.getDriver(props.connection);
   const connection = useConnectionSettings(props.connection);
@@ -129,13 +145,44 @@ export default (props: SqlConsolePropsInterface) => {
     return statement ? [statement.sql] : [];
   };
 
+  const execute = (statements: string[]) => {
+    setActiveResult('messages');
+    runner.run(statements, database, MAX_ROWS);
+  };
+
+  /** UPDATE / DELETE without WHERE is executed after confirmation */
+  const confirmAndExecute = (statements: string[]) => {
+    const unsafe = statements.filter((sql) => unsafeChangeOf(sql, driver.dialect));
+    if (unsafe.length) {
+      setPendingRun({kind: 'unsafe', statements, unsafe});
+    } else {
+      execute(statements);
+    }
+  };
+
+  /** :parameters get values first */
+  const withParameters = (statements: string[], then: (statements: string[]) => void) => {
+    const names = parametersOf(statements, driver.dialect);
+    if (names.length) {
+      setPendingRun({kind: 'parameters', statements, names, then});
+    } else {
+      then(statements);
+    }
+  };
+
   const start = (statements: string[]) => {
     if (!statements.length) {
       toast.error('Nothing to execute');
       return;
     }
-    setActiveResult('messages');
-    runner.run(statements, database, MAX_ROWS);
+    withParameters(statements, confirmAndExecute);
+  };
+
+  const bindValues = (statements: string[], values: ParameterValuesType): string[] => {
+    // values are offered again next time (also after reload)
+    TabState.update(props.tabId, {parameters: {...(TabState.get(props.tabId).parameters || {}), ...values}});
+    const literals = Object.fromEntries(Object.entries(values).map(([name, value]) => [name, value.sql ? value.value.trim() || 'NULL' : driver.sql.value(value.value)]));
+    return statements.map((sql) => bindParameters(sql, driver.dialect, literals));
   };
 
   const runCurrent = () => start(currentStatements());
@@ -146,7 +193,7 @@ export default (props: SqlConsolePropsInterface) => {
       toast.error('Nothing to explain');
       return;
     }
-    start([/^\s*explain\b/i.test(statement) ? statement : `EXPLAIN ${statement}`]);
+    withParameters([statement], ([bound]) => setExplainQuery(bound));
   };
 
   // keyboard commands of monaco call the latest handlers
@@ -155,6 +202,7 @@ export default (props: SqlConsolePropsInterface) => {
 
   const onEditorMount = (editor: any, monaco: any) => {
     editorRef.current = editor;
+    monacoRef.current = monaco;
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => handlers.current.runCurrent());
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.Enter, () => handlers.current.runAll());
     // text of console survives reload of page
@@ -169,7 +217,11 @@ export default (props: SqlConsolePropsInterface) => {
         setTimeout(() => handlers.current.runAll());
       }
     }
-    editor.onDidChangeModelContent(() => TabState.update(props.tabId, {draft: editor.getValue()}));
+    editor.onDidChangeModelContent(() => {
+      TabState.update(props.tabId, {draft: editor.getValue()});
+      scheduleInspection();
+    });
+    scheduleInspection();
     editor.focus();
   };
 
@@ -228,6 +280,48 @@ export default (props: SqlConsolePropsInterface) => {
     }
   }, [database, props.connection]);
 
+  /** warnings in editor: UPDATE / DELETE without WHERE, unknown tables and columns of selected database */
+  const inspectionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inspect = () => {
+    const editor = editorRef.current;
+    const monaco = monacoRef.current;
+    const model = editor?.getModel();
+    if (!model || !monaco) return;
+    const text = model.getValue();
+    const tables = database ? TableManager.getInstance().getTablesListForDatabase(props.connection, {name: database}) : [];
+    const problems = inspectSql(text, splitSql(text, driver.dialect), driver.dialect, {
+      database,
+      tables: tables.length ? tables.map((table) => ({name: table.tableName, columns: table.columns.map((column) => column.name)})) : null,
+    });
+    monaco.editor.setModelMarkers(model, INSPECTIONS, problems.map((problem) => {
+      const start = model.getPositionAt(problem.start);
+      const end = model.getPositionAt(problem.end);
+      return {
+        severity: monaco.MarkerSeverity.Warning,
+        message: problem.message,
+        startLineNumber: start.lineNumber,
+        startColumn: start.column,
+        endLineNumber: end.lineNumber,
+        endColumn: end.column,
+      };
+    }));
+  };
+  const inspectRef = useRef(inspect);
+  inspectRef.current = inspect;
+  const scheduleInspection = () => {
+    if (inspectionTimer.current) clearTimeout(inspectionTimer.current);
+    inspectionTimer.current = setTimeout(() => inspectRef.current(), 300);
+  };
+  // other database or its tables loaded
+  useEffect(() => {
+    scheduleInspection();
+    const eventId = EventBus.subscribe(TableInformationWasReceived.name, scheduleInspection);
+    return () => {
+      EventBus.unSub(eventId);
+      if (inspectionTimer.current) clearTimeout(inspectionTimer.current);
+    };
+  }, [database, props.connection]);
+
   const getCompletionTables = (): CompletionTableType[] => database
     ? TableManager.getInstance().getTablesListForDatabase(props.connection, {name: database}).map((table) => ({
       name: table.tableName,
@@ -271,7 +365,7 @@ export default (props: SqlConsolePropsInterface) => {
         <button type="button" onClick={runAll} disabled={runner.running} title="Execute all statements (Ctrl+Shift+Enter)">
           <FontAwesomeIcon icon={faForwardFast} /> Run all
         </button>
-        <button type="button" onClick={explain} disabled={runner.running} title="EXPLAIN of statement under cursor">
+        <button type="button" onClick={explain} disabled={runner.running} title="Execution plan of statement under cursor">
           <FontAwesomeIcon icon={faMagnifyingGlassChart} /> Explain
         </button>
         {runner.running && (
@@ -347,6 +441,34 @@ export default (props: SqlConsolePropsInterface) => {
         <CreateViewPopup database={database} select={viewSelect} busy={viewOperation.busy} onPreview={viewOperation.run} onCancel={() => setViewSelect(null)} />
       )}
       {viewOperation.element}
+      {pendingRun?.kind === 'parameters' && (
+        <ParametersPopup
+          names={pendingRun.names}
+          values={TabState.get(props.tabId).parameters || {}}
+          onRun={(values) => { setPendingRun(null); pendingRun.then(bindValues(pendingRun.statements, values)); }}
+          onCancel={() => setPendingRun(null)}
+        />
+      )}
+      {explainQuery !== null && (
+        <ExplainPopup connection={props.connection} database={database} query={explainQuery} tabId={props.tabId || 'console'} onClose={() => setExplainQuery(null)} />
+      )}
+      {pendingRun?.kind === 'unsafe' && (
+        <Popup
+          openOnMount
+          label="Change all rows?"
+          onClickOk={() => setPendingRun(null)}
+          onClose={() => setPendingRun(null)}
+          buttons={[
+            <Button key="run" size="small" colorVariant="danger" label="Hold to execute" onClick={() => { setPendingRun(null); execute(pendingRun.statements); }} />,
+            <Button key="cancel" size="small" label="Cancel" onClick={() => setPendingRun(null)} />,
+          ]}
+        >
+          <div className="console-unsafe">
+            <p>{pendingRun.unsafe.length === 1 ? 'Statement has' : `${pendingRun.unsafe.length} statements have`} no WHERE - every row of the table is changed.</p>
+            {pendingRun.unsafe.map((sql, index) => <pre key={index} className="cmp-sql-preview">{sql}</pre>)}
+          </div>
+        </Popup>
+      )}
     </div>
   );
 }

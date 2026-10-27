@@ -48,6 +48,7 @@ import {binaryLabel, isBinaryColumn, isBinaryValue, isFilterableBinary, isLongTe
 import {isBinary16, uuidOfHex} from '../../Library/Record/Uuid';
 import toast from 'react-hot-toast';
 import {downloadBinary} from '../../Library/Record/BinaryDownload';
+import {describeSelectionStats, selectionStats} from './Copy/SelectionStats';
 
 type QueryStatus = {
   loading: boolean;
@@ -292,6 +293,15 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
 
   const columnsRef = useRef<ColumnInterface[]>([]);
   columnsRef.current = columns;
+
+  /** count, sum, average... of selected cells in footer - more than one cell selected */
+  const selectionSummary = useMemo(() => {
+    if (!selection) return null;
+    const records = getRecords();
+    const stats = selectionStats(selection, records.length + changes.inserted.length, columns.map((column) => column.key),
+      (rowIndex) => getDisplayedRow(changes, records, rowIndex));
+    return stats.cells > 1 ? describeSelectionStats(stats) : null;
+  }, [selection, changes, columns]);
 
   const edit: GridEditInterface = useMemo(() => ({
     changes,
@@ -717,6 +727,7 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
           onCancel={props.onCancelQuery}
           ref={footerRef}
         >
+          {selectionSummary && <span className="pager-selection-stats" title="Selected cells - sum, average, minimum and maximum of numbers">{selectionSummary}</span>}
           <button
             type="button"
             className="pager-export"

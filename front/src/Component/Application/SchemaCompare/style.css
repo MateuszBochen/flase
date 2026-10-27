@@ -1,0 +1,157 @@
+.cmp-schema-compare {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  padding: 10px;
+  color: var(--text);
+  background-color: var(--bg);
+}
+
+.cmp-schema-compare .compare-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.cmp-schema-compare .compare-side {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cmp-schema-compare .compare-label {
+  color: var(--text-muted);
+}
+
+.cmp-schema-compare .compare-arrow {
+  color: var(--accent);
+}
+
+.cmp-schema-compare select,
+.cmp-schema-compare button {
+  padding: 3px 8px;
+  border: solid 1px var(--border-strong);
+  border-radius: 3px;
+  color: var(--text);
+  background-color: var(--input-bg);
+  font: inherit;
+}
+
+.cmp-schema-compare button {
+  cursor: pointer;
+}
+
+.cmp-schema-compare button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.cmp-schema-compare .compare-run {
+  color: var(--primary-text);
+  background-color: var(--primary);
+  border-color: var(--primary);
+}
+
+.cmp-schema-compare .compare-hint {
+  margin: 8px 0;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.cmp-schema-compare .compare-error {
+  color: var(--danger-text);
+  font-family: var(--font-mono);
+}
+
+.cmp-schema-compare .compare-result {
+  display: flex;
+  flex: 1;
+  gap: 12px;
+  min-height: 0;
+}
+
+.cmp-schema-compare .compare-tables {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+}
+
+.cmp-schema-compare .compare-summary {
+  margin-bottom: 8px;
+  color: var(--title-soft);
+}
+
+.cmp-schema-compare .compare-warning,
+.cmp-schema-compare .compare-manual {
+  color: var(--title-soft);
+}
+
+.cmp-schema-compare .compare-table {
+  margin-bottom: 6px;
+  padding: 4px 8px;
+  border-left: solid 3px var(--border-strong);
+}
+
+.cmp-schema-compare .compare-table.create {
+  border-left-color: var(--success-text);
+}
+
+.cmp-schema-compare .compare-table.drop {
+  border-left-color: var(--danger-text);
+}
+
+.cmp-schema-compare .compare-table.alter {
+  border-left-color: var(--accent);
+}
+
+.cmp-schema-compare .compare-table-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cmp-schema-compare .compare-status {
+  min-width: 90px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.cmp-schema-compare .compare-table ul {
+  margin: 2px 0 0;
+  padding-left: 40px;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+
+.cmp-schema-compare .compare-script {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.cmp-schema-compare .compare-script-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.cmp-schema-compare .compare-script-toolbar span {
+  flex: 1;
+  color: var(--text-muted);
+}
+
+.cmp-schema-compare .compare-sql {
+  flex: 1;
+  margin: 0;
+  overflow: auto;
+}
+
+@media (max-width: 900px) {
+  .cmp-schema-compare .compare-result {
+    flex-direction: column;
+  }
+}

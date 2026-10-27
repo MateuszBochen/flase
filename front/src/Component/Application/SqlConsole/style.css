@@ -323,3 +323,15 @@
   font-weight: bold;
   letter-spacing: 0.05em;
 }
+
+/**   CONFIRMATION OF UPDATE / DELETE WITHOUT WHERE, PARAMETERS   */
+.console-unsafe {
+  max-width: 640px;
+}
+.console-unsafe p {
+  margin: 0 0 8px;
+}
+.cmp-query-parameters .parameter-name {
+  font-family: monospace;
+  color: var(--title-soft);
+}

@@ -19,6 +19,7 @@ import DatabaseOverview from '../Application/DatabaseOverview/DatabaseOverview';
 import CreateTable from '../Application/CreateTable/CreateTable';
 import ServerStatus from '../Application/ServerStatus/ServerStatus';
 import QueryBuilder from '../Application/QueryBuilder/QueryBuilder';
+import SchemaCompare from '../Application/SchemaCompare/SchemaCompare';
 
 /**
  * Open tabs are remembered in browser and opened again after reload of page.
@@ -49,6 +50,7 @@ const TAB_TYPES: {type: string, component: FC<any>, connection?: boolean, valid?
   {type: 'create-table', component: CreateTable, connection: true, valid: (props) => isName(props.database)},
   {type: 'server-status', component: ServerStatus, connection: true},
   {type: 'query-builder', component: QueryBuilder, connection: true, valid: (props) => isName(props.database)},
+  {type: 'schema-compare', component: SchemaCompare, connection: true, valid: (props) => isName(props.database)},
 ];
 
 type StoredTabType = {id: string, type: string, tabName: string, props: {[key: string]: any} | null, connectionId?: string};

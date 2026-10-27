@@ -125,8 +125,8 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
-    width: 80vw;
-    max-width: 1300px;
+    /* inside of popup (max 1100px, padding 18px) */
+    width: calc(min(1100px, 92vw) - 36px);
 }
 .cmp-explain .explain-query {
     margin: 0;
@@ -146,4 +146,139 @@
 }
 .cmp-explain .explain-loading {
     color: var(--text-muted);
+}
+.cmp-explain .explain-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.cmp-explain .explain-toolbar button {
+    padding: 2px 10px;
+    border: solid 1px var(--border-strong);
+    border-radius: 3px;
+    color: var(--text);
+    background: transparent;
+    font: inherit;
+    cursor: pointer;
+}
+.cmp-explain .explain-toolbar button.active {
+    color: var(--text-strong);
+    background-color: var(--tab-hover);
+}
+.cmp-explain .explain-analyze {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 12px;
+    color: var(--text);
+}
+
+/**   PLAN TREE   */
+.cmp-plan-tree {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 60vh;
+}
+.cmp-plan-tree .plan-rows {
+    overflow: auto;
+    border: solid 1px var(--border);
+    font-size: 0.85rem;
+}
+.cmp-plan-tree .plan-row {
+    display: grid;
+    grid-template-columns: minmax(240px, 1fr) 130px 80px 90px 120px;
+    align-items: center;
+    gap: 8px;
+    padding: 2px 8px;
+    border-bottom: solid 1px var(--grid-line);
+    cursor: default;
+}
+.cmp-plan-tree .plan-row:not(.plan-header):hover {
+    background-color: var(--hover);
+}
+.cmp-plan-tree .plan-row.selected {
+    background-color: var(--selection);
+}
+.cmp-plan-tree .plan-header {
+    position: sticky;
+    top: 0;
+    color: var(--text-muted);
+    background-color: var(--grid-header);
+}
+.cmp-plan-tree .plan-step {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    white-space: nowrap;
+}
+.cmp-plan-tree .plan-toggle {
+    width: 14px;
+    flex: none;
+    padding: 0;
+    border: none;
+    color: var(--text-muted);
+    background: transparent;
+    font: inherit;
+    cursor: pointer;
+}
+.cmp-plan-tree .plan-title {
+    color: var(--text-strong);
+}
+.cmp-plan-tree .plan-object {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--title-soft);
+    font-family: var(--font-mono);
+}
+.cmp-plan-tree .plan-warning {
+    flex: none;
+    padding: 0 5px;
+    border: solid 1px var(--danger-text-soft);
+    border-radius: 3px;
+    color: var(--danger-text-soft);
+    font-size: 0.75rem;
+}
+.cmp-plan-tree .plan-number {
+    text-align: right;
+    font-family: var(--font-mono);
+    color: var(--number);
+}
+.cmp-plan-tree .plan-number.misestimate {
+    color: var(--danger-text-soft);
+}
+.cmp-plan-tree .plan-bar {
+    height: 8px;
+    background-color: var(--inset-soft);
+}
+.cmp-plan-tree .plan-bar span {
+    display: block;
+    height: 100%;
+    background-color: var(--accent);
+}
+.cmp-plan-tree .plan-details {
+    overflow: auto;
+    max-height: 22vh;
+    font-size: 0.85rem;
+}
+.cmp-plan-tree .plan-totals {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 6px;
+    color: var(--text-muted);
+}
+.cmp-plan-tree .plan-details dl {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 2px 12px;
+    margin: 0;
+}
+.cmp-plan-tree .plan-details dt {
+    color: var(--text-muted);
+}
+.cmp-plan-tree .plan-details dd {
+    margin: 0;
+    font-family: var(--font-mono);
+    word-break: break-word;
 }

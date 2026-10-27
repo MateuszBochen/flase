@@ -23,6 +23,7 @@ import TransferTab from '../Application/Transfer/TransferTab';
 import DatabaseSearch from '../Application/DatabaseSearch/DatabaseSearch';
 import ErDiagram from '../Application/ErDiagram/ErDiagram';
 import QueryBuilder from '../Application/QueryBuilder/QueryBuilder';
+import SchemaCompare from '../Application/SchemaCompare/SchemaCompare';
 import groupedItems from '../../UI/VerticalSlider/groupedItems';
 import DatabaseGrouping, {useDatabaseGrouping} from '../../Library/Database/DatabaseGrouping';
 
@@ -110,6 +111,7 @@ export default (props: DatabaseListMenuPropsInterface) => {
       {label: 'Search in data', onClick: () => openTab({component: DatabaseSearch, props: {connection: props.connection, database: {name: database}}, tabName: `Search: ${database}`})},
       {label: 'Query builder', onClick: () => openTab({component: QueryBuilder, props: {connection: props.connection, database}, tabName: `Query builder: ${database}`})},
       {label: 'ER diagram', onClick: () => openTab({component: ErDiagram, props: {connection: props.connection, database}, tabName: `ER: ${database}`})},
+      {label: 'Compare schema…', onClick: () => openTab({component: SchemaCompare, props: {connection: props.connection, database}, tabName: `Compare: ${database}`})},
       'separator',
       {label: 'Reload tables', onClick: () => TableManager.getInstance().askForTableList(props.connection, {name: database}, true)},
       'separator',
