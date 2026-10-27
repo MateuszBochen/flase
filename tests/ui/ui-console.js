@@ -158,9 +158,13 @@ const check = (name, ok, info = '') => {
   // explain
   await setConsoleText('SELECT * FROM orders WHERE customer_id = 8;', 5);
   await consoleTab().getByRole('button', {name: 'Explain'}).click();
-  await waitIdle();
-  const headers = await consoleTab().locator('.console-result-grid .header-cell .column-name').allInnerTexts();
+  await page.locator('.cmp-plan-tree .plan-row:not(.plan-header)').first().waitFor({timeout: 10000});
+  check('explain as plan tree', /orders/.test(await page.locator('.cmp-plan-tree').innerText()), await page.locator('.cmp-explain').innerText());
+  await page.locator('.cmp-explain').getByRole('tab', {name: 'Table'}).click();
+  await page.locator('.cmp-explain .header-cell').first().waitFor({timeout: 10000});
+  const headers = await page.locator('.cmp-explain .header-cell .column-name').allInnerTexts();
   check('explain as table', headers.includes('select_type') && headers.includes('key'), JSON.stringify(headers));
+  await page.getByRole('button', {name: 'Close'}).click();
 
   // USE changes database
   await setConsoleText('USE blog;\nSELECT DATABASE() AS db;');
@@ -233,11 +237,14 @@ const check = (name, ok, info = '') => {
   await page.getByText('orders', {exact: true}).first().dispatchEvent('mousedown');
   await page.waitForTimeout(1500);
   await visibleTab().getByRole('button', {name: 'Explain query'}).click();
-  await page.waitForTimeout(1500);
+  await page.locator('.cmp-plan-tree .plan-row:not(.plan-header)').first().waitFor({timeout: 10000});
   await page.screenshot({path: `${OUT}/97-explain.png`});
+  check('explain plan in data tab', /Full table scan/.test(await page.locator('.cmp-plan-tree').innerText()) && (await page.locator('.cmp-explain .explain-query').innerText()).startsWith('SELECT'), await page.locator('.cmp-explain').innerText());
+  await page.locator('.cmp-explain').getByRole('tab', {name: 'Table'}).click();
+  await page.locator('.cmp-explain .data-table-row').first().waitFor({timeout: 10000});
   const explainHeaders = await page.locator('.cmp-explain .header-cell .column-name').allInnerTexts();
   check('explain row visible', await page.locator('.cmp-explain .data-table-row').count() === 1);
-  check('explain popup in data tab', explainHeaders.includes('select_type') && (await page.locator('.cmp-explain .explain-query').innerText()).startsWith('EXPLAIN SELECT'), JSON.stringify(explainHeaders));
+  check('explain table in data tab', explainHeaders.includes('select_type'), JSON.stringify(explainHeaders));
   await page.getByRole('button', {name: 'Close'}).click();
   await visibleTab().locator('.monaco-editor').click();
   await page.keyboard.press('Control+A');

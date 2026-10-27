@@ -223,6 +223,11 @@ class ConnectionManager {
     client.reconnectNow();
   }
 
+  /** logged in connections - e.g. targets of schema compare */
+  getEstablishedConnections(): EstablishedConnectionInterface[] {
+    return Object.values(this.listOfEstablishedConnections);
+  }
+
   getEstablishedConnection(data: ConnectionDataInterface): EstablishedConnectionInterface {
     if (this.listOfEstablishedConnections[data.id]) {
       return this.listOfEstablishedConnections[data.id];

@@ -4,7 +4,7 @@ import EstablishConnection from './App/Connection/EstablishConnection';
 import EstablishConnectionResultInterface from './App/Connection/Interface/EstablishConnectionResultInterface';
 import EstablishedUser from './App/Connection/Interface/EstablishedUser';
 import WebsocketRequest from './App/Websocket/WebsocketRequest';
-import SessionStore, {CLOSE_SESSION_NOT_FOUND} from './App/Session/SessionStore';
+import {CLOSE_SESSION_NOT_FOUND, sessionStore} from './App/Session/SessionStore';
 import TransferRegistry from './App/Transfer/TransferRegistry';
 import {importCsv, importSql} from './App/Transfer/Importers';
 import MessageType from './App/Websocket/Enum/MessageType';
@@ -32,7 +32,7 @@ app.use(bodyParser.json());
 
 
 /** logged in database connections */
-const sessions = new SessionStore();
+const sessions = sessionStore;
 
 
 /**

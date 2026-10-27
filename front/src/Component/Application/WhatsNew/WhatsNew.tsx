@@ -24,9 +24,9 @@ import './style.css';
 const FEATURES = [
   {icon: faTableCells, title: 'Data grid', text: 'Edit cells and rows, multi selection, quick filters, foreign key navigation, copy as CSV / SQL / Markdown.'},
   {icon: faTableColumns, title: 'Structure', text: 'Columns, indexes, keys and triggers. Every DDL is previewed as SQL before execution.'},
-  {icon: faTerminal, title: 'SQL console', text: 'Many statements, results in tabs, history, saved queries, EXPLAIN and cancel of running query.'},
+  {icon: faTerminal, title: 'SQL console', text: 'Many statements, results in tabs, :parameters, warnings of UPDATE without WHERE, execution plan as tree.'},
   {icon: faRightLeft, title: 'Import / export', text: 'Streamed SQL dumps (also gzip), SQL and CSV import with progress, column mapping and preview.'},
-  {icon: faDiagramProject, title: 'ER diagram', text: 'Tables and relations of database, movable layout, export to SVG.'},
+  {icon: faDiagramProject, title: 'ER diagram', text: 'Tables and relations of database, movable layout, export to SVG. Schema compare with migration script.'},
   {icon: faUsersGear, title: 'Users & privileges', text: 'Accounts, roles and GRANTs of MySQL, MariaDB and PostgreSQL.'},
   {icon: faLock, title: 'Safe production', text: 'Colored connections, read only mode enforced by server and database session.'},
 ];

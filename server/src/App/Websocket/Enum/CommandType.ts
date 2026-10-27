@@ -29,6 +29,7 @@ enum CommandType {
   FIND_REPLACE = 'FIND_REPLACE',
   GET_BINARY_VALUE = 'GET_BINARY_VALUE',
   GET_CATALOGS = 'GET_CATALOGS',
+  COMPARE_SCHEMA = 'COMPARE_SCHEMA',
 }
 
 export default CommandType;

@@ -30,6 +30,7 @@ import {
 } from './CommandHandler/ServerCommandHandlers';
 import {GetDatabaseObjectsCommandHandler, GetObjectDdlCommandHandler, GetServerOptionsCommandHandler} from './CommandHandler/DatabaseObjectsCommandHandlers';
 import QueryErrorInterface from '../Driver/Interface/Data/QueryErrorInterface';
+import CompareSchemaCommandHandler from './CommandHandler/CompareSchemaCommandHandler';
 
 class WebsocketRequest {
   /** same command sent again in this time is skipped (react strict mode runs effects twice) */
@@ -161,6 +162,7 @@ class WebsocketRequest {
     [CommandType.FIND_REPLACE]: FindReplaceCommandHandler,
     [CommandType.GET_BINARY_VALUE]: GetBinaryValueCommandHandler,
     [CommandType.GET_CATALOGS]: GetCatalogsCommandHandler,
+    [CommandType.COMPARE_SCHEMA]: CompareSchemaCommandHandler,
   };
 
   private sendError(command: CommandInterface, error: any): void {

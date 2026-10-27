@@ -39,6 +39,7 @@ import and export dumps, draw ER diagrams and manage users - all from one self-h
 - **Find and replace** in column (text or regular expression) with preview of changed rows
 - Value of **referenced row next to foreign key** (display column) and **transformations** - image, link, date from Unix time, size, yes / no
 - Resizable columns (drag the header edge, double click to fit content) remembered per table
+- **Count, sum, average, min and max** of selected cells in footer
 - Value editor for JSON (format / minify), long texts and binary values - edited as hex, text, UUID or uploaded file
 - UUID and binary (BINARY(16), bytea) primary keys, tables without primary key
 
@@ -61,8 +62,11 @@ import and export dumps, draw ER diagrams and manage users - all from one self-h
 ### SQL console
 - Many statements in one run, results in tabs, messages with timing and affected rows
 - Run statement under cursor (Ctrl + Enter) or everything (Ctrl + Shift + Enter)
-- Query history and saved queries, EXPLAIN, cancel of running query (KILL QUERY / pg_cancel_backend)
+- Query history and saved queries, cancel of running query (KILL QUERY / pg_cancel_backend)
 - SQL completion of tables, columns and keywords (Monaco editor)
+- **Execution plan as tree** - cost, rows and share of every step, full scans marked; **Analyze** shows actual rows and time
+- **Parameters** `:name` - values are asked before execution
+- **Inspections** - UPDATE / DELETE without WHERE is underlined and needs confirmation, unknown tables and columns are underlined
 
 ![SQL console of Flase](docs/screenshot-sql-console.png)
 
@@ -81,6 +85,7 @@ import and export dumps, draw ER diagrams and manage users - all from one self-h
 ### More
 - **Visual query builder** - tables and joins on canvas, columns with filters, sort and aggregates, live SQL
 - **ER diagram** of a database with movable layout, SVG export and drawing of relations (foreign keys)
+- **Schema compare** - differences of two databases (also on other servers) and migration script of target
 - **Users and privileges** - accounts, roles and GRANTs of MySQL, MariaDB and PostgreSQL
 - Processlist with kill of queries, search across all tables of a database
 - **Dark and light theme**, keyboard shortcuts (F1 shows all of them)

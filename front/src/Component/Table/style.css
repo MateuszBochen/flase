@@ -752,3 +752,13 @@ body.column-resizing * {
   text-align: center;
   box-sizing: border-box;
 }
+
+/**   SELECTION STATS (footer)   */
+.cmp-records-view-pager-root .pager-selection-stats {
+  margin-right: 12px;
+  color: var(--title-soft);
+  font-family: monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

@@ -3,7 +3,26 @@
 All notable changes of Flase are documented here. Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versions follow [Semantic Versioning](https://semver.org/). A `v*` tag publishes the Docker image of the version.
 
-## [0.7.1] - 2026-10-22
+## [0.8.0] - 2026-10-26
+
+### Added
+- **Schema compare** (context menu of database "Compare schema…") - differences of tables, columns, indexes and foreign
+  keys of two databases, also on other server of the same kind (MySQL / MariaDB, PostgreSQL), and migration script
+  which makes target the same as source. Tables are chosen for the script (dropping of tables only when chosen),
+  foreign keys are dropped first and added last, new tables are created referenced first. Script is built by target
+  server (its ALTER syntax) and opened in SQL console of target - nothing is executed without the user
+- **Execution plan as tree** (Explain in SQL console and in table tab) - steps with estimated rows, cost and bar of
+  the most expensive step, full scans / filesort / temporary tables marked, details of selected step. "Analyze"
+  executes SELECT and shows actual rows and time of steps (EXPLAIN ANALYZE of PostgreSQL and MySQL, ANALYZE of
+  MariaDB); estimate 10× off actual rows is highlighted. Classic EXPLAIN table stays in tab "Table"
+- **Parameters of queries** in SQL console - `:name` in statement asks for its value before execution (text is
+  quoted and escaped, "SQL" uses value as written - numbers, NULL, expressions); values are offered again.
+  `::` casts of PostgreSQL, `:=` and names in strings or comments are not parameters
+- **Inspections of SQL** in console - UPDATE / DELETE without WHERE is underlined and executed only after
+  confirmation (hold of button); unknown tables of selected database and unknown columns of `alias.column`
+  and `INSERT INTO t (columns)` are underlined while typing
+- **Sum, average, minimum and maximum** of selected cells in footer of grid (count for texts) - like status bar of
+  spreadsheet; sum of DECIMAL values is shown with their number of decimal places
 
 ### Changed
 - Light theme: sidebar is one white panel - nested levels (connection, group, database, tables) without stacked grey
@@ -285,7 +304,7 @@ First public version - web database manager for MySQL, MariaDB and PostgreSQL, a
 - Production Docker image (`docker/production/Dockerfile`): application, API and websocket on one port
 - GitHub Actions workflow publishing the image to Docker Hub on a `v*` tag
 
-[0.7.1]: https://github.com/MateuszBochen/flase/compare/v0.7.0...v0.7.1
+[0.8.0]: https://github.com/MateuszBochen/flase/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/MateuszBochen/flase/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/MateuszBochen/flase/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/MateuszBochen/flase/compare/v0.4.0...v0.5.0

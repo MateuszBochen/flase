@@ -139,4 +139,7 @@ class SessionStore {
   }
 }
 
+/** sessions of the server - login creates them, websocket commands find other sessions of the browser (schema compare) */
+export const sessionStore = new SessionStore();
+
 export default SessionStore;
