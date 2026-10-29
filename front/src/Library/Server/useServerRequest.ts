@@ -9,13 +9,7 @@ import ConnectionDataInterface from '../Connection/Interface/ConnectionDataInter
 
 /** command of server tab - answer is message with the same tabId */
 export const sendServerCommand = (connection: ConnectionDataInterface, command: CommandType, payload: any) => {
-  try {
-    const manager = ConnectionManager.getInstance();
-    const established = manager.getEstablishedConnection(connection);
-    manager.getClientForConnection(established).sendCommand({connectionData: established, command, payload});
-  } catch (e) {
-    console.error('Connection not found', e);
-  }
+  ConnectionManager.getInstance().sendCommand(connection, command, payload);
 };
 
 /**

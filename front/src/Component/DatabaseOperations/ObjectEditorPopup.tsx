@@ -12,6 +12,7 @@ import DatabaseOperations from '../../Library/Database/DatabaseOperations';
 import {ObjectDdlInterface, ObjectRefInterface} from '../../Library/Database/Interface/DatabaseObjectsInterface';
 import {DatabaseOperationType} from '../../Library/Database/Interface/DatabaseOperationInterface';
 import objectTemplate, {OBJECT_LABELS, ObjectTypeType} from './objectTemplates';
+import {formatViewDdl} from '../../Library/Console/SqlFormatter';
 import './style.css';
 
 interface ObjectEditorPopupPropsInterface {
@@ -44,7 +45,8 @@ export default (props: ObjectEditorPopupPropsInterface) => {
       const message = event.getData();
       if (message.payload?.tabId !== ddlTabId) return;
       if (message.message === MessageType.OBJECT_DDL) {
-        setText((message.payload as ObjectDdlInterface).ddl);
+        // view of MySQL / MariaDB comes in one line
+        setText(formatViewDdl((message.payload as ObjectDdlInterface).ddl, driver.dialect));
       } else if (message.message === MessageType.QUERY_ERROR) {
         setError(message.payload.error);
       }

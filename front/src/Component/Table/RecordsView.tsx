@@ -700,6 +700,7 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
            sortOrder={props.sortOrder}
            parentRef={dataGridRef}
            widthsKey={props.columnWidthsKey}
+           failed={!!status.error}
          />
          <GridDisplayContext.Provider value={gridDisplay.actions}>
            <DataGrid

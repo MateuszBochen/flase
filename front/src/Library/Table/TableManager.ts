@@ -98,30 +98,12 @@ class TableManager {
 
   /** columns, indexes, keys, triggers and DDL - answer is TABLE_STRUCTURE message for tabId */
   askForTableStructure(connection: ConnectionDataInterface, table: TableInterface, tabId: string): void {
-    try {
-      const establishedConnection = this.connectionManager.getEstablishedConnection(connection);
-      this.connectionManager.getClientForConnection(establishedConnection).sendCommand({
-        connectionData: establishedConnection,
-        command: CommandType.GET_TABLE_STRUCTURE,
-        payload: {tabId, table},
-      });
-    } catch (e) {
-      console.error('Connection not found', e);
-    }
+    this.connectionManager.sendCommand(connection, CommandType.GET_TABLE_STRUCTURE, {tabId, table});
   }
 
   /** ALTER / TRUNCATE / DROP / RENAME / COPY - answer is STRUCTURE_CHANGE_PREVIEW or STRUCTURE_CHANGE_APPLIED for tabId */
   changeStructure(connection: ConnectionDataInterface, request: StructureChangeRequestInterface): void {
-    try {
-      const establishedConnection = this.connectionManager.getEstablishedConnection(connection);
-      this.connectionManager.getClientForConnection(establishedConnection).sendCommand({
-        connectionData: establishedConnection,
-        command: CommandType.CHANGE_STRUCTURE,
-        payload: request,
-      });
-    } catch (e) {
-      console.error('Connection not found', e);
-    }
+    this.connectionManager.sendCommand(connection, CommandType.CHANGE_STRUCTURE, request);
   }
 }
 

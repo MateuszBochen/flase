@@ -67,13 +67,13 @@ export const unsafeChangeOf = (sql: string, dialect: SqlDialectType): SqlTokenTy
   return main.token;
 };
 
-type TableReferenceType = {database: string | null, name: string, quoted: boolean, start: number, end: number, alias: string | null};
+export type TableReferenceType = {database: string | null, name: string, quoted: boolean, start: number, end: number, alias: string | null};
 
 /**
  * names of tables after FROM, JOIN, UPDATE and INTO (also lists after FROM a, b) and their aliases.
  * FROM inside function (EXTRACT(YEAR FROM date), TRIM(x FROM y)) is not a table - only subqueries are read.
  */
-const tableReferences = (tokens: SqlTokenType[]): TableReferenceType[] => {
+export const tableReferences = (tokens: SqlTokenType[]): TableReferenceType[] => {
   const references: TableReferenceType[] = [];
   /** for every open parenthesis: it is a subquery */
   const parentheses: boolean[] = [];

@@ -194,6 +194,14 @@ const check = (name, ok, info = '') => {
   check('sidebar list refreshed', !sidebar.includes('ui_ddl') && sidebar.includes('struct_test'), sidebar.replace(/\n/g, ','));
   await page.screenshot({path: `${OUT}/73-dropped.png`});
 
+  // --- DDL of view: MySQL / MariaDB give it in one line, it is shown formatted
+  await page.getByText('struct_view', {exact: true}).first().dispatchEvent('mousedown');
+  await page.waitForTimeout(1500);
+  await toStructure();
+  const viewDdl = (await structureView().locator('.structure-ddl pre').innerText()).trim();
+  check('view DDL formatted', /`struct_view` AS\nselect\n  \S+`id` AS `id`,\n  \S+`code` AS `code`\nfrom\n  \S*`struct_test`/.test(viewDdl), JSON.stringify(viewDdl));
+  await page.screenshot({path: `${OUT}/74-view-ddl.png`});
+
   check('no page errors', errors.length === 0, errors.join(' | ').slice(0, 500));
   await browser.close();
   console.log(`\n${failures ? failures + ' FAILED' : 'ALL PASSED'}`);

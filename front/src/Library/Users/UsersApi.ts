@@ -8,9 +8,7 @@ type UserRefType = {name: string, host: string | null};
 /** user accounts commands - answers come as websocket messages with tabId */
 class UsersApi {
   private static send(connection: ConnectionDataInterface, command: CommandType, payload: any): void {
-    const manager = ConnectionManager.getInstance();
-    const established = manager.getEstablishedConnection(connection);
-    manager.getClientForConnection(established).sendCommand({connectionData: established, command, payload});
+    ConnectionManager.getInstance().sendCommand(connection, command, payload);
   }
 
   static loadUsers(connection: ConnectionDataInterface, tabId: string): void {

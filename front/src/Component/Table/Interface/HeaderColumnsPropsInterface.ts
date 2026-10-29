@@ -16,6 +16,8 @@ interface HeaderColumnsPropsInterface {
   sortOrder?: OrderItemType[];
   /** widths set by user are remembered under this key (table), without key only while result is shown */
   widthsKey?: string;
+  /** query failed - no skeleton of loading columns */
+  failed?: boolean;
 }
 
 export default HeaderColumnsPropsInterface;

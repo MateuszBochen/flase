@@ -5,6 +5,7 @@ import MessageInterface from '../WebSocket/Interface/MessageInterface';
 import MessageType from '../WebSocket/Enum/MessageType';
 import ConnectionDataInterface from '../Connection/Interface/ConnectionDataInterface';
 import ConsoleApi from './ConsoleApi';
+import withBinaryUuids from './withBinaryUuids';
 import ResultBuffer from './ResultBuffer';
 import {ExecutionFinishedInterface, StatementFinishedInterface, StatementResultType} from './StatementInterface';
 
@@ -112,8 +113,10 @@ const useStatementRunner = (
     return () => EventBus.unSub(eventId);
   }, []);
 
-  const run = useCallback((statements: string[], database: string | null, maxRows: number = 1000) => {
-    if (!statements.length) return;
+  const run = useCallback((typed: string[], database: string | null, maxRows: number = 1000) => {
+    if (!typed.length) return;
+    // log shows statements as sent - with UUID strings of BINARY(16) columns as X'hex'
+    const statements = withBinaryUuids(connection, database, typed);
     runTabId.current = `${baseTabId}:run:${++runCounter.current}`;
     runDatabase.current = database;
     buffers.current = new Map();

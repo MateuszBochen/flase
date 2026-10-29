@@ -65,6 +65,8 @@ class WebSocketApiClient {
     window.removeEventListener('online', this.reconnectNow);
     this.socket?.close();
     this.socket = null;
+    // logout - answers of tabs will never come
+    this.failPendingTabCommands(`Disconnected from ${this.connectionData.connection.displayName} - log in again (click the connection in the left panel), data is loaded again then`, true);
   }
 
   private open(): void {
@@ -94,14 +96,17 @@ class WebSocketApiClient {
         return;
       }
       this.socket = null;
-      this.failPendingTabCommands();
 
-      if (this.closedByClient) {
-        return;
-      }
-      if (event.code === CLOSE_SESSION_NOT_FOUND) {
+      if (event.code === CLOSE_SESSION_NOT_FOUND && !this.closedByClient) {
+        // nothing is reconnected - also queued commands are not going to be sent
+        const error = `Session of ${this.connectionData.connection.displayName} expired (server was restarted or you were logged out) - log in again (click the connection in the left panel), data is loaded again then`;
+        this.failPendingTabCommands(error, true);
         window.removeEventListener('online', this.reconnectNow);
         EventBus.emit(new WebsocketConnectionWasClosed(this.connectionData));
+        return;
+      }
+      this.failPendingTabCommands();
+      if (this.closedByClient) {
         return;
       }
 
@@ -139,16 +144,22 @@ class WebSocketApiClient {
   };
 
   /** answers of commands sent before connection was lost will never come */
-  private failPendingTabCommands(): void {
+  private failPendingTabCommands(reason?: string, withQueued: boolean = false): void {
+    // queued commands are sent after reconnect - not when connection is closed for good
+    if (withQueued) {
+      this.queue.splice(0).forEach((command) => {
+        if (command.payload?.tabId && TAB_COMMANDS.includes(command.command)) this.pendingTabCommands.set(command.payload.tabId, command.command);
+      });
+    }
     this.pendingTabCommands.forEach((command, tabId) => {
-      const error = command === CommandType.APPLY_ROW_CHANGES || command === CommandType.CHANGE_STRUCTURE || command === CommandType.EXECUTE_STATEMENTS
+      const error = reason || (command === CommandType.APPLY_ROW_CHANGES || command === CommandType.CHANGE_STRUCTURE || command === CommandType.EXECUTE_STATEMENTS
         ? 'Connection to server was lost while saving. Changes may or may not be saved - reload to check.'
-        : 'Connection to server was lost - reconnecting (blinking icon of connection). Run the query again when it is back.';
+        : 'Connection to server was lost - reconnecting (blinking icon of connection). Run the query again when it is back.');
 
       EventBus.emit(new WebsocketReceivedAMessage<QueryErrorInterface>({
         connection: this.connectionData.connection,
         message: MessageType.QUERY_ERROR,
-        payload: {command, error, tabId},
+        payload: {command, error, tabId, disconnected: !!reason},
       }));
     });
     this.pendingTabCommands.clear();

@@ -41,7 +41,7 @@ import and export dumps, draw ER diagrams and manage users - all from one self-h
 - Resizable columns (drag the header edge, double click to fit content) remembered per table
 - **Count, sum, average, min and max** of selected cells in footer
 - Value editor for JSON (format / minify), long texts and binary values - edited as hex, text, UUID or uploaded file
-- UUID and binary (BINARY(16), bytea) primary keys, tables without primary key
+- UUID and binary (BINARY(16), bytea) primary keys, tables without primary key; UUID typed as text in query of BINARY(16) column is sent as bytes
 
 ### Structure
 - Columns, indexes, foreign keys, triggers and DDL of tables and views
