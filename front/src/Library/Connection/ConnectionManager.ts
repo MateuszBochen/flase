@@ -26,6 +26,7 @@ import JwtExpiration from './JwtExpiration';
 import PasswordVault from './PasswordVault';
 import SshHostKeyWasRejected from './Event/SshHostKeyWasRejected';
 import LoginDatabaseRequest from '../API/Request/LoginDatabaseRequest';
+import CommandType from '../WebSocket/Enum/CommandType';
 
 /** next try when token refresh failed because of network */
 const REFRESH_RETRY_MS = 10 * 1000;
@@ -96,7 +97,7 @@ class ConnectionManager {
     EventBus.subscribe<MessageInterface<QueryErrorInterface>>(WebsocketReceivedAMessage.name, (event) => {
       const message = event.getData();
       if (message.message === MessageType.QUERY_ERROR) {
-        toast.error(message.payload.error);
+        toast.error(message.payload.error, {id: `error-${message.payload.error}`});
       }
     });
 
@@ -226,6 +227,31 @@ class ConnectionManager {
   /** logged in connections - e.g. targets of schema compare */
   getEstablishedConnections(): EstablishedConnectionInterface[] {
     return Object.values(this.listOfEstablishedConnections);
+  }
+
+  /**
+   * command of connection; when it is not logged in (logged out, session expired after restart of server)
+   * tab of the command gets error - its answer would never come
+   */
+  sendCommand<T>(connection: ConnectionDataInterface, command: CommandType, payload: T): void {
+    const established = this.listOfEstablishedConnections[connection.id];
+    if (!established) {
+      const tabId = (payload as any)?.tabId;
+      // later - command is often sent while tab mounts, before it listens for answers
+      if (tabId) {
+        setTimeout(() => EventBus.emit(new WebsocketReceivedAMessage<QueryErrorInterface>({
+          connection,
+          message: MessageType.QUERY_ERROR,
+          payload: {command, error: ConnectionManager.notConnectedError(connection), tabId, disconnected: true},
+        })));
+      }
+      return;
+    }
+    this.getClientForConnection(established).sendCommand<T>({connectionData: established, command, payload});
+  }
+
+  static notConnectedError(connection: ConnectionDataInterface): string {
+    return `Not connected to ${connection.displayName} - log in again (click the connection in the left panel), data is loaded again then`;
   }
 
   getEstablishedConnection(data: ConnectionDataInterface): EstablishedConnectionInterface {

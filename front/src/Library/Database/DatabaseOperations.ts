@@ -5,13 +5,7 @@ import {ObjectRefInterface} from './Interface/DatabaseObjectsInterface';
 import {DatabaseOperationRequestInterface} from './Interface/DatabaseOperationInterface';
 
 const send = (connection: ConnectionDataInterface, command: CommandType, payload: any) => {
-  try {
-    const manager = ConnectionManager.getInstance();
-    const established = manager.getEstablishedConnection(connection);
-    manager.getClientForConnection(established).sendCommand({connectionData: established, command, payload});
-  } catch (e) {
-    console.error('Connection not found', e);
-  }
+  ConnectionManager.getInstance().sendCommand(connection, command, payload);
 };
 
 /** commands of database overview - answers are messages with the same tabId */

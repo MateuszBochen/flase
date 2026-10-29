@@ -37,6 +37,7 @@ import openTableTab from '../openTableTab';
 import ConsoleApi from '../../../../Library/Console/ConsoleApi';
 import {SingleRowType} from '../../../Table/Interface/RecordsViewPropsInterface';
 import useConnectionSettings from '../../../../Library/Connection/useConnectionSettings';
+import useReloadAfterLogin from '../../../../Library/Connection/useReloadAfterLogin';
 
 type PendingSubmitType = {
   editable: EditableResultInterface;
@@ -160,6 +161,9 @@ export default (props: GridViewPropsInterface) => {
     }
   }, [props.tabId]);
 
+  /** not logged in (server restarted) - query runs again after login */
+  const reloadAfterLogin = useReloadAfterLogin(props.connection, () => EventBus.emit<string>(new QueryRefreshWasRequested(props.tabId)));
+
   /** handle query error */
   useEffect(() => {
     const eventId = EventBus.subscribe<MessageInterface<QueryErrorInterface>>(WebsocketReceivedAMessage.name, (event) => {
@@ -170,6 +174,7 @@ export default (props: GridViewPropsInterface) => {
           setSubmitting(false);
           return;
         }
+        if (eventData.payload.disconnected) reloadAfterLogin();
         recordsRef.current!.setError(eventData.payload.error);
       }
     });

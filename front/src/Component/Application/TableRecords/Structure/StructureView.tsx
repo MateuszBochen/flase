@@ -27,6 +27,8 @@ import './style.css';
 import useConnectionSettings from '../../../../Library/Connection/useConnectionSettings';
 import TableOptionsForm from './TableOptionsForm';
 import ForeignKeyForm from './ForeignKeyForm';
+import {formatViewDdl} from '../../../../Library/Console/SqlFormatter';
+import useReloadAfterLogin from '../../../../Library/Connection/useReloadAfterLogin';
 
 interface StructureViewPropsInterface {
   connection: ConnectionDataInterface;
@@ -116,6 +118,8 @@ export default forwardRef<StructureViewRefInterface, StructureViewPropsInterface
   }, [props.visible, loaded, load]);
 
   useImperativeHandle(ref, () => ({reload: load}), [load]);
+  /** not logged in (server restarted) - structure is loaded again after login */
+  const reloadAfterLogin = useReloadAfterLogin(props.connection, load);
 
   /** column / index was changed - reload structure, data of the tab and table list */
   const change = useStructureChange(props.connection, props.table, props.structureTabId, (applied: StructureChangeType) => {
@@ -136,6 +140,7 @@ export default forwardRef<StructureViewRefInterface, StructureViewPropsInterface
         setStructure(message.payload as TableStructureInterface);
         setLoading(false);
       } else if (message.message === MessageType.QUERY_ERROR && !change.busy) {
+        if ((message.payload as QueryErrorInterface).disconnected) reloadAfterLogin();
         setError((message.payload as QueryErrorInterface).error);
         setLoading(false);
       }
@@ -143,9 +148,12 @@ export default forwardRef<StructureViewRefInterface, StructureViewPropsInterface
     return () => EventBus.unSub(eventId);
   }, [props.structureTabId, change.busy]);
 
+  /** view of MySQL / MariaDB comes in one line */
+  const ddl = structure ? formatViewDdl(structure.ddl, DriverFactory.getDriver(props.connection).dialect) : '';
+
   const copyDdl = () => {
     if (!structure) return;
-    navigator.clipboard?.writeText(`${structure.ddl};`)
+    navigator.clipboard?.writeText(`${ddl};`)
       .then(() => toast.success('DDL copied'))
       .catch(() => toast.error('Unable to copy'));
   };
@@ -341,7 +349,7 @@ export default forwardRef<StructureViewRefInterface, StructureViewPropsInterface
             <div className="structure-ddl">
               <button type="button" className="structure-action copy" onClick={copyDdl}>Copy</button>
               <SyntaxHighlighter language="sql" style={theme === 'light' ? prism : darcula} customStyle={{margin: 0, padding: '12px 14px', background: 'transparent', fontSize: '0.85rem'}}>
-                {`${structure.ddl};`}
+                {`${ddl};`}
               </SyntaxHighlighter>
             </div>
           </Section>

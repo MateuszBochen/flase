@@ -2,9 +2,9 @@ import ConnectionDataInterface from '../Connection/Interface/ConnectionDataInter
 import CommandType from '../WebSocket/Enum/CommandType';
 import ConnectionManager from '../Connection/ConnectionManager';
 import QueryRequestDataInterface from './Interface/QueryRequestDataInterface';
-import CommandInterface from '../WebSocket/Interface/CommandInterface';
 import WebSocketQueryRequestDataInterface from './Interface/WebSocketQueryRequestDataInterface';
 import ApplyRowChangesRequestInterface from './Interface/ApplyRowChangesRequestInterface';
+import withBinaryUuids from '../Console/withBinaryUuids';
 
 
 class RecordManager {
@@ -27,45 +27,18 @@ class RecordManager {
 
 
   sendQuery = (connection: ConnectionDataInterface, query: QueryRequestDataInterface) => {
-
-    try {
-      const establishedConnection = this.connectionManager.getEstablishedConnection(connection);
-      const api = this.connectionManager.getClientForConnection(establishedConnection);
-
-      const wsQuery = {
-        query: query.query.query,
-        database: query.database,
-        tabId: query.tabId,
-        fullValues: query.fullValues,
-      } as WebSocketQueryRequestDataInterface;
-
-      const command = {
-        connectionData: establishedConnection,
-        command: CommandType.SEND_SELECT_QUERY,
-        payload: wsQuery,
-      } as CommandInterface<WebSocketQueryRequestDataInterface>;
-
-      api.sendCommand<WebSocketQueryRequestDataInterface>(command)
-
-    } catch (e) {
-
-    }
+    this.connectionManager.sendCommand<WebSocketQueryRequestDataInterface>(connection, CommandType.SEND_SELECT_QUERY, {
+      // query bar keeps UUID as typed, server gets X'hex' for BINARY(16) columns
+      query: withBinaryUuids(connection, query.database?.name ?? null, [query.query.query])[0],
+      database: query.database,
+      tabId: query.tabId,
+      fullValues: query.fullValues,
+    } as WebSocketQueryRequestDataInterface);
   }
 
   /** send edited rows to server, with dryRun server only returns sql for preview */
   applyRowChanges = (connection: ConnectionDataInterface, request: ApplyRowChangesRequestInterface) => {
-    try {
-      const establishedConnection = this.connectionManager.getEstablishedConnection(connection);
-      const api = this.connectionManager.getClientForConnection(establishedConnection);
-
-      api.sendCommand<ApplyRowChangesRequestInterface>({
-        connectionData: establishedConnection,
-        command: CommandType.APPLY_ROW_CHANGES,
-        payload: request,
-      });
-    } catch (e) {
-      console.error('Connection not found', e);
-    }
+    this.connectionManager.sendCommand<ApplyRowChangesRequestInterface>(connection, CommandType.APPLY_ROW_CHANGES, request);
   }
 }
 

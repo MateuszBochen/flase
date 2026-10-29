@@ -35,17 +35,7 @@ class ConsoleApi {
   }
 
   private send<T>(connection: ConnectionDataInterface, command: CommandType, payload: T): void {
-    try {
-      const manager = ConnectionManager.getInstance();
-      const establishedConnection = manager.getEstablishedConnection(connection);
-      manager.getClientForConnection(establishedConnection).sendCommand<T>({
-        connectionData: establishedConnection,
-        command,
-        payload,
-      });
-    } catch (e) {
-      console.error('Connection not found', e);
-    }
+    ConnectionManager.getInstance().sendCommand<T>(connection, command, payload);
   }
 }
 

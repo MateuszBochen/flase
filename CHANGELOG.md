@@ -3,6 +3,23 @@
 All notable changes of Flase are documented here. Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versions follow [Semantic Versioning](https://semver.org/). A `v*` tag publishes the Docker image of the version.
 
+## [0.8.1] - 2026-10-28
+
+### Added
+- **UUID as text for BINARY(16) columns** (MySQL / MariaDB) - `WHERE id = '7a8b9c0d-1e2f-…'` in query of table tab and
+  in SQL console finds the row: UUID string compared with BINARY(16) / VARBINARY(16) column (`=`, `<>`, `<=>`, `IN (...)`,
+  `SET column = ...`, `INSERT ... VALUES`) is sent as `X'hex'`. Query bar keeps the text as typed, log of console shows
+  statement as sent. Columns of other types, strings in functions and columns of unknown tables are not changed
+- **Formatted DDL of views** - MySQL / MariaDB give definition of view in one line; DDL in structure tab and in editor
+  of view is shown with clauses (SELECT, FROM, JOIN, WHERE, GROUP BY…) and columns on own lines and indented subqueries.
+  Only whitespace is changed - names, strings and comments stay as written
+
+### Fixed
+- **Tabs restored after restart of server loaded forever** - session of the stored login does not exist after restart,
+  queued queries and queries of tabs opened later were never answered. Tab now shows "Session of … expired - log in
+  again" / "Not connected to … - log in again" and loads its data again by itself after login (grid and structure).
+  The same for tabs of a connection which was logged out. Animated skeleton of columns is not shown with error
+
 ## [0.8.0] - 2026-10-26
 
 ### Added
@@ -304,6 +321,7 @@ First public version - web database manager for MySQL, MariaDB and PostgreSQL, a
 - Production Docker image (`docker/production/Dockerfile`): application, API and websocket on one port
 - GitHub Actions workflow publishing the image to Docker Hub on a `v*` tag
 
+[0.8.1]: https://github.com/MateuszBochen/flase/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/MateuszBochen/flase/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/MateuszBochen/flase/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/MateuszBochen/flase/compare/v0.5.0...v0.6.0

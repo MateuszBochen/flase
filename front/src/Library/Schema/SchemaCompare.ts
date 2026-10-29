@@ -27,13 +27,7 @@ export interface SchemaCompareResultInterface {
 
 /** differences of source database and database of target connection - answer is SCHEMA_COMPARE message for tabId */
 export const compareSchema = (connection: ConnectionDataInterface, tabId: string, database: string, target: EstablishedConnectionInterface, targetDatabase: string): void => {
-  const manager = ConnectionManager.getInstance();
-  const established = manager.getEstablishedConnection(connection);
-  manager.getClientForConnection(established).sendCommand({
-    connectionData: established,
-    command: CommandType.COMPARE_SCHEMA,
-    payload: {tabId, database, target: {token: target.user.token, database: targetDatabase}},
-  });
+  ConnectionManager.getInstance().sendCommand(connection, CommandType.COMPARE_SCHEMA, {tabId, database, target: {token: target.user.token, database: targetDatabase}});
 };
 
 /**

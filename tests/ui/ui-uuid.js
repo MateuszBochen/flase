@@ -139,6 +139,46 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     await submit();
     await reload();
     check('edit by binary(16) key saved', (await column('name')).includes('second edited') && (await column('name')).includes('first'), JSON.stringify(await column('name')));
+
+    if (engine !== 'postgres') {
+      // UUID pasted as text into query of BINARY(16) column is sent as X'hex' - query bar keeps it as typed
+      const typed = "SELECT * FROM `uuid_bin_test` WHERE id = '7a8b9c0d-1e2f-4a3b-8c4d-5e6f7a8b9c02' LIMIT 0, 100";
+      await page.evaluate((text) => {
+        const editor = window.monaco.editor.getEditors().find((item) => item.getContainerDomNode().closest('.cmp-table-data-navbar-editor-wrapper') && item.getContainerDomNode().offsetParent);
+        editor.setValue(text);
+        editor.focus();
+      }, typed);
+      await page.keyboard.press('Enter');
+      await page.waitForTimeout(1500);
+      check('UUID text finds BINARY(16) row in table tab', await rows().count() === 1 && await cellText(0, 'name') === 'second edited', JSON.stringify(await column('name')));
+      const shown = await page.evaluate(() => window.monaco.editor.getEditors().find((item) => item.getContainerDomNode().closest('.cmp-table-data-navbar-editor-wrapper') && item.getContainerDomNode().offsetParent).getValue());
+      check('query bar keeps UUID as typed', shown === typed, shown);
+      // back to all rows - later checks open this tab again
+      await page.evaluate(() => {
+        const editor = window.monaco.editor.getEditors().find((item) => item.getContainerDomNode().closest('.cmp-table-data-navbar-editor-wrapper') && item.getContainerDomNode().offsetParent);
+        editor.setValue('SELECT * FROM `uuid_bin_test` WHERE 1 LIMIT 0, 100');
+        editor.focus();
+      });
+      await page.keyboard.press('Enter');
+      await page.waitForTimeout(1000);
+
+      // console: log shows statement as sent
+      await page.locator('.table-list-filter button[title="SQL console for shop"]').dispatchEvent('mousedown');
+      await page.waitForTimeout(1500);
+      await page.evaluate((text) => {
+        const editor = window.monaco.editor.getEditors().find((item) => item.getContainerDomNode().closest('.cmp-sql-console') && item.getContainerDomNode().offsetParent);
+        editor.setValue(text);
+        editor.focus();
+      }, "SELECT name FROM uuid_bin_test u WHERE u.id IN ('7a8b9c0d-1e2f-4a3b-8c4d-5e6f7a8b9c02', '{3F2C1A9E-6B7D-4E8F-9A0B-1C2D3E4F5A01}') ORDER BY name");
+      await page.keyboard.press('Control+Enter');
+      await page.waitForTimeout(2000);
+      const consoleTab = page.locator('.cmp-sql-console:visible');
+      const result = await consoleTab.locator('.data-table-row').allInnerTexts();
+      check('UUID text finds BINARY(16) rows in console', result.length === 2 && /first/.test(result[0]) && /second edited/.test(result[1]), JSON.stringify(result));
+      await consoleTab.getByRole('tab', {name: /^Messages/}).click();
+      const log = (await consoleTab.locator('.console-log').allInnerTexts()).join(' ');
+      check('console log shows X\'hex\'', /IN \(X'7a8b9c0d1e2f4a3b8c4d5e6f7a8b9c02', X'3f2c1a9e6b7d4e8f9a0b1c2d3e4f5a01'\)/.test(log), log);
+    }
   }
 
   {

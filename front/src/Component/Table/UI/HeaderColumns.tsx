@@ -129,7 +129,7 @@ export default forwardRef<HeaderColumnsRefInterface|null, HeaderColumnsPropsInte
   };
 
   if (columns.length === 0) {
-    return <HeaderSkeleton />
+    return props.failed ? null : <HeaderSkeleton />
   }
 
   /** sorted column - name and (for qualified ORDER BY item) alias of its table */
