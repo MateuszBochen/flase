@@ -265,6 +265,104 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     && dump.includes('CREATE TRIGGER trg_struct_code BEFORE INSERT ON struct_test') && dump.includes('CREATE OR REPLACE VIEW "struct_view"') && !/public\./.test(dump.replace(/-- .*\n/g, '')), dump.slice(0, 3000));
   check('dump: referenced tables first, generated column left out', dump.indexOf('INSERT INTO "struct_test"') < dump.indexOf('INSERT INTO "struct_child"') && !/INSERT INTO "struct_test" \([^)]*total_x2/.test(dump));
 
+  // structure / data chosen per table
+  t = await ticket({kind: 'dump', options: {database: 'public', tables: ['value_test', 'edit_test', 'struct_test', 'struct_view'], structure: true, data: true,
+    tableModes: {edit_test: 'structure', value_test: 'data', struct_test: 'both', struct_view: 'data'}, dropTables: true, createDatabase: false, views: true, triggers: true}, gzip: false});
+  res = await fetch(`${BASE}/api/transfer/${t.ticket}`);
+  const modesDump = await res.text();
+  check('dump modes: structure only', /CREATE TABLE "edit_test"/.test(modesDump) && !modesDump.includes('INSERT INTO "edit_test"'), modesDump.slice(0, 1500));
+  check('dump modes: data only', modesDump.includes('INSERT INTO "value_test"') && !/CREATE TABLE "value_test"/.test(modesDump) && !/DROP TABLE[^\n]*"value_test"/.test(modesDump));
+  check('dump modes: both, trigger of table with structure', /CREATE TABLE "struct_test"/.test(modesDump) && modesDump.includes('INSERT INTO "struct_test"') && modesDump.includes('CREATE TRIGGER trg_struct_code'));
+  check('dump modes: view with data only is left out', !modesDump.includes('"struct_view"'));
+
+  // statements of data
+  const dataDump = async (insertMode) => {
+    const d = await ticket({kind: 'dump', options: {database: 'public', tables: ['edit_test'], structure: true, data: true, tableModes: {edit_test: 'data'},
+      dropTables: false, createDatabase: false, views: false, triggers: false, insertMode}, gzip: false});
+    return (await fetch(`${BASE}/api/transfer/${d.ticket}`)).text();
+  };
+  const pgNames = async () => (await select('SELECT id, name FROM edit_test ORDER BY id')).rows.map((row) => `${row.id}:${row.name}`).join(',');
+  const pgOriginal = await pgNames();
+  const pgBreak = () => sql(["UPDATE edit_test SET name = 'changed' WHERE id = (SELECT min(id) FROM edit_test)", 'DELETE FROM edit_test WHERE id = (SELECT max(id) FROM edit_test)']);
+  const pgRestore = async (text) => (await upload({kind: 'import-sql', database: 'public', gzip: false, stopOnError: true, fileName: 'd.sql'}, text)).result;
+  // all dumps of original rows - every check breaks the rows first
+  const pgDumps = {ignore: await dataDump('ignore'), upsert: await dataDump('upsert'), update: await dataDump('update')};
+  let pgData = pgDumps.ignore;
+  await pgBreak();
+  let pgResult = await pgRestore(pgData);
+  check('pg skip existing: ON CONFLICT DO NOTHING', pgData.includes('ON CONFLICT DO NOTHING') && !pgResult.failed && (await pgNames()).split(',').length === pgOriginal.split(',').length
+    && (await pgNames()).includes('changed'), await pgNames() + JSON.stringify(pgResult.errors));
+  pgData = pgDumps.upsert;
+  pgResult = await pgRestore(pgData);
+  check('pg upsert: ON CONFLICT DO UPDATE restores rows', /ON CONFLICT \("id"\) DO UPDATE SET "name" = EXCLUDED\."name"/.test(pgData) && !pgResult.failed && await pgNames() === pgOriginal,
+    await pgNames() + JSON.stringify(pgResult.errors) + pgData.slice(-300));
+  pgData = pgDumps.update;
+  await pgBreak();
+  pgResult = await pgRestore(pgData);
+  const pgAfterUpdate = await pgNames();
+  check('pg UPDATE: changed row restored, missing row not added', /^UPDATE "edit_test" SET .* WHERE "id" = \d+;$/m.test(pgData) && !pgResult.failed
+    && !pgAfterUpdate.includes('changed') && pgAfterUpdate.split(',').length === pgOriginal.split(',').length - 1, pgAfterUpdate + JSON.stringify(pgResult.errors));
+  pgResult = await pgRestore(pgDumps.ignore);
+  check('pg rows back after UPDATE test', await pgNames() === pgOriginal, await pgNames());
+
+  // DROP ... CASCADE of dumped table removes foreign keys of other tables - they must be added again
+  const fkCount = async () => Number((await select("SELECT count(*) AS c FROM pg_constraint WHERE conname = 'fk_child_struct'")).rows[0]?.c);
+  const fkBefore = await fkCount();
+  t = await ticket({kind: 'dump', options: {database: 'public', tables: ['struct_test'], structure: true, data: true, dropTables: true, createDatabase: false, views: false, triggers: true}, gzip: false});
+  const singleDump = await (await fetch(`${BASE}/api/transfer/${t.ticket}`)).text();
+  let fkImport = await pgRestore(singleDump);
+  check('import of one table keeps foreign keys of other tables', fkBefore === 1 && !fkImport.failed && await fkCount() === 1, `${fkBefore} -> ${await fkCount()} ${JSON.stringify(fkImport.errors)}`);
+  t = await ticket({kind: 'dump', options: {database: 'public', tables: ['struct_test', 'struct_child'], structure: true, data: true, tableModes: {struct_test: 'both', struct_child: 'data'},
+    dropTables: true, createDatabase: false, views: false, triggers: true, truncateData: true}, gzip: false});
+  fkImport = await pgRestore(await (await fetch(`${BASE}/api/transfer/${t.ticket}`)).text());
+  check('import keeps foreign key of Data only table', !fkImport.failed && await fkCount() === 1, `${await fkCount()} ${JSON.stringify(fkImport.errors)}`);
+
+  // read only connection: read only mode switched off by statement built at run time stops the script
+  {
+    const roConnection = {...connection, id: 't-pg-ro', readOnly: true};
+    const roUser = await (await fetch(`${BASE}/api/login`, {method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({userData: {username: 'flase', password: 'flase'}, connectionData: roConnection})})).json();
+    const roWs = new WebSocket(`ws://php_flase:3001/ws/${roUser.token}`);
+    const roMessages = [];
+    roWs.on('message', (m) => roMessages.push(JSON.parse(m)));
+    await new Promise((resolve) => roWs.on('open', resolve));
+    const tabId = 'pgro' + Math.random();
+    roWs.send(JSON.stringify({connectionData: {user: roUser, connection: roConnection}, command: 'EXECUTE_STATEMENTS', payload: {tabId, database: 'public',
+      statements: ["SELECT set_config('default_transaction_' || 'read_only', 'off', false)", "UPDATE edit_test SET name = 'read only broken' WHERE id = 2"], stopOnError: false}}));
+    await waitFor(() => roMessages.find((m) => m.payload?.tabId === tabId && m.message === 'EXECUTION_FINISHED'));
+    const results = roMessages.filter((m) => m.payload?.tabId === tabId && m.message === 'STATEMENT_FINISHED').map((m) => m.payload.error || 'ok');
+    const roName = (await select('SELECT name FROM edit_test WHERE id = 2')).rows[0]?.name;
+    check('read only: set_config built at run time stops the script', results[0] === 'ok' && /switched read only mode off/.test(results[1] || '') && roName !== 'read only broken',
+      JSON.stringify(results) + ' ' + roName);
+    roWs.close();
+    await fetch(`${BASE}/api/disconnect`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({token: roUser.token})});
+  }
+
+  // BEGIN without COMMIT - session goes back to the pool without its transaction (locks would block other connections)
+  await sql(['BEGIN', "UPDATE edit_test SET name = 'locked by console' WHERE id = 1"]);
+  await sleep(300);
+  const {Client} = require('pg');
+  const direct = new Client({host: 'postgres', user: 'flase', password: 'flase', database: 'shop'});
+  await direct.connect();
+  const lockResult = await direct.query("SET lock_timeout = '2s'; UPDATE edit_test SET name = name WHERE id = 1").then(() => 'updated', (e) => e.message);
+  const idleInTransaction = (await direct.query("SELECT count(*) AS c FROM pg_stat_activity WHERE state LIKE 'idle in transaction%'")).rows[0].c;
+  await direct.end();
+  check('open transaction of console is rolled back, row not locked', lockResult === 'updated' && idleInTransaction === '0', `${lockResult} idle in transaction: ${idleInTransaction}`);
+
+  // connection of dump closed by server while download waits (restart, pg_terminate_backend) - dump ends with error, server lives
+  await sql(['DROP TABLE IF EXISTS dump_big', "CREATE TABLE dump_big AS SELECT g AS id, repeat('x', 1000) AS t FROM generate_series(1, 30000) g"]);
+  t = await ticket({kind: 'dump', options: {database: 'public', tables: ['dump_big'], structure: true, data: true, dropTables: false, createDatabase: false, views: false, triggers: false}, gzip: false});
+  const killedRes = await fetch(`${BASE}/api/transfer/${t.ticket}`);
+  const killedReader = killedRes.body.getReader();
+  for (let i = 0; i < 5; i++) await killedReader.read();
+  await sql(["SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE query LIKE '%dump_big%' AND pid <> pg_backend_pid()"]);
+  await sleep(500);
+  try { for (;;) { if ((await killedReader.read()).done) break; } } catch (e) { /* broken download is fine too */ }
+  const killedDump = (await waitFor(() => forTab(t.tabId).find((m) => m.message === 'DUMP_FINISHED'), 10000))?.payload;
+  const aliveAfterKill = await fetch(`${BASE}/api/config`).then((x) => x.status).catch(() => 0);
+  check('lost connection of dump: error, server alive', !!killedDump?.error && aliveAfterKill === 200, JSON.stringify(killedDump) + ' ' + aliveAfterKill);
+  await sql(['DROP TABLE dump_big']);
+
   r = await sql(['DROP VIEW struct_view', 'DROP TABLE struct_child', 'DELETE FROM edit_test', 'UPDATE value_test SET data = NULL']);
   let imported = await upload({kind: 'import-sql', database: 'public', gzip: false, stopOnError: true, fileName: 'dump.sql'}, dump);
   check('dump imported', imported.status === 200 && !imported.result.failed && imported.result.errors.length === 0, JSON.stringify(imported.result.errors));

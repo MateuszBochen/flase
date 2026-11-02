@@ -10,28 +10,75 @@ import SqlDialectType from '../../SqlDialectType';
 import DriverFeaturesInterface from '../../DriverFeaturesInterface';
 import PostgresSqlLiteral from './PostgresSqlLiteral';
 import postgresKeywords from './PostgresKeywords';
+import {POSTGRES_SYNTAX} from '../../Syntax/SqlSyntax';
+import {DatabaseRoutineInterface, ObjectRefInterface} from '../../../Interface/DatabaseObjectsInterface';
+import {RoutineValueType} from '../../RoutineCallInterface';
+import {POSTGRES_MAINTENANCE, postgresObjectTemplate, postgresPlanStatements, postgresRoutineStatements} from './PostgresStatements';
 
 /** PostgreSQL - "databases" of tree are schemas of connected database */
 class PostgresAdapter implements DriverInterface {
   readonly dialect: SqlDialectType = 'postgresql';
   readonly sql = new PostgresSqlLiteral();
   readonly keywords = postgresKeywords;
+  readonly syntax = POSTGRES_SYNTAX;
   readonly features: DriverFeaturesInterface = {
+    productName: 'PostgreSQL',
     databaseLabel: 'Schema',
     columnTypes: [
       'integer', 'bigint', 'smallint', 'numeric(10,2)', 'real', 'double precision', 'boolean',
       'varchar(255)', 'char(36)', 'text', 'uuid', 'jsonb', 'json',
       'date', 'timestamp', 'timestamptz', 'time', 'interval', 'bytea', 'text[]', 'inet',
     ],
+    autoIncrementType: 'integer',
     columnPosition: false,
     onUpdateTimestamp: false,
     indexKinds: ['INDEX', 'UNIQUE', 'PRIMARY'],
     indexLength: false,
+    foreignKeyActions: ['NO ACTION', 'RESTRICT', 'CASCADE', 'SET NULL', 'SET DEFAULT'],
+    tableEngine: false,
+    collations: false,
+    transactionalDdl: true,
+    binaryUuidText: false,
+    maintenanceActions: POSTGRES_MAINTENANCE,
     dumpCreateDatabaseLabel: 'CREATE SCHEMA + search_path',
     dumpHint: 'Data are read in one transaction (consistent snapshot). Enum types, trigger functions and sequence values are included, foreign keys are added after data.',
+    labels: {
+      engine: 'Access method',
+      engines: 'Access methods',
+      engineSupport: 'Type',
+      characterSet: 'Encoding',
+      hitRatio: 'Cache hit ratio',
+      rates: 'Rows per second',
+    },
+    hints: {
+      regexReplace: 'regexp_replace with flag g - all matches; groups in replacement: \\1.',
+      objectEditor: 'Write one CREATE statement, body of function in $$ … $$.',
+      objectReplace: 'CREATE OR REPLACE keeps dependent objects; other statements drop the object first (in one transaction).',
+      autoIncrement: 'Auto increment sets next value of identity / serial sequence of the table.',
+      autoIncrementPlaceholder: 'next value of identity / serial',
+      ignoreForeignKeys: (action, many) => `CASCADE - also ${action === 'drop'
+        ? `objects depending on the ${many ? 'tables' : 'table'}`
+        : `tables referencing ${many ? 'them' : 'it'}`}`,
+      renameDatabase: null,
+      renameDatabaseForm: null,
+      dropDatabase: 'Everything in the schema is dropped (CASCADE).',
+      objectRestore: null,
+    },
   };
   private readonly parser = new Parser();
   private readonly options = {database: 'postgresql'};
+
+  planStatements(query: string, analyze: boolean): string[] {
+    return postgresPlanStatements(query, analyze);
+  }
+
+  routineStatements(database: string, routine: DatabaseRoutineInterface, values: RoutineValueType[]): string[] {
+    return postgresRoutineStatements(this.sql, database, routine, values);
+  }
+
+  objectTemplate(type: ObjectRefInterface['type'], table: string): string {
+    return postgresObjectTemplate(type, table);
+  }
 
   getDefaultQuery(table: TableInformationInterface): QueryInterface {
     return new QueryModel(`SELECT * FROM ${this.sql.identifier(table.tableName)} LIMIT 100 OFFSET 0`, this.parser, this.options);

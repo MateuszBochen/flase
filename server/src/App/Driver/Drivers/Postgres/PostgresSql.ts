@@ -5,6 +5,16 @@ const {types: pgTypes} = require('pg');
  * @author Mateusz Bochen
  */
 class PostgresSql {
+  /**
+   * ROLLBACK of transaction left by previous user of pooled connection - PostgreSQL only warns without transaction,
+   * CockroachDB fails with 25P01 (no_active_sql_transaction)
+   */
+  static rollbackIfAny(client: {query: (sql: string) => Promise<unknown>}): Promise<void> {
+    return client.query('ROLLBACK').then(() => undefined, (error: any) => {
+      if (error?.code !== '25P01') throw error;
+    });
+  }
+
   static identifier(name: string): string {
     return `"${String(name).replace(/"/g, '""')}"`;
   }

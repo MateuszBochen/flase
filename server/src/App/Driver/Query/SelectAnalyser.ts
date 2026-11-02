@@ -1,5 +1,5 @@
 import SelectFromType from '../../../Driver/Type/Data/SelectFromType';
-import SqlDialectType from './SqlDialectType';
+import {SqlSyntaxInterface} from './SqlSyntax';
 const { Parser } = require('node-sql-parser');
 
 /**
@@ -9,8 +9,8 @@ const { Parser } = require('node-sql-parser');
 class SelectAnalyser {
   private readonly options: {database: string};
 
-  constructor(private readonly parser: typeof Parser, dialect: SqlDialectType) {
-    this.options = {database: dialect === 'postgresql' ? 'postgresql' : 'mysql'};
+  constructor(private readonly parser: typeof Parser, syntax: SqlSyntaxInterface) {
+    this.options = {database: syntax.parserDatabase};
   }
 
   /** tables used in FROM */

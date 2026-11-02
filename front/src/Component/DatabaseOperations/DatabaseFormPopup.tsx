@@ -26,7 +26,7 @@ interface DatabaseFormPopupPropsInterface {
 export default (props: DatabaseFormPopupPropsInterface) => {
   const driver = DriverFactory.getDriver(props.connection);
   const label = driver.features.databaseLabel;
-  const isMysql = driver.dialect === 'mysql';
+  const {collations, hints} = driver.features;
   const options = useServerOptions(props.connection);
   const [name, setName] = useState<string>(props.mode === 'rename' ? props.database || '' : '');
   const [collation, setCollation] = useState<string>(props.collation || '');
@@ -71,7 +71,7 @@ export default (props: DatabaseFormPopupPropsInterface) => {
         {props.mode !== 'collation' && (
           <label>{props.mode === 'rename' ? 'New name' : 'Name'}<input value={name} onChange={(event) => setName(event.target.value)} autoFocus aria-label="Name" /></label>
         )}
-        {isMysql && props.mode !== 'rename' && (
+        {collations && props.mode !== 'rename' && (
           <label>
             Collation
             <CollationSelect
@@ -92,9 +92,7 @@ export default (props: DatabaseFormPopupPropsInterface) => {
             <div className="hint">Without conversion only new tables get the collation. Conversion rewrites every table.</div>
           </>
         )}
-        {props.mode === 'rename' && isMysql && (
-          <div className="hint">Tables are moved to a new database. Databases with views, routines, triggers or events cannot be renamed this way.</div>
-        )}
+        {props.mode === 'rename' && hints.renameDatabaseForm && <div className="hint">{hints.renameDatabaseForm}</div>}
         <button type="submit" hidden />
       </form>
     </Popup>

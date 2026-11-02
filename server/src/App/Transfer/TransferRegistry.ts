@@ -23,6 +23,7 @@ export type TransferTicketType = {
  */
 class TransferRegistry {
   private static readonly tickets = new Map<string, TransferTicketType>();
+  private static readonly running = new Map<string, {driver: DriverInterface, cancel: () => void}>();
 
   static create(ticket: Omit<TransferTicketType, 'expiresAt'>): string {
     TransferRegistry.removeExpired();
@@ -36,6 +37,25 @@ class TransferRegistry {
     const ticket = TransferRegistry.tickets.get(id);
     TransferRegistry.tickets.delete(id);
     return ticket && ticket.expiresAt > Date.now() ? ticket : null;
+  }
+
+  /** dump which is being downloaded - Cancel of the tab stops it */
+  static started(tabId: string, driver: DriverInterface, cancel: () => void): void {
+    TransferRegistry.running.set(tabId, {driver, cancel});
+  }
+
+  static finished(tabId: string, cancel: () => void): void {
+    if (TransferRegistry.running.get(tabId)?.cancel === cancel) {
+      TransferRegistry.running.delete(tabId);
+    }
+  }
+
+  /** only session which started the dump can stop it - tab ids are chosen by browser */
+  static cancel(tabId: string, driver: DriverInterface): boolean {
+    const running = TransferRegistry.running.get(tabId);
+    if (!running || running.driver !== driver) return false;
+    running.cancel();
+    return true;
   }
 
   private static removeExpired(): void {

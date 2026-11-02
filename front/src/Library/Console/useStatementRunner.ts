@@ -8,6 +8,7 @@ import ConsoleApi from './ConsoleApi';
 import withBinaryUuids from './withBinaryUuids';
 import ResultBuffer from './ResultBuffer';
 import {ExecutionFinishedInterface, StatementFinishedInterface, StatementResultType} from './StatementInterface';
+import QueryTiming from '../Timing/QueryTiming';
 
 export type StatementLogType = {
   index: number;
@@ -40,7 +41,7 @@ const useStatementRunner = (
 
   const bufferOf = (index: number): ResultBuffer => {
     if (!buffers.current.has(index)) {
-      buffers.current.set(index, new ResultBuffer());
+      buffers.current.set(index, new ResultBuffer(`${runTabId.current}:${index}`));
     }
     return buffers.current.get(index)!;
   };
@@ -123,6 +124,8 @@ const useStatementRunner = (
     setResultIndexes([]);
     setLogs(statements.map((sql, index) => ({index, sql, status: 'waiting'})));
     setRunning(true);
+    // the first statement waits for the session too - measured from the request
+    QueryTiming.start(`${runTabId.current}:0`);
     ConsoleApi.getInstance().execute(connection, {tabId: runTabId.current, database, statements, maxRows});
   }, [connection, baseTabId]);
 

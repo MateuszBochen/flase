@@ -83,6 +83,9 @@ const waitFor = async (fn, ms = 5000) => {
 
     let s = await select('t1', 'shop', 'SELECT * FROM customers LIMIT 0, 5');
     check('select ok: finished', s.done?.message === 'QUERY_FINISHED' && s.done.payload.rows === 5, s.order);
+    const timing = s.done?.payload.timing;
+    check('select: timing of steps', timing && ['sessionMs', 'metadataMs', 'executionMs', 'fetchMs', 'serverMs'].every((key) => typeof timing[key] === 'number' && timing[key] >= 0)
+      && timing.serverMs >= timing.executionMs + timing.fetchMs && (timing.countMs === null || typeof timing.countMs === 'number'), JSON.stringify(timing));
     check('select ok: total 200', s.total === 200, String(s.total));
     check('select ok: columns from metadata', s.columns.includes('email') && s.columns.includes('city'), s.columns.join(','));
 

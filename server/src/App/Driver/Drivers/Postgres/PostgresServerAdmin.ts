@@ -14,6 +14,8 @@ import {
 import PostgresReplication from './PostgresReplication';
 import {formatBytesText, percentText} from '../ServerText';
 import PostgresSql from './PostgresSql';
+import PostgresFunctions from './PostgresFunctions';
+import {productOfVersion} from '../../Engines';
 
 type QueryRowsType = (sql: string, params?: any[]) => Promise<any[]>;
 
@@ -25,13 +27,13 @@ const UNIT_BYTES: {[unit: string]: number} = {'B': 1, 'kB': 1024, '8kB': 8192, '
  * @author Mateusz Bochen
  */
 class PostgresServerAdmin implements ServerAdminInterface {
-  constructor(private readonly queryRows: QueryRowsType) {
+  constructor(private readonly queryRows: QueryRowsType, private readonly functions: PostgresFunctions = new PostgresFunctions()) {
   }
 
   async status(withAdvice: boolean): Promise<ServerStatusInterface> {
     const [[server], [database], [activity], checkpoints] = await Promise.all([
       this.queryRows(
-        `SELECT current_setting('server_version') AS version, EXTRACT(EPOCH FROM now() - pg_postmaster_start_time())::bigint AS uptime,
+        `SELECT current_setting('server_version') AS version, version() AS full_version, ${this.functions.has('pg_postmaster_start_time') ? 'EXTRACT(EPOCH FROM now() - pg_postmaster_start_time())::bigint' : 'NULL'} AS uptime,
                 current_setting('max_connections')::int AS max_connections`,
       ),
       this.queryRows(
@@ -86,7 +88,9 @@ class PostgresServerAdmin implements ServerAdminInterface {
     ];
 
     const result: ServerStatusInterface = {
-      version: server.version,
+      // CockroachDB reports version of PostgreSQL it is compatible with - its own version is in version()
+      version: productOfVersion(server.full_version) === 'CockroachDB' ? (/v(\d[\w.-]*)/.exec(server.full_version)?.[1] || server.version) : server.version,
+      product: productOfVersion(server.full_version),
       uptime: Number(server.uptime) || 0,
       takenAt: Date.now(),
       metrics,
@@ -255,7 +259,7 @@ class PostgresServerAdmin implements ServerAdminInterface {
     const [databases, collations, extensions, methods] = await Promise.all([
       this.queryRows(
         `SELECT datname, pg_encoding_to_char(encoding) AS encoding, datcollate, datctype,
-                CASE WHEN has_database_privilege(oid, 'CONNECT') THEN pg_database_size(oid) END AS size
+                CASE WHEN has_database_privilege(oid, 'CONNECT') THEN ${this.functions.call('pg_database_size', 'oid')} END AS size
          FROM pg_database WHERE NOT datistemplate ORDER BY datname`,
       ),
       this.queryRows(

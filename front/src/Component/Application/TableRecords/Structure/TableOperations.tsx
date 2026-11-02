@@ -58,7 +58,7 @@ export default forwardRef<TableOperationsRefInterface, TableOperationsPropsInter
           change={change.preview.change}
           busy={change.busy}
           onChange={change.requestPreview}
-          isMysql={DriverFactory.getDriver(props.connection).dialect === 'mysql'}
+          ignoreForeignKeysLabel={DriverFactory.getDriver(props.connection).features.hints.ignoreForeignKeys(change.preview.change.kind, false)}
           onExecute={change.execute}
           onCancel={change.closePreview}
         />

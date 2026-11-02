@@ -242,7 +242,7 @@ export default forwardRef<StructureViewRefInterface, StructureViewPropsInterface
           {structure.info && (
             <div className="structure-info">
               <div><span>Type</span>{structure.info.type}</div>
-              {structure.info.engine && <div><span>{DriverFactory.getDriver(props.connection).dialect === 'postgresql' ? 'Access method' : 'Engine'}</span>{structure.info.engine}</div>}
+              {structure.info.engine && <div><span>{DriverFactory.getDriver(props.connection).features.labels.engine}</span>{structure.info.engine}</div>}
               {structure.info.collation && <div><span>Collation</span>{structure.info.collation}</div>}
               {structure.info.rowFormat && <div><span>Row format</span>{structure.info.rowFormat}</div>}
               {structure.info.rows !== null && <div title="Approximate for InnoDB"><span>Rows</span>~{structure.info.rows.toLocaleString()}</div>}

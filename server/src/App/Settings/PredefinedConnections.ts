@@ -27,8 +27,8 @@ export interface PredefinedConnectionInterface {
 }
 
 import SshTunnel, {SshConfigInterface, SshSecretsInterface} from '../Driver/Ssh/SshTunnel';
+import {SUPPORTED_DSN} from '../Driver/Engines';
 
-const SUPPORTED_DSN = /^(mysql|mariadb|postgresql|postgres|pgsql):\/\/\S+$/i;
 
 /** credentials must not be sent to browser */
 const withoutCredentials = (dsn: string): string => dsn.replace(/^([a-z]+:\/\/)[^@/]*@/i, '$1');

@@ -49,8 +49,11 @@ class ReadOnlyGuard {
 
   /** statements which would switch read only mode off or work outside of transaction */
   static refuseStatement(sql: string): string | null {
-    const text = sql.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(--|#)[^\n]*/g, ' ');
+    // executable comments of MySQL / MariaDB (/*!50000 ... */, /*M! ... */) are executed - they are checked as statement
+    const text = sql.replace(/\/\*(?!!|M!)[\s\S]*?\*\//g, ' ').replace(/(--|#)[^\n]*/g, ' ');
     const rules: [RegExp, string][] = [
+      // text of statement built at run time cannot be checked (PREPARE FROM 'text' is checked as text)
+      [/\bprepare\b[\s\S]*?\bfrom\s+@|\bexecute\s+immediate\b/i, 'statement built at run time cannot be executed'],
       [/\bread\s+write\b|\b(default_)?transaction_read_only\b|\btx_read_only\b|\bsession\s+characteristics\b/i, 'read only mode cannot be changed'],
       [/^\s*(reset|discard)\b/i, 'session settings cannot be reset'],
       [/^\s*kill\b|\bpg_(terminate|cancel)_backend\b/i, 'processes cannot be stopped'],

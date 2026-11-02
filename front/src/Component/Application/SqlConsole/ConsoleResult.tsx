@@ -9,6 +9,7 @@ import {CellValueType} from '../../Table/Interface/RecordsViewPropsInterface';
 import DriverFactory from '../../../Library/Database/Driver/DriverFactory';
 import openTableTab from '../TableRecords/openTableTab';
 import './ConsoleResult.css';
+import QueryTiming from '../../../Library/Timing/QueryTiming';
 
 interface ConsoleResultPropsInterface {
   buffer: ResultBuffer;
@@ -24,6 +25,8 @@ export default (props: ConsoleResultPropsInterface) => {
   useEffect(() => {
     const view = recordsRef.current!;
     const {buffer} = props;
+    // result received while its tab was hidden - render is measured from now
+    if (buffer.finished !== null) QueryTiming.shown(buffer.tabId);
     const finish = (rows: number) => {
       view.setLimit(0, Math.max(rows, 1));
       view.setTotal(rows);
@@ -77,6 +80,7 @@ export default (props: ConsoleResultPropsInterface) => {
         cellRender={undefined}
         onOpenReference={onOpenReference}
         exportName={props.name}
+        timingTabId={props.buffer.tabId}
       />
     </div>
   );

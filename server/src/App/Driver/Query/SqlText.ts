@@ -1,4 +1,5 @@
 import SqlDialectType from './SqlDialectType';
+import {syntaxOf} from './SqlSyntax';
 
 /**
  * Checks of SQL written by user (SELECT of view, CREATE of routine) before it is used in built statements.
@@ -7,15 +8,18 @@ import SqlDialectType from './SqlDialectType';
 class SqlText {
   /** strings, quoted names and comments replaced by spaces - rest can be searched for ; and keywords */
   static code(sql: string, dialect: SqlDialectType): string {
+    const syntax = syntaxOf(dialect);
     const blank = (text: string) => text.replace(/[^\n]/g, ' ');
     let result = sql
       .replace(/\/\*[\s\S]*?\*\//g, blank)
-      .replace(dialect === 'mysql' ? /(--\s|#)[^\n]*/g : /--[^\n]*/g, blank);
-    if (dialect === 'postgresql') {
+      .replace(syntax.hashComments ? /(--\s|#)[^\n]*/g : /--[^\n]*/g, blank);
+    if (syntax.dollarQuotes) {
       // $$ body $$, $tag$ body $tag$
       result = result.replace(/\$([A-Za-z_]\w*)?\$[\s\S]*?\$\1\$/g, blank);
     }
-    const quotes = dialect === 'mysql' ? /'(?:[^'\\]|''|\\.)*'|"(?:[^"\\]|""|\\.)*"|`(?:[^`]|``)*`/g : /'(?:[^']|'')*'|"(?:[^"]|"")*"/g;
+    const quotes = syntax.backslashEscapes === 'all'
+      ? /'(?:[^'\\]|''|\\.)*'|"(?:[^"\\]|""|\\.)*"|`(?:[^`]|``)*`/g
+      : /'(?:[^']|'')*'|"(?:[^"]|"")*"/g;
     return result.replace(quotes, blank);
   }
 
@@ -45,7 +49,7 @@ class SqlText {
   /** CREATE statement of routine / trigger / event / view */
   static createStatement(sql: string, dialect: SqlDialectType): string {
     const text = SqlText.trim(sql);
-    if (dialect === 'mysql' && /^\s*DELIMITER\b/im.test(SqlText.code(text, dialect))) {
+    if (syntaxOf(dialect).delimiterCommand && /^\s*DELIMITER\b/im.test(SqlText.code(text, dialect))) {
       throw new Error('DELIMITER is a command of mysql client - write the CREATE statement without it');
     }
     if (!/^CREATE\b/i.test(text)) {

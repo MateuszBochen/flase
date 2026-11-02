@@ -84,7 +84,7 @@ const ServerStatus = (props: ServerStatusPropsInterface) => {
     <div className="cmp-server-status cmp-structure-view" ref={rootRef}>
       <div className="server-toolbar">
         <span className="server-title"><FontAwesomeIcon icon={faGauge} /> {props.connection.displayName}</span>
-        {last && <span className="server-chip" title="Version and uptime">{last.version} · up {formatDuration(last.uptime)}</span>}
+        {last && <span className="server-chip" title="Server, version and uptime">{last.product && !last.version.includes(last.product) ? `${last.product} ` : ''}{last.version} · up {formatDuration(last.uptime)}</span>}
         <nav className="server-views" role="tablist">
           {VIEWS.map((item) => (
             <button key={item.view} type="button" role="tab" aria-selected={view === item.view} className={view === item.view ? 'active' : ''} onClick={() => show(item.view)}>
@@ -103,7 +103,7 @@ const ServerStatus = (props: ServerStatusPropsInterface) => {
       {status.error && <div className="structure-error">{status.error}</div>}
 
       <div className="structure-content">
-        {visited.has('monitor') && <div style={{display: view === 'monitor' ? undefined : 'none'}}><MonitorView samples={samples} dialect={driver.dialect} /></div>}
+        {visited.has('monitor') && <div style={{display: view === 'monitor' ? undefined : 'none'}}><MonitorView samples={samples} labels={driver.features.labels} /></div>}
         {visited.has('status') && <div style={{display: view === 'status' ? undefined : 'none'}}><StatusVariablesView samples={samples} /></div>}
         {visited.has('variables') && (
           <div style={{display: view === 'variables' ? undefined : 'none'}}>
@@ -128,7 +128,7 @@ const ServerStatus = (props: ServerStatusPropsInterface) => {
             <ReplicationView connection={props.connection} tabId={tabId} readOnly={!!connection.readOnly} />
           </div>
         )}
-        {visited.has('info') && <div style={{display: view === 'info' ? undefined : 'none'}}><ServerInfoView connection={props.connection} tabId={tabId} dialect={driver.dialect} /></div>}
+        {visited.has('info') && <div style={{display: view === 'info' ? undefined : 'none'}}><ServerInfoView connection={props.connection} tabId={tabId} labels={driver.features.labels} /></div>}
       </div>
     </div>
   );

@@ -41,7 +41,7 @@ const title = (operation: DatabaseOperationType, label: string): string => {
 export default (props: OperationConfirmPopupPropsInterface) => {
   const driver = DriverFactory.getDriver(props.connection);
   const destructive = isDestructiveOperation(props.operation);
-  const isMysql = driver.dialect === 'mysql';
+  const {hints, transactionalDdl} = driver.features;
   const operation = props.operation;
 
   return (
@@ -71,22 +71,16 @@ export default (props: OperationConfirmPopupPropsInterface) => {
               disabled={props.busy}
               onChange={(event) => props.onChange({...operation, ignoreForeignKeys: event.target.checked})}
             />
-            {isMysql
-              ? 'Disable foreign key checks (FOREIGN_KEY_CHECKS = 0)'
-              : `CASCADE - also ${operation.action === 'drop' ? 'objects depending on the tables' : 'tables referencing them'}`}
+            {hints.ignoreForeignKeys(operation.action, true)}
           </label>
         )}
         <pre className="cmp-sql-preview">{props.statements.map((statement) => `${statement};`).join('\n')}</pre>
-        {operation.kind === 'renameDatabase' && isMysql && (
-          <div className="structure-hint">MySQL has no RENAME DATABASE - tables are moved to new database and the old one is dropped. Privileges granted on the old name are not moved.</div>
-        )}
-        {operation.kind === 'dropDatabase' && !isMysql && <div className="structure-hint">Everything in the schema is dropped (CASCADE).</div>}
-        {operation.kind === 'objectDdl' && operation.replace && isMysql && (
-          <div className="structure-hint">When CREATE fails, the previous definition is created again.</div>
-        )}
-        {props.statements.length > 1 && (isMysql
-          ? <div className="structure-hint">Statements are executed one by one, DDL cannot be rolled back.</div>
-          : <div className="structure-hint">Statements are executed in one transaction - all or nothing.</div>)}
+        {operation.kind === 'renameDatabase' && hints.renameDatabase && <div className="structure-hint">{hints.renameDatabase}</div>}
+        {operation.kind === 'dropDatabase' && hints.dropDatabase && <div className="structure-hint">{hints.dropDatabase}</div>}
+        {operation.kind === 'objectDdl' && operation.replace && hints.objectRestore && <div className="structure-hint">{hints.objectRestore}</div>}
+        {props.statements.length > 1 && (transactionalDdl
+          ? <div className="structure-hint">Statements are executed in one transaction - all or nothing.</div>
+          : <div className="structure-hint">Statements are executed one by one, DDL cannot be rolled back.</div>)}
       </div>
     </Popup>
   );

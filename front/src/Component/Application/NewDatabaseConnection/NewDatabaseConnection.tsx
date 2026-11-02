@@ -52,7 +52,7 @@ export default () => {
           <div className="new-connection-mark"><FontAwesomeIcon icon={faPlug} /></div>
           <div>
             <h1>New connection</h1>
-            <p>MySQL, MariaDB or PostgreSQL server. Connection is saved in this browser, password only when you choose to remember it.</p>
+            <p>MySQL, MariaDB, PostgreSQL or compatible server (TiDB, CockroachDB, YugabyteDB). Connection is saved in this browser, password only when you choose to remember it.</p>
           </div>
         </div>
 

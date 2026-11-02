@@ -11,7 +11,7 @@ import DriverFactory from '../../Library/Database/Driver/DriverFactory';
 import DatabaseOperations from '../../Library/Database/DatabaseOperations';
 import {ObjectDdlInterface, ObjectRefInterface} from '../../Library/Database/Interface/DatabaseObjectsInterface';
 import {DatabaseOperationType} from '../../Library/Database/Interface/DatabaseOperationInterface';
-import objectTemplate, {OBJECT_LABELS, ObjectTypeType} from './objectTemplates';
+import {OBJECT_LABELS, ObjectTypeType} from './objectTemplates';
 import {formatViewDdl} from '../../Library/Console/SqlFormatter';
 import './style.css';
 
@@ -32,7 +32,7 @@ interface ObjectEditorPopupPropsInterface {
 /** ObjectEditorPopup - CREATE statement of procedure, function, trigger, event or view in SQL editor */
 export default (props: ObjectEditorPopupPropsInterface) => {
   const driver = DriverFactory.getDriver(props.connection);
-  const [text, setText] = useState<string | null>(props.object ? null : objectTemplate(props.type, driver.dialect, props.table));
+  const [text, setText] = useState<string | null>(props.object ? null : driver.objectTemplate(props.type, props.table || 'my_table'));
   const [error, setError] = useState<string | null>(null);
   const editorRef = useRef<any>(null);
   const ddlTabId = `${props.tabId}:ddl`;
@@ -88,12 +88,8 @@ export default (props: ObjectEditorPopupPropsInterface) => {
           </div>
         )}
         <div className="structure-hint">
-          {driver.dialect === 'mysql'
-            ? 'Write one CREATE statement without DELIMITER - semicolons inside BEGIN … END are fine.'
-            : 'Write one CREATE statement, body of function in $$ … $$.'}
-          {props.object && (driver.dialect === 'mysql'
-            ? ' Object is dropped and created again; when CREATE fails, the previous definition is restored.'
-            : ' CREATE OR REPLACE keeps dependent objects; other statements drop the object first (in one transaction).')}
+          {driver.features.hints.objectEditor}
+          {props.object && ` ${driver.features.hints.objectReplace}`}
         </div>
       </div>
     </Popup>

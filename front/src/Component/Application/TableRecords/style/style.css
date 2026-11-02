@@ -282,3 +282,18 @@
     font-family: var(--font-mono);
     word-break: break-word;
 }
+
+/* query as text until the SQL editor is mounted - the same font and position as one line editor */
+.cmp-table-data-navbar .query-preview {
+  height: 100%;
+  box-sizing: border-box;
+  padding: 7px 0 7px 4px;
+  overflow: hidden;
+  color: var(--text);
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 20px;
+  white-space: pre;
+  text-overflow: ellipsis;
+  cursor: text;
+}

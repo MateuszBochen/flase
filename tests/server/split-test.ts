@@ -28,6 +28,14 @@ for (const size of [1, 2, 3, 4, 7, 13, 64]) {
   const parts = split(script, size);
   check('chunk size ' + size, JSON.stringify(parts) === JSON.stringify(expected), parts);
 }
+// executable comments of mysqldump / MariaDB are statements, plain comments are not
+const dumpHead = "/*!40101 SET NAMES utf8mb4 */;\n/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;\n/*M!100616 SET NOTE_VERBOSITY=0 */;\n/* only comment */;\n"
+  + "DELIMITER ;;\n/*!50003 CREATE*/ /*!50003 TRIGGER trg BEFORE INSERT ON t FOR EACH ROW SET NEW.a = 1 */;;\nDELIMITER ;\n";
+for (const size of [1, 5, 100000]) {
+  const parts = split(dumpHead, size);
+  check('executable comments kept, chunk ' + size, parts.length === 4 && parts[0].startsWith('/*!40101') && parts[2].startsWith('/*M!') && parts[3].includes('TRIGGER trg'), parts);
+}
+check('PostgreSQL: /*! is a comment', split('/*! not mysql */;\nSELECT 1;', 3, 'postgresql').length === 1);
 check('comment only script', split('-- nothing\n/* x */', 3).length === 0);
 const pgScript = [
   "SET search_path TO shop;",

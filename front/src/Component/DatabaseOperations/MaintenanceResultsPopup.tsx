@@ -50,18 +50,3 @@ export const MAINTENANCE_LABELS: {[action: string]: string} = {
   reindex: 'Reindex',
 };
 
-/** maintenance actions of database - MySQL / MariaDB or PostgreSQL */
-export const maintenanceActions = (dialect: string): {action: string, label: string, hint: string}[] => dialect === 'mysql'
-  ? [
-    {action: 'optimize', label: 'Optimize', hint: 'OPTIMIZE TABLE - rebuild, free unused space'},
-    {action: 'analyze', label: 'Analyze', hint: 'ANALYZE TABLE - refresh statistics of indexes'},
-    {action: 'check', label: 'Check', hint: 'CHECK TABLE - look for errors'},
-    {action: 'repair', label: 'Repair', hint: 'REPAIR TABLE - MyISAM, Aria, ARCHIVE, CSV'},
-  ]
-  : [
-    {action: 'vacuum', label: 'Vacuum', hint: 'VACUUM - reclaim space of dead rows'},
-    {action: 'vacuumAnalyze', label: 'Vacuum analyze', hint: 'VACUUM (ANALYZE) - vacuum and refresh statistics'},
-    {action: 'vacuumFull', label: 'Vacuum full', hint: 'VACUUM FULL - rewrite table (locks it)'},
-    {action: 'analyze', label: 'Analyze', hint: 'ANALYZE - refresh statistics'},
-    {action: 'reindex', label: 'Reindex', hint: 'REINDEX TABLE - rebuild indexes'},
-  ];

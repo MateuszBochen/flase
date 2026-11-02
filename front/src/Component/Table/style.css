@@ -762,3 +762,84 @@ body.column-resizing * {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/**   TIMING OF QUERY   */
+.cmp-records-view-pager-root .query-timing {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-right: 6px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  color: var(--text-muted);
+  cursor: default;
+  white-space: nowrap;
+}
+.cmp-records-view-pager-root .query-timing:hover,
+.cmp-records-view-pager-root .query-timing:focus {
+  color: var(--text-strong);
+  background-color: var(--tab-bg);
+  outline: none;
+}
+.cmp-records-view-pager-root .query-timing-panel {
+  display: none;
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 6px);
+  z-index: 30;
+  width: 360px;
+  padding: 10px 12px;
+  border: solid 1px var(--border-strong);
+  border-radius: 6px;
+  background-color: var(--bg);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  color: var(--text);
+  white-space: normal;
+}
+.cmp-records-view-pager-root .query-timing:hover .query-timing-panel,
+.cmp-records-view-pager-root .query-timing:focus .query-timing-panel {
+  display: block;
+}
+.query-timing-panel .query-timing-title {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  color: var(--text-strong);
+  font-weight: bold;
+}
+.query-timing-panel .query-timing-step {
+  display: grid;
+  grid-template-columns: 130px 1fr 64px;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0;
+}
+.query-timing-panel .query-timing-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.query-timing-panel .query-timing-bar {
+  position: relative;
+  height: 8px;
+  border-radius: 2px;
+  background-color: var(--panel);
+}
+.query-timing-panel .query-timing-bar span {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 2px;
+  background-color: var(--accent-bg);
+}
+.query-timing-panel .query-timing-ms {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.query-timing-panel .query-timing-note {
+  display: block;
+  margin-top: 6px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}

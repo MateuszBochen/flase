@@ -5,11 +5,12 @@ import CommandType from '../../../Library/WebSocket/Enum/CommandType';
 import MessageType from '../../../Library/WebSocket/Enum/MessageType';
 import {ServerInfoInterface} from '../../../Library/Server/ServerInterface';
 import {formatBytes} from './format';
+import DriverFeaturesInterface from '../../../Library/Database/Driver/DriverFeaturesInterface';
 
 interface ServerInfoViewPropsInterface {
   connection: ConnectionDataInterface;
   tabId: string;
-  dialect: string;
+  labels: DriverFeaturesInterface['labels'];
 }
 
 /** ServerInfoView - storage engines (access methods), character sets, collations, extensions and databases of server */
@@ -21,7 +22,10 @@ export default (props: ServerInfoViewPropsInterface) => {
 
   if (request.error) return <div className="structure-error">{request.error}</div>;
   if (!info) return <div className="structure-loading">Loading…</div>;
-  const isMysql = props.dialect === 'mysql';
+  const {labels} = props;
+  // columns known only by some servers (transactions of MySQL engines, provider of PostgreSQL collations)
+  const engineTransactions = info.engines.some((engine) => engine.transactions !== null);
+  const collationProvider = info.collations.some((collation) => collation.provider !== null);
 
   return (
     <div className="server-info">
@@ -41,15 +45,15 @@ export default (props: ServerInfoViewPropsInterface) => {
       )}
 
       <section className="structure-section">
-        <h3>{isMysql ? 'Storage engines' : 'Access methods'}<span className="structure-count">{info.engines.length}</span></h3>
+        <h3>{labels.engines}<span className="structure-count">{info.engines.length}</span></h3>
         <table className="structure-table">
-          <thead><tr><th>Name</th><th>{isMysql ? 'Support' : 'Type'}</th>{isMysql && <th>Transactions</th>}<th>Comment</th></tr></thead>
+          <thead><tr><th>Name</th><th>{labels.engineSupport}</th>{engineTransactions && <th>Transactions</th>}<th>Comment</th></tr></thead>
           <tbody>
             {info.engines.map((engine) => (
               <tr key={engine.name} className={engine.support === 'NO' || engine.support === 'DISABLED' ? 'muted-row' : ''}>
                 <td className="name">{engine.name}</td>
                 <td>{engine.support}</td>
-                {isMysql && <td>{engine.transactions === null ? '' : engine.transactions ? 'yes' : 'no'}</td>}
+                {engineTransactions && <td>{engine.transactions === null ? '' : engine.transactions ? 'yes' : 'no'}</td>}
                 <td>{engine.comment}</td>
               </tr>
             ))}
@@ -94,12 +98,12 @@ export default (props: ServerInfoViewPropsInterface) => {
           <input className="server-inline-filter" value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="Filter collations…" aria-label="Filter collations" />
         </h3>
         <table className="structure-table">
-          <thead><tr><th>Name</th><th>{isMysql ? 'Character set' : 'Encoding'}</th>{isMysql ? <th>Default</th> : <th>Provider</th>}</tr></thead>
+          <thead><tr><th>Name</th><th>{labels.characterSet}</th>{collationProvider ? <th>Provider</th> : <th>Default</th>}</tr></thead>
           <tbody>
             {collations.map((collation) => (
               <tr key={`${collation.charset}:${collation.name}`}>
                 <td className="name">{collation.name}</td><td>{collation.charset}</td>
-                <td className="muted">{isMysql ? (collation.isDefault ? 'yes' : '') : collation.provider}</td>
+                <td className="muted">{collationProvider ? collation.provider : collation.isDefault ? 'yes' : ''}</td>
               </tr>
             ))}
           </tbody>

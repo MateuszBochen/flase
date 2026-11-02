@@ -12,16 +12,15 @@ import ConnectionUserDataInterface from '../../../Library/Connection/Interface/C
 import {SshAuthType, SshConfigInterface, SshHostKeyInterface, sshSecretsOf} from '../../../Library/Connection/Ssh/SshTunnelInterface';
 import SshKeyInput from '../../SshTunnel/SshKeyInput';
 import './style.css';
+import {ENGINE_SCHEMES, ENGINES, engineOfScheme} from '../../../Library/Connection/Engines';
 
-type EngineType = 'mysql' | 'mariadb' | 'postgresql';
+/** main scheme of engine (ENGINES) */
+type EngineType = string;
 type ModeType = 'host' | 'dsn';
 export type TestStateType = {status: 'idle' | 'testing' | 'ok' | 'error', message?: string, hostKey?: SshHostKeyInterface};
 
-const ENGINES: {value: EngineType, label: string, port: string, hint: string}[] = [
-  {value: 'mysql', label: 'MySQL', port: '3306', hint: '5.7, 8.x'},
-  {value: 'mariadb', label: 'MariaDB', port: '3306', hint: '10.x, 11.x'},
-  {value: 'postgresql', label: 'PostgreSQL', port: '5432', hint: '12 and newer'},
-];
+const ENGINE_OPTIONS = ENGINES.map((engine) => ({value: engine.schemes[0], label: engine.label, port: engine.port, hint: engine.hint, dialect: engine.dialect}));
+const optionOf = (engine: EngineType) => ENGINE_OPTIONS.find((item) => item.value === engine) || ENGINE_OPTIONS[0];
 
 const SSH_AUTHS: {value: SshAuthType, label: string, hint: string}[] = [
   {value: 'password', label: 'Password', hint: 'Password of SSH user'},
@@ -29,7 +28,7 @@ const SSH_AUTHS: {value: SshAuthType, label: string, hint: string}[] = [
   {value: 'keyFile', label: 'Key on Flase server', hint: 'File in SSH key directory of server (FLASE_SSH_KEY_DIR)'},
 ];
 
-const DSN_PATTERN = /^(mysql|mariadb|postgresql|postgres|pgsql):\/\/([^/:?#\s]+)(?::(\d+))?(?:\/([^?#\s]*))?(?:\?(\S*))?$/i;
+const DSN_PATTERN = new RegExp(`^(${ENGINE_SCHEMES.join('|')}):\\/\\/([^/:?#\\s]+)(?::(\\d+))?(?:\\/([^?#\\s]*))?(?:\\?(\\S*))?$`, 'i');
 
 type TlsModeType = 'disable' | 'require' | 'verify-ca' | 'verify-full';
 type TlsType = {mode: TlsModeType, ca: string, cert: string, key: string};
@@ -74,14 +73,11 @@ const queryOfTls = (tls: TlsType): string => {
   return `?${params.toString()}`;
 };
 
-/** postgres:// and pgsql:// are PostgreSQL */
-const engineOf = (scheme: string): EngineType => {
-  const lower = scheme.toLowerCase();
-  return lower === 'mysql' || lower === 'mariadb' ? lower : 'postgresql';
-};
+/** postgres:// and pgsql:// are PostgreSQL - main scheme of the engine */
+const engineOf = (scheme: string): EngineType => engineOfScheme(scheme)?.schemes[0] || 'mysql';
 
 const buildDsn = (engine: EngineType, host: string, port: string, database: string, tls: TlsType = NO_TLS): string => {
-  const defaultPort = ENGINES.find((item) => item.value === engine)!.port;
+  const defaultPort = optionOf(engine).port;
   return `${engine}://${host.trim() || 'localhost'}:${port.trim() || defaultPort}${database.trim() ? `/${database.trim()}` : ''}${queryOfTls(tls)}`;
 };
 
@@ -92,7 +88,7 @@ const initialOf = (connection?: ConnectionDataInterface) => {
     return {engine: 'mysql' as EngineType, mode: (connection ? 'dsn' : 'host') as ModeType, host: 'localhost', port: '3306', database: '', tls: NO_TLS, dsnText: connection?.dsn || ''};
   }
   const engine = engineOf(match[1]);
-  const fields = {engine, host: match[2], port: match[3] || ENGINES.find((item) => item.value === engine)!.port, database: match[4] || '', tls: tlsOfQuery(match[5])};
+  const fields = {engine, host: match[2], port: match[3] || optionOf(engine).port, database: match[4] || '', tls: tlsOfQuery(match[5])};
   const sameAsBuilt = buildDsn(fields.engine, fields.host, fields.port, fields.database, fields.tls) === connection.dsn;
   return {...fields, mode: (sameAsBuilt ? 'host' : 'dsn') as ModeType, dsnText: connection.dsn};
 };
@@ -184,11 +180,11 @@ export default (options: ConnectionFormOptionsInterface = {}) => {
   });
 
   const changeEngine = (value: EngineType) => {
-    const previousDefault = ENGINES.find((item) => item.value === engine)!.port;
+    const previousDefault = optionOf(engine).port;
     setEngine(value);
     // port typed by user stays
     if (!port.trim() || port === previousDefault) {
-      setPort(ENGINES.find((item) => item.value === value)!.port);
+      setPort(optionOf(value).port);
     }
     setTest({status: 'idle'});
   };
@@ -201,7 +197,7 @@ export default (options: ConnectionFormOptionsInterface = {}) => {
     if (match) {
       setEngine(engineOf(match[1]));
       setHost(match[2]);
-      setPort(match[3] || ENGINES.find((item) => item.value === engineOf(match[1]))!.port);
+      setPort(match[3] || optionOf(engineOf(match[1])).port);
       setDatabase(match[4] || '');
       setTls(tlsOfQuery(match[5]));
     }
@@ -290,7 +286,7 @@ export default (options: ConnectionFormOptionsInterface = {}) => {
         <section>
           <h2>Database engine</h2>
           <div className="engine-options" role="radiogroup">
-            {ENGINES.map((item) => (
+            {ENGINE_OPTIONS.map((item) => (
               <button
                 key={item.value}
                 type="button"
@@ -326,9 +322,9 @@ export default (options: ConnectionFormOptionsInterface = {}) => {
                 <input value={port} inputMode="numeric" onChange={(e) => { setPort(e.target.value.replace(/\D/g, '')); setTest({status: 'idle'}); }} />
               </label>
               <label className="field grow">
-                <span>Database <em>{engine === 'postgresql' ? 'default postgres' : 'optional'}</em></span>
+                <span>Database <em>{optionOf(engine).dialect === 'postgresql' ? 'default postgres' : 'optional'}</em></span>
                 <input value={database} onChange={(e) => { setDatabase(e.target.value); setTest({status: 'idle'}); }}
-                  placeholder={engine === 'postgresql' ? 'postgres' : 'all databases'} />
+                  placeholder={optionOf(engine).dialect === 'postgresql' ? 'postgres' : 'all databases'} />
               </label>
             </div>
           ) : (

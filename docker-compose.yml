@@ -90,6 +90,31 @@ services:
     ports:
       - "2222:22"
 
+  # compatible engines for tests/run.sh server engines (docker compose --profile engines up -d) - started only on demand
+  tidb:
+    image: pingcap/tidb:v8.5.1
+    container_name: flase_tidb
+    profiles: ["engines"]
+    ports:
+      - "4000:4000"
+
+  cockroach:
+    image: cockroachdb/cockroach:v24.3.6
+    container_name: flase_cockroach
+    profiles: ["engines"]
+    command: ["start-single-node", "--insecure"]
+    ports:
+      - "26257:26257"
+
+  # image of about 2.8 GB
+  yugabyte:
+    image: yugabytedb/yugabyte:2.25.1.0-b381
+    container_name: flase_yugabyte
+    profiles: ["engines"]
+    command: ["bin/yugabyted", "start", "--background=false"]
+    ports:
+      - "5433:5433"
+
 volumes:
   mysql_data:
   mariadb_data:

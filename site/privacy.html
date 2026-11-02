@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy - Flase</title>
+<meta name="description" content="Privacy policy of flase.dev - what is collected by Google Analytics and how to withdraw consent.">
+<link rel="canonical" href="https://flase.dev/privacy.html">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<style>
+:root { --bg: #ffffff; --text: #141824; --muted: #5b6475; --border: #e3e7f0; --accent: #3574f0; }
+@media (prefers-color-scheme: dark) { :root { --bg: #0b0d14; --text: #e9ecf4; --muted: #9aa3b8; --border: #222736; } }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.7 system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, sans-serif; }
+main { max-width: 760px; margin: 0 auto; padding: 48px 20px 80px; }
+a { color: var(--accent); }
+.brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; font-size: 20px; color: var(--text); text-decoration: none; }
+.brand img { width: 28px; height: 28px; }
+h1 { font-size: 36px; letter-spacing: -0.02em; margin: 40px 0 8px; }
+h2 { font-size: 22px; margin: 36px 0 8px; }
+p, li { color: var(--muted); }
+.updated { margin-top: 0; }
+button { font: inherit; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; }
+</style>
+</head>
+<body>
+<main>
+  <a class="brand" href="./"><img src="favicon.svg" alt="" width="28" height="28">Flase</a>
+  <h1>Privacy</h1>
+  <p class="updated">Last updated: 30 October 2026</p>
+
+  <p>This page explains what data the website <strong>flase.dev</strong> collects. It is about this website only -
+    the Flase application you run yourself sends no data to us or to anybody else.</p>
+
+  <h2>Analytics</h2>
+  <p>With your consent we use <strong>Google Analytics 4</strong> (Google Ireland Limited) to count visits and to see
+    which parts of the page are useful. Google Analytics stores cookies (<code>_ga</code>, <code>_ga_*</code>) for up to
+    2 years and receives information about your visit: pages, time, approximate location, browser and device.
+    IP addresses are not stored by Google Analytics 4. Data may be processed by Google outside of the EU under the
+    EU-US Data Privacy Framework.</p>
+  <p>Nothing is loaded or stored before you click <em>Accept</em>. Legal basis: your consent (Art. 6(1)(a) GDPR).</p>
+
+  <h2>Withdrawing consent</h2>
+  <p>You can change your choice at any time with <button type="button" id="settings">Cookie settings</button>
+    (also in the footer of the main page). After you reject, the analytics cookies of this website are removed.</p>
+
+  <h2>Server logs</h2>
+  <p>The web server keeps standard access logs (IP address, time, requested page, browser) for security and
+    error diagnosis. They are not used for analytics and are deleted regularly.</p>
+
+  <h2>Your rights</h2>
+  <p>You have the right to access, correct and delete your data, to restrict or object to processing and to lodge
+    a complaint with a supervisory authority (in Poland: Prezes UODO). Questions:
+    <a href="https://github.com/MateuszBochen/flase/issues">GitHub issues</a>.</p>
+</main>
+<script>
+document.getElementById('settings').addEventListener('click', () => {
+  try { localStorage.removeItem('flase-analytics-consent'); } catch (e) { /* private window */ }
+  location.href = './';
+});
+</script>
+</body>
+</html>

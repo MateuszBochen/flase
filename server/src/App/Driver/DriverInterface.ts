@@ -23,10 +23,18 @@ import {
   FindReplaceRequestInterface,
   FindReplaceResultInterface,
 } from './Interface/Data/CellToolsInterface';
+import {DumpProgressCallbackType} from '../Transfer/DumpParts';
+import {SqlSyntaxInterface} from './Query/SqlSyntax';
+import DriverFeaturesInterface from './DriverFeaturesInterface';
 
 interface DriverInterface {
-  /** syntax of SQL - splitting of imported scripts, quoting */
+  /** syntax family of SQL - the same family has the same syntax and features */
   readonly dialect: SqlDialectType;
+
+  /** lexical rules of SQL - splitting of imported scripts, quoting of names */
+  readonly syntax: SqlSyntaxInterface;
+
+  readonly features: DriverFeaturesInterface;
 
   /**
    * Connect to the server and check credentials.
@@ -79,9 +87,10 @@ interface DriverInterface {
   killProcess(id: number, connection: boolean): Promise<void>;
 
   /**
-   * SQL dump written as stream, write resolves when output can take more data
+   * SQL dump written as stream, write resolves when output can take more data;
+   * onProgress gets current table and rows (called often - receiver throttles it)
    */
-  dump(options: DumpOptionsInterface, write: (text: string) => Promise<void>): Promise<{tables: number, rows: number}>;
+  dump(options: DumpOptionsInterface, write: (text: string) => Promise<void>, onProgress?: DumpProgressCallbackType): Promise<{tables: number, rows: number, withoutPrimaryKey?: string[]}>;
 
   /**
    * INSERT of rows (values in order of columns)

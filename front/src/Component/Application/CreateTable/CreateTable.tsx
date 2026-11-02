@@ -54,7 +54,7 @@ const CreateTable = (props: CreateTablePropsInterface) => {
   const connection = useConnectionSettings(props.connection);
   const driver = DriverFactory.getDriver(props.connection);
   const features = driver.features;
-  const isMysql = driver.dialect === 'mysql';
+  const {tableEngine, collations, autoIncrementType} = driver.features;
   const options = useServerOptions(props.connection);
   const tabId = props.tabId || `create-table:${props.database}`;
 
@@ -63,7 +63,7 @@ const CreateTable = (props: CreateTablePropsInterface) => {
   const [collation, setCollation] = useState<string>('');
   const [comment, setComment] = useState<string>('');
   const [columns, setColumns] = useState<ColumnRowInterface[]>(() => [
-    column({name: 'id', type: isMysql ? 'int unsigned' : 'integer', nullable: false, autoIncrement: true, primary: true}),
+    column({name: 'id', type: autoIncrementType, nullable: false, autoIncrement: true, primary: true}),
     column({name: 'name'}),
   ]);
   const [indexes, setIndexes] = useState<IndexRowInterface[]>([]);
@@ -114,8 +114,8 @@ const CreateTable = (props: CreateTablePropsInterface) => {
     indexes: indexes
       .map((index) => ({kind: index.kind, name: index.name.trim(), columns: index.columns.filter((columnName) => columnNames.includes(columnName))}))
       .filter((index) => index.columns.length),
-    engine: isMysql && engine ? engine : null,
-    collation: isMysql && collation ? collation : null,
+    engine: tableEngine && engine ? engine : null,
+    collation: collations && collation ? collation : null,
     comment: comment.trim(),
   });
 
@@ -133,7 +133,7 @@ const CreateTable = (props: CreateTablePropsInterface) => {
           <span>Name</span>
           <input value={name} onChange={(event) => setName(event.target.value)} autoFocus placeholder="table_name" aria-label="Table name" />
         </label>
-        {isMysql && (
+        {tableEngine && (
           <label>
             <span>Engine</span>
             <select value={engine} onChange={(event) => setEngine(event.target.value)} aria-label="Engine">
@@ -142,7 +142,7 @@ const CreateTable = (props: CreateTablePropsInterface) => {
             </select>
           </label>
         )}
-        {isMysql && (
+        {collations && (
           <label>
             <span>Collation</span>
             <CollationSelect options={options} value={collation} onChange={setCollation} emptyLabel="Default of database" />

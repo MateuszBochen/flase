@@ -49,6 +49,8 @@ import {isBinary16, uuidOfHex} from '../../Library/Record/Uuid';
 import toast from 'react-hot-toast';
 import {downloadBinary} from '../../Library/Record/BinaryDownload';
 import {describeSelectionStats, selectionStats} from './Copy/SelectionStats';
+import QueryTimingBadge from './UI/QueryTimingBadge';
+import QueryTiming from '../../Library/Timing/QueryTiming';
 
 type QueryStatus = {
   loading: boolean;
@@ -80,6 +82,11 @@ let lastUsedGrid: HTMLDivElement | null = null;
 export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterface>((props, ref) => {
 
   const [status, setStatus] = useState<QueryStatus>({loading: true, rows: 0, error: null});
+
+  // all rows of the query are committed - paint of them ends timing of the query
+  useEffect(() => {
+    if (props.timingTabId && !status.loading && !status.error) QueryTiming.rendered(props.timingTabId);
+  }, [status, props.timingTabId]);
 
   /** editing */
   const [columns, setColumns] = useState<ColumnInterface[]>([]);
@@ -771,6 +778,7 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
             onPreview={onPreview}
             onSubmit={onSubmit}
           />
+          <QueryTimingBadge tabId={props.timingTabId} />
         </TableFooter>
       </div>
       {rowForm && (

@@ -3,6 +3,7 @@ import MysqlAdapter from './Drivers/Mysql/MysqlAdapter';
 import PostgresAdapter from './Drivers/Postgres/PostgresAdapter';
 import DriverInterface from './DriverInterface';
 import {parseDsnOrThrow, ParsedDsn} from '@soluble/dsn-parser';
+import {engineOfScheme} from './Engines';
 
 /** stands for IPv6 address while DSN is parsed - parser does not know [::1] */
 const IPV6_PLACEHOLDER = 'flase-ipv6-host';
@@ -18,19 +19,13 @@ class DriverFactory {
   getDriver(connectionData: ConnectionRequestInterface): DriverInterface
   {
     const parsedDsn = DriverFactory.parseDsn(connectionData.connectionData.dsn);
-
-    switch(parsedDsn.driver) {
-      // MariaDB speaks MySQL protocol, differences are detected by server version
-      case 'mysql':
-      case 'mariadb':
-        return new MysqlAdapter(connectionData, parsedDsn);
-      case 'postgresql':
-      case 'postgres':
-      case 'pgsql':
-        return new PostgresAdapter(connectionData, parsedDsn);
-      default:
-        throw new Error(`Given ${parsedDsn.driver} is not supported yet`);
+    const engine = engineOfScheme(parsedDsn.driver);
+    if (!engine) {
+      throw new Error(`Given ${parsedDsn.driver} is not supported yet`);
     }
+    // compatible engines (MariaDB, TiDB / CockroachDB, YugabyteDB) speak protocol of their family - differences are in the driver
+    const dsn = {...parsedDsn, port: parsedDsn.port || engine.port};
+    return engine.dialect === 'mysql' ? new MysqlAdapter(connectionData, dsn) : new PostgresAdapter(connectionData, dsn);
   }
 
   /** DSN with IPv6 host ([::1]), trailing slash without database (mysql://db:3306/), port 1 - 65535 */

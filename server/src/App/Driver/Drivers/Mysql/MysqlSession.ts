@@ -197,6 +197,13 @@ class MysqlSession implements DriverSessionInterface {
     await this.query('SET SESSION TRANSACTION READ ONLY');
   }
 
+  async isReadOnly(): Promise<boolean> {
+    // MariaDB before 11.1 knows only tx_read_only, MySQL 8 only transaction_read_only
+    const rows = await this.query('SELECT @@SESSION.transaction_read_only AS ro')
+      .catch(() => this.query('SELECT @@SESSION.tx_read_only AS ro'));
+    return String(rows?.[0]?.ro) === '1';
+  }
+
   /** called by adapter before KILL QUERY */
   markCancelled(): void {
     this.cancelled = true;
@@ -212,7 +219,9 @@ class MysqlSession implements DriverSessionInterface {
     }
     this.released = true;
     this.onRelease?.();
-    this.connection.release();
+    // transaction left open (BEGIN without COMMIT, autocommit = 0) would keep its locks while the connection waits
+    // in the pool - it is rolled back as it would be at the next use of the connection
+    this.connection.query('ROLLBACK', (error) => error ? this.connection.destroy() : this.connection.release());
   }
 
   /** key is column name, `table.name` when name repeats in result */

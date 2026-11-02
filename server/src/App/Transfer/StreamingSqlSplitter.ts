@@ -1,12 +1,12 @@
-
 import SqlDialectType from '../Driver/Query/SqlDialectType';
+import {
+  backslashInString, blockCommentEnd, dollarTagAt, isOnlyComments, lineCommentAt, SqlSyntaxInterface, syntaxOf,
+} from '../Driver/Query/SqlSyntax';
 
 /**
  * Splits SQL script into statements while it is being read (file can be bigger than memory).
- * Delimiters in strings, identifiers and comments are ignored.
- * MySQL: DELIMITER command changes the delimiter, # comments, `identifiers`, backslash escapes in strings.
- * PostgreSQL: $tag$ bodies $tag$, nested block comments, backslash escapes only in E'strings'.
- * Rules are the same as in SQL console of client.
+ * Delimiters in strings, identifiers and comments are ignored - rules of the dialect are in SqlSyntax
+ * (DELIMITER command of MySQL, $tag$ bodies $tag$ of PostgreSQL), the same as in SQL console of client.
  *
  * Buffer always starts at statement boundary, so it can be scanned from its start without remembered state.
  * Only complete lines are scanned - DELIMITER lines, "--" comments and multi character delimiters are never cut.
@@ -15,10 +15,10 @@ import SqlDialectType from '../Driver/Query/SqlDialectType';
 class StreamingSqlSplitter {
   private buffer = '';
   private delimiter = ';';
-  private readonly mysql: boolean;
+  private readonly syntax: SqlSyntaxInterface;
 
   constructor(dialect: SqlDialectType = 'mysql') {
-    this.mysql = dialect === 'mysql';
+    this.syntax = syntaxOf(dialect);
   }
 
   /** returns statements completed by the chunk */
@@ -43,8 +43,9 @@ class StreamingSqlSplitter {
     while (index < limit) {
       const char = text[index];
       const next = text[index + 1];
+      const syntax = this.syntax;
 
-      if (this.mysql && lineStart && /^[ \t]*delimiter[ \t]/i.test(text.slice(index, Math.min(limit, index + 30)))) {
+      if (syntax.delimiterCommand && lineStart && /^[ \t]*delimiter[ \t]/i.test(text.slice(index, Math.min(limit, index + 30)))) {
         const lineEnd = text.indexOf('\n', index);
         const end = lineEnd === -1 || lineEnd >= limit ? limit : lineEnd;
         this.pushStatement(statements, text.slice(start, index));
@@ -54,41 +55,34 @@ class StreamingSqlSplitter {
         continue;
       }
 
-      if (char === "'" || char === '"' || (char === '`' && this.mysql)) {
-        // PostgreSQL: backslash escapes only in E'...' strings
-        const backslash = this.mysql
-          ? char !== '`'
-          : char === "'" && /[eE]/.test(text[index - 1] ?? '') && !/[\w$]/.test(text[index - 2] ?? '');
-        const end = StreamingSqlSplitter.skipQuoted(text, index, char, limit, backslash);
+      if (syntax.stringQuotes.includes(char) || syntax.identifierQuotes.includes(char)) {
+        const end = StreamingSqlSplitter.skipQuoted(text, index, char, limit, backslashInString(text, index, syntax));
         // string continues after scanned part - wait for more data
         if (end === -1) break;
         index = end;
         lineStart = false;
         continue;
       }
-      if (!this.mysql && char === '$' && !/[\w$]/.test(text[index - 1] ?? '')) {
-        const tag = /^\$(?:[A-Za-z_][A-Za-z0-9_]*)?\$/.exec(text.slice(index, index + 66));
-        if (tag) {
-          const close = text.indexOf(tag[0], index + tag[0].length);
-          if (close === -1 || close + tag[0].length > limit) {
-            // body continues after scanned part - wait for more data
-            if (!final) break;
-            index = limit;
-            continue;
-          }
-          index = close + tag[0].length;
-          lineStart = false;
+      const tag = dollarTagAt(text, index, syntax);
+      if (tag) {
+        const close = text.indexOf(tag, index + tag.length);
+        if (close === -1 || close + tag.length > limit) {
+          // body continues after scanned part - wait for more data
+          if (!final) break;
+          index = limit;
           continue;
         }
+        index = close + tag.length;
+        lineStart = false;
+        continue;
       }
-      // MySQL needs whitespace after --, PostgreSQL does not
-      if ((char === '#' && this.mysql) || (char === '-' && next === '-' && (!this.mysql || /\s/.test(text[index + 2] ?? ' ')))) {
+      if (lineCommentAt(text, index, syntax)) {
         const lineEnd = text.indexOf('\n', index);
         index = lineEnd === -1 || lineEnd >= limit ? limit : lineEnd;
         continue;
       }
       if (char === '/' && next === '*') {
-        const commentEnd = this.mysql ? text.indexOf('*/', index + 2) : StreamingSqlSplitter.nestedCommentEnd(text, index);
+        const commentEnd = blockCommentEnd(text, index, syntax);
         if (commentEnd === -1 || commentEnd + 2 > limit) {
           if (!final) break;
           index = limit;
@@ -140,28 +134,10 @@ class StreamingSqlSplitter {
     return -1;
   }
 
-  /** PostgreSQL block comments can be nested - index of closing star of the outer one, -1 when not closed */
-  private static nestedCommentEnd(text: string, index: number): number {
-    let depth = 0;
-    let position = index;
-    while (position < text.length - 1) {
-      if (text[position] === '/' && text[position + 1] === '*') {
-        depth++;
-        position += 2;
-      } else if (text[position] === '*' && text[position + 1] === '/') {
-        depth--;
-        if (depth === 0) return position;
-        position += 2;
-      } else {
-        position++;
-      }
-    }
-    return -1;
-  }
-
   private pushStatement(statements: string[], raw: string): void {
     const sql = raw.trim();
-    if (sql && sql.replace(/\/\*[\s\S]*?\*\//g, '').replace(this.mysql ? /(--\s|#).*$/gm : /--.*$/gm, '').trim()) {
+    // executable comments of MySQL / MariaDB (/*!40101 SET NAMES utf8 */ of mysqldump) are statements, not comments
+    if (sql && !isOnlyComments(sql, this.syntax)) {
       statements.push(sql);
     }
   }

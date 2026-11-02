@@ -14,6 +14,7 @@ import {
 } from '../../Interface/Data/ServerInterface';
 import MysqlReplication from './MysqlReplication';
 import {formatBytesText, percentText} from '../ServerText';
+import {productOfVersion} from '../../Engines';
 const mysql = require('mysql');
 
 type QueryRowsType = (sql: string, params?: any[]) => Promise<any[]>;
@@ -42,7 +43,7 @@ class MysqlServerAdmin implements ServerAdminInterface {
   async status(withAdvice: boolean): Promise<ServerStatusInterface> {
     const [status, [server]] = await Promise.all([
       this.globalStatus(),
-      this.queryRows('SELECT VERSION() AS `version`, @@max_connections AS `maxConnections`'),
+      this.queryRows('SELECT VERSION() AS `version`, @@version_comment AS `comment`, @@max_connections AS `maxConnections`'),
     ]);
     const number = (name: string): number | null => status.has(name) && status.get(name) !== '' ? Number(status.get(name)) : null;
     const sum = (...names: string[]): number | null => {
@@ -76,6 +77,7 @@ class MysqlServerAdmin implements ServerAdminInterface {
 
     const result: ServerStatusInterface = {
       version: server.version,
+      product: productOfVersion(server.version, server.comment),
       uptime: number('Uptime') || 0,
       takenAt: Date.now(),
       metrics,

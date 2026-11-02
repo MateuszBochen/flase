@@ -6,7 +6,8 @@
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20me%20a%20coffee-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/djbacken)
 [![buycoffee.to](https://img.shields.io/badge/buycoffee.to-postaw%20kaw%C4%99-6F4E37)](https://buycoffee.to/djbacken)
 
-**Flase** is a fast, open source **web-based database client** for **MySQL**, **MariaDB** and **PostgreSQL**.
+**Flase** is a fast, open source **web-based database client** for **MySQL**, **MariaDB** and **PostgreSQL**,
+also **TiDB**, **CockroachDB**, **YugabyteDB** and cloud services like Supabase, Neon, RDS or Aurora.
 It is a modern **alternative to phpMyAdmin and Adminer** with the comfort of desktop tools like DataGrip, DBeaver or HeidiSQL -
 but running in the browser, in one Docker container.
 
@@ -21,7 +22,8 @@ import and export dumps, draw ER diagrams and manage users - all from one self-h
 - **Safe for production** - read only connections enforced by the server, colored connections, SQL preview of every change.
 - **Works where your database is** - deploy one container next to the database; connections can be predefined
   by administrator, so the database is reachable only from the Flase server.
-- **One tool for MySQL, MariaDB and PostgreSQL** - the same UI for all three engines.
+- **One tool for MySQL, MariaDB and PostgreSQL** - the same UI for all of them and for compatible engines
+  (TiDB, CockroachDB, YugabyteDB).
 
 ## Features
 
@@ -71,7 +73,9 @@ import and export dumps, draw ER diagrams and manage users - all from one self-h
 ![SQL console of Flase](docs/screenshot-sql-console.png)
 
 ### Import / export
-- Streamed **SQL dump** of databases and tables (also **gzip**), structure and / or data
+- Streamed **SQL dump** of databases and tables (also **gzip**) - structure and data, structure only or data only
+  **per table**, progress with rows and size, cancel; data as INSERT, INSERT IGNORE, **upsert** or UPDATE by primary key,
+  one row per INSERT, TRUNCATE before data
 - SQL and **CSV import** with progress, column mapping and preview, stop on error
 - Export as text in the browser (like phpMyAdmin "view output as text") and import of pasted text
 
@@ -145,7 +149,8 @@ docker run -d --name flase -p 3001:3001 -e JWT_SECRET=$(openssl rand -hex 32) ba
 ```
 
 Open http://localhost:3001 and add a connection, for example `mysql://db-host:3306`, `mariadb://db-host:3306`
-or `postgresql://db-host:5432/database`. PostgreSQL connection with database in DSN shows schemas of the database;
+or `postgresql://db-host:5432/database` - compatible engines have own schemes: `tidb://db-host` (port 4000),
+`cockroachdb://db-host/database` (26257), `yugabytedb://db-host/database` (5433). PostgreSQL connection with database in DSN shows schemas of the database;
 without database (`postgresql://db-host:5432`) it shows all databases of the server with their schemas, like pgAdmin. Passwords are not stored on the server; optionally they can be remembered in the browser
 (encrypted with a non-extractable key of the browser, available over HTTPS or localhost).
 

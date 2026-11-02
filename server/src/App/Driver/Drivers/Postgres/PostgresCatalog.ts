@@ -6,6 +6,7 @@ import {
   StructureTableInfoInterface,
   StructureTriggerInterface,
 } from '../../Interface/Data/TableStructureInterface';
+import PostgresFunctions from './PostgresFunctions';
 
 /** Pool or client - catalog can be read in transaction of dump */
 export interface QueryableInterface {
@@ -76,7 +77,7 @@ const unquoteName = (name: string): string => /^"(?:[^"]|"")+"$/.test(name) ? na
  * @author Mateusz Bochen
  */
 class PostgresCatalog {
-  constructor(private readonly db: QueryableInterface) {
+  constructor(private readonly db: QueryableInterface, readonly functions: PostgresFunctions = new PostgresFunctions()) {
   }
 
   /** relations (tables, views) of schema with pg_class.relkind */
@@ -84,7 +85,7 @@ class PostgresCatalog {
     const {rows} = await this.db.query(
       `SELECT c.relname AS name, c.relkind AS kind, c.oid::int AS oid
        FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
-       WHERE n.nspname = $1 AND c.relkind = ANY($2) AND NOT c.relispartition
+       WHERE n.nspname = $1 AND c.relkind = ANY($2) AND NOT COALESCE(c.relispartition, false)
        ORDER BY c.relname`,
       [schema, RELATION_KINDS],
     );
@@ -111,7 +112,8 @@ class PostgresCatalog {
        JOIN pg_namespace tn ON tn.oid = t.typnamespace
        LEFT JOIN pg_attrdef d ON d.adrelid = a.attrelid AND d.adnum = a.attnum
        LEFT JOIN pg_collation co ON co.oid = a.attcollation
-       LEFT JOIN LATERAL (SELECT pg_get_serial_sequence(format('%I.%I', n.nspname, c.relname), a.attname) AS sequence) s ON TRUE
+       -- only tables own sequences (CockroachDB fails for views instead of NULL)
+       LEFT JOIN LATERAL (SELECT CASE WHEN c.relkind IN ('r', 'p') THEN pg_get_serial_sequence(format('%I.%I', n.nspname, c.relname), a.attname) END AS sequence) s ON TRUE
        WHERE n.nspname = $1 AND ($2::text[] IS NULL OR c.relname = ANY($2)) AND c.relkind = ANY($3)
          AND a.attnum > 0 AND NOT a.attisdropped
        ORDER BY c.relname, a.attnum`,
@@ -230,7 +232,7 @@ class PostgresCatalog {
 
   async triggers(schema: string, table: string | null): Promise<(StructureTriggerInterface & {table: string, definition: string, functionOid: number})[]> {
     const {rows} = await this.db.query(
-      `SELECT tg.tgname AS name, c.relname AS table, pg_get_triggerdef(tg.oid, true) AS definition, tg.tgfoid::int AS function_oid,
+      `SELECT tg.tgname AS name, c.relname AS table, ${this.functions.call('pg_get_triggerdef', 'tg.oid, true', "''")} AS definition, tg.tgfoid::int AS function_oid,
               CASE WHEN tg.tgtype & 2 = 2 THEN 'BEFORE' WHEN tg.tgtype & 64 = 64 THEN 'INSTEAD OF' ELSE 'AFTER' END AS timing,
               concat_ws(' OR ',
                 CASE WHEN tg.tgtype & 4 = 4 THEN 'INSERT' END,
@@ -259,8 +261,8 @@ class PostgresCatalog {
   async tableInfo(schema: string, table: string): Promise<StructureTableInfoInterface | null> {
     const {rows} = await this.db.query(
       `SELECT c.relkind, c.reltuples, obj_description(c.oid, 'pg_class') AS comment,
-              CASE WHEN c.relkind IN ('r', 'p', 'm') THEN pg_relation_size(c.oid) END AS data_length,
-              CASE WHEN c.relkind IN ('r', 'p', 'm') THEN pg_indexes_size(c.oid) END AS index_length,
+              CASE WHEN c.relkind IN ('r', 'p', 'm') THEN ${this.functions.call('pg_relation_size', 'c.oid')} END AS data_length,
+              CASE WHEN c.relkind IN ('r', 'p', 'm') THEN ${this.functions.call('pg_indexes_size', 'c.oid')} END AS index_length,
               am.amname AS access_method
        FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
        LEFT JOIN pg_am am ON am.oid = c.relam

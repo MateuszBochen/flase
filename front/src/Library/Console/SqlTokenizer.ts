@@ -1,4 +1,5 @@
 import SqlDialectType from '../Database/Driver/SqlDialectType';
+import {backslashInString, blockCommentEnd, dollarTagAt, lineCommentAt, skipQuoted, syntaxOf} from '../Database/Driver/Syntax/SqlSyntax';
 
 export type SqlTokenType = {
   /** word: keyword or name, quoted: `name` / "name", param: :name */
@@ -11,11 +12,11 @@ export type SqlTokenType = {
 };
 
 /**
- * Tokens of SQL without whitespace and comments - the same rules of strings and comments as splitSql.
- * MySQL: `names`, # comments, backslash escapes. PostgreSQL: "names", $tag$ bodies $tag$ (one string), E'strings', nested block comments.
+ * Tokens of SQL without whitespace and comments - the same rules of strings and comments as splitSql
+ * (rules of the dialect are in SqlSyntax): quoted names, line and block comments, $tag$ bodies $tag$ as one string, E'strings'.
  */
 export const tokenizeSql = (text: string, dialect: SqlDialectType = 'mysql'): SqlTokenType[] => {
-  const mysql = dialect === 'mysql';
+  const syntax = syntaxOf(dialect);
   const tokens: SqlTokenType[] = [];
   let index = 0;
   const push = (type: SqlTokenType['type'], start: number, end: number, value: string = text.slice(start, end)) => {
@@ -30,39 +31,39 @@ export const tokenizeSql = (text: string, dialect: SqlDialectType = 'mysql'): Sq
       index++;
       continue;
     }
-    if ((char === '-' && next === '-' && (!mysql || /\s/.test(text[index + 2] || ' '))) || (char === '#' && mysql)) {
+    if (lineCommentAt(text, index, syntax)) {
       const lineEnd = text.indexOf('\n', index);
       index = lineEnd === -1 ? text.length : lineEnd;
       continue;
     }
     if (char === '/' && next === '*') {
-      const commentEnd = mysql ? text.indexOf('*/', index + 2) : nestedCommentEnd(text, index);
+      const commentEnd = blockCommentEnd(text, index, syntax);
       index = commentEnd === -1 ? text.length : commentEnd + 2;
       continue;
     }
-    if (char === "'" || (char === '"' && mysql)) {
-      const backslash = mysql || (/[eE]/.test(text[index - 1] || '') && !/[\w$]/.test(text[index - 2] || ''));
+    if (syntax.stringQuotes.includes(char)) {
+      const backslash = backslashInString(text, index, syntax);
       // E'...' - the E is part of the string
-      const start = tokens.length && tokens[tokens.length - 1].end === index && /^[eE]$/.test(tokens[tokens.length - 1].value) && !mysql
+      const start = syntax.backslashEscapes === 'escape-strings' && tokens.length && tokens[tokens.length - 1].end === index
+        && /^[eE]$/.test(tokens[tokens.length - 1].value)
         ? tokens.pop()!.start
         : index;
       const end = skipQuoted(text, index, char, backslash);
       push('string', start, end);
       continue;
     }
+    // names of the other dialect ("name" in MySQL with ANSI_QUOTES is a string above) are names too
     if (char === '`' || char === '"') {
       const end = skipQuoted(text, index, char, false);
       const closed = text[end - 1] === char && end - 1 > index;
       push('quoted', index, end, text.slice(index + 1, closed ? end - 1 : end).split(char + char).join(char));
       continue;
     }
-    if (!mysql && char === '$' && !/[\w$]/.test(text[index - 1] || '')) {
-      const tag = /^\$(?:[A-Za-z_][A-Za-z0-9_]*)?\$/.exec(text.slice(index, index + 66));
-      if (tag) {
-        const close = text.indexOf(tag[0], index + tag[0].length);
-        push('string', index, close === -1 ? text.length : close + tag[0].length);
-        continue;
-      }
+    const tag = dollarTagAt(text, index, syntax);
+    if (tag) {
+      const close = text.indexOf(tag, index + tag.length);
+      push('string', index, close === -1 ? text.length : close + tag.length);
+      continue;
     }
     // :name - not :: (PostgreSQL cast) and not := (assignment)
     if (char === ':' && /[A-Za-z_]/.test(next || '') && text[index - 1] !== ':') {
@@ -84,41 +85,4 @@ export const tokenizeSql = (text: string, dialect: SqlDialectType = 'mysql'): Sq
     push('symbol', index, index + (symbol ? symbol[0].length : 1));
   }
   return tokens;
-};
-
-const skipQuoted = (text: string, index: number, quote: string, backslash: boolean): number => {
-  let position = index + 1;
-  while (position < text.length) {
-    if (backslash && text[position] === '\\') {
-      position += 2;
-      continue;
-    }
-    if (text[position] === quote) {
-      if (text[position + 1] === quote) {
-        position += 2;
-        continue;
-      }
-      return position + 1;
-    }
-    position++;
-  }
-  return text.length;
-};
-
-const nestedCommentEnd = (text: string, index: number): number => {
-  let depth = 0;
-  let position = index;
-  while (position < text.length - 1) {
-    if (text[position] === '/' && text[position + 1] === '*') {
-      depth++;
-      position += 2;
-    } else if (text[position] === '*' && text[position + 1] === '/') {
-      depth--;
-      if (depth === 0) return position;
-      position += 2;
-    } else {
-      position++;
-    }
-  }
-  return -1;
 };

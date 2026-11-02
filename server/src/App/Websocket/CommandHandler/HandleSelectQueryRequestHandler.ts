@@ -11,6 +11,7 @@ import DriverSessionInterface from '../../Driver/DriverSessionInterface';
 import QueryFinishedInterface from '../../Driver/Interface/Data/QueryFinishedInterface';
 import ResultFieldInterface from '../../Driver/Interface/Data/ResultFieldInterface';
 import ResultColumnsBuilder, {ResultColumnsType} from '../Result/ResultColumnsBuilder';
+import QueryStopwatch from '../Result/QueryStopwatch';
 
 
 /**
@@ -21,6 +22,7 @@ import ResultColumnsBuilder, {ResultColumnsType} from '../Result/ResultColumnsBu
 class HandleSelectQueryRequestHandler extends AbstractCommandHandler<QueryRequestDataInterface> {
 
   handle = async (data: QueryRequestDataInterface): Promise<void> => {
+    const stopwatch = new QueryStopwatch();
     let session: DriverSessionInterface;
     try {
       // registered by tab - running query can be cancelled
@@ -35,21 +37,23 @@ class HandleSelectQueryRequestHandler extends AbstractCommandHandler<QueryReques
       this.sendError(e, data.tabId);
       return;
     }
+    stopwatch.mark('session');
 
     try {
       // table structure (types, primary keys, references) of tables used in query
       const columnsBuilder = new ResultColumnsBuilder(this.driver, data.database.name, data.query);
       await columnsBuilder.loadMetadata();
+      stopwatch.mark('metadata');
 
       // count is queued on the same connection before select, so it does not slow down rows
-      const counting = this.countRecords(session, data);
-      const rows = await this.streamQueries(session, data, columnsBuilder);
+      const counting = this.countRecords(session, data).then(() => stopwatch.mark('count'));
+      const rows = await this.streamQueries(session, data, columnsBuilder, stopwatch);
       await counting;
 
       this.clientWebsocket.send<QueryFinishedInterface>(new WsMessage<QueryFinishedInterface>(
         this.command.connectionData.connection,
         MessageType.QUERY_FINISHED,
-        {tabId: data.tabId, rows},
+        {tabId: data.tabId, rows, timing: stopwatch.timing()},
       ));
     } catch (e) {
       this.sendError(e, data.tabId);
@@ -75,7 +79,7 @@ class HandleSelectQueryRequestHandler extends AbstractCommandHandler<QueryReques
   }
 
   /** resolves with number of sent rows */
-  private streamQueries = (session: DriverSessionInterface, data: QueryRequestDataInterface, columnsBuilder: ResultColumnsBuilder): Promise<number> => {
+  private streamQueries = (session: DriverSessionInterface, data: QueryRequestDataInterface, columnsBuilder: ResultColumnsBuilder, stopwatch: QueryStopwatch): Promise<number> => {
     let rows = 0;
 
     // columns are sent when the result description arrives, so they match the result exactly
@@ -84,6 +88,7 @@ class HandleSelectQueryRequestHandler extends AbstractCommandHandler<QueryReques
     return new Promise((resolve, reject) => {
       session.streamSelect(data.query, onFields, !!data.fullValues).subscribe({
         next: (rowItem: RowDto) => {
+          if (rows === 0) stopwatch.mark('firstRow');
           rows++;
           this.clientWebsocket.send<SingleSelectRecordInterface>(new WsMessage<SingleSelectRecordInterface>(
             this.command.connectionData.connection,
@@ -95,7 +100,10 @@ class HandleSelectQueryRequestHandler extends AbstractCommandHandler<QueryReques
           ));
         },
         error: reject,
-        complete: () => resolve(rows),
+        complete: () => {
+          stopwatch.mark('lastRow');
+          resolve(rows);
+        },
       });
     });
   }

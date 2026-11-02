@@ -45,7 +45,7 @@ const check = (name, ok, info = '') => {
 
   // --- form of new connection, filled with the connection
   await openSettings();
-  check('popup with form of new connection', await form.count() === 1 && await form.locator('.engine-option').count() === 3);
+  check('popup with form of new connection', await form.count() === 1 && await form.locator('.engine-option').count() === 6);
   check('DSN mode for DSN of other shape', await form.locator('.mode-switch button.active').innerText() === 'DSN' && await field('DSN').inputValue() === 'mysql://mariadb');
   check('engine selected from DSN', await form.locator('.engine-option.selected .engine-name').innerText() === 'MySQL');
   check('user and name filled in', await field('User').inputValue() === 'wrong_user' && await field('Name').inputValue() === 'Edit me');
@@ -63,7 +63,7 @@ const check = (name, ok, info = '') => {
   await page.waitForTimeout(1500);
   check('test of wrong user fails', (await form.locator('.test-result').getAttribute('class')).includes('error'), await form.locator('.test-result').innerText());
   await form.locator('.mode-switch button', {hasText: 'Host & port'}).click();
-  await form.getByRole('radio', {name: /MariaDB/}).click();
+  await form.getByRole('radio', {name: /^MariaDB/}).click();
   check('host mode filled from DSN', await field('Host').inputValue() === 'mariadb' && await field('Port').inputValue() === '3306'
     && await form.locator('.tls-option').count() === 4 && await form.locator('.tls-option.selected .tls-name').innerText() === 'Disabled');
   await fieldStarting('Database').fill('shop');

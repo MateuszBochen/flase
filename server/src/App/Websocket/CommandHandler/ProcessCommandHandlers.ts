@@ -2,12 +2,16 @@ import AbstractCommandHandler from './AbstractCommandHandler';
 import WsMessage from '../Dto/WsMessage';
 import MessageType from '../Enum/MessageType';
 import {ProcessListInterface} from '../../Driver/Interface/Data/StatementInterface';
+import TransferRegistry from '../../Transfer/TransferRegistry';
 
 /** stop query running in tab (KILL QUERY of its session) */
 export class CancelQueryCommandHandler extends AbstractCommandHandler<{tabId?: string}> {
   handle = async (data: {tabId?: string}): Promise<void> => {
     try {
-      const cancelled = data?.tabId ? await this.driver.cancel(data.tabId) : false;
+      // running dump download of the tab, otherwise query / import of the tab
+      const cancelled = data?.tabId
+        ? TransferRegistry.cancel(data.tabId, this.driver) || await this.driver.cancel(data.tabId)
+        : false;
       this.clientWebsocket.send(new WsMessage(this.command.connectionData.connection, MessageType.QUERY_CANCELLED, {tabId: data?.tabId, cancelled}));
     } catch (e) {
       this.sendError(e, data?.tabId);

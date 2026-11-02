@@ -6,6 +6,7 @@ import TableStructureInterface, {
 } from './Interface/Data/TableStructureInterface';
 import {AlterOperationType, ColumnDefinitionInterface, ColumnPositionType, IndexKindType} from './Interface/Data/StructureChangeInterface';
 import {SchemaCompareResultInterface, SchemaTableDiffInterface} from './Interface/Data/SchemaCompareInterface';
+import {SqlSyntaxInterface} from './Query/SqlSyntax';
 
 /** tables whose structure is loaded at the same time */
 const PARALLEL_TABLES = 4;
@@ -72,8 +73,8 @@ const foreignKeySignature = (key: StructureForeignKeyInterface, database: string
 ]);
 
 /** CREATE TABLE of source for target database - names of source schema in DDL (PostgreSQL indexes) are changed to target */
-const createStatements = (table: TableStructureInterface, sourceDatabase: string, targetDatabase: string, dialect: string): string[] => {
-  const quote = (name: string) => dialect === 'postgresql' ? `"${name.replace(/"/g, '""')}"` : `\`${name.replace(/`/g, '``')}\``;
+const createStatements = (table: TableStructureInterface, sourceDatabase: string, targetDatabase: string, syntax: SqlSyntaxInterface): string[] => {
+  const quote = (name: string) => syntax.quoteIdentifier(name);
   // counter of AUTO_INCREMENT belongs to data of source
   const statements = table.ddl.split(/;\n\n/).map((sql) => sql.trim().replace(/\s+AUTO_INCREMENT=\d+/, '')).filter(Boolean);
   if (sourceDatabase === targetDatabase) return statements;
@@ -141,7 +142,7 @@ export const compareSchemas = async (
       status: 'create',
       changes: [`new table with ${table.columns.length} column(s)`],
       dropForeignKeys: [],
-      statements: createStatements(table, sourceDatabase, targetDatabase, source.dialect),
+      statements: createStatements(table, sourceDatabase, targetDatabase, source.syntax),
       addForeignKeys: [],
       warnings: table.warnings,
     });
@@ -163,7 +164,7 @@ export const compareSchemas = async (
       if (!existing) {
         diff.changes.push(`add column ${column.name} ${column.type}`);
         // PostgreSQL has no order of columns - added at the end
-        const position: ColumnPositionType = target.dialect === 'postgresql' ? {kind: 'end'} : index === 0 ? {kind: 'first'} : {kind: 'after', column: table.columns[index - 1].name};
+        const position: ColumnPositionType = !target.features.columnPosition ? {kind: 'end'} : index === 0 ? {kind: 'first'} : {kind: 'after', column: table.columns[index - 1].name};
         operations.push({op: 'addColumn', column: definitionOf(column), position});
         return;
       }

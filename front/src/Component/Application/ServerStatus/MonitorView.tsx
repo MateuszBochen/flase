@@ -2,10 +2,11 @@ import React from 'react';
 import {ServerStatusInterface} from '../../../Library/Server/ServerInterface';
 import LineChart, {ChartSeriesInterface} from './LineChart';
 import {formatBytes, formatDuration, formatNumber, formatPercent, formatRate} from './format';
+import DriverFeaturesInterface from '../../../Library/Database/Driver/DriverFeaturesInterface';
 
 interface MonitorViewPropsInterface {
   samples: ServerStatusInterface[];
-  dialect: string;
+  labels: DriverFeaturesInterface['labels'];
 }
 
 const valueOf = (sample: ServerStatusInterface | undefined, key: string): number | null => sample?.metrics.find((metric) => metric.key === key)?.value ?? null;
@@ -87,7 +88,7 @@ export default (props: MonitorViewPropsInterface) => {
           `${rate(samples, lastIndex, 'bytesSent') === null ? '–' : formatBytes(rate(samples, lastIndex, 'bytesSent')!)} out`,
         )}
         {totalHitRatio !== null && card(
-          props.dialect === 'mysql' ? 'Buffer pool hit ratio' : 'Cache hit ratio',
+          props.labels.hitRatio,
           currentHitRatio === null ? formatPercent(totalHitRatio) : formatPercent(currentHitRatio),
           `${formatPercent(totalHitRatio)} since start`,
           totalHitRatio < 0.99 && (totalRequests || 0) > 10000,
@@ -103,11 +104,11 @@ export default (props: MonitorViewPropsInterface) => {
       <div className="server-charts">
         <LineChart title={workKey === 'queries' ? 'Queries per second' : 'Transactions per second'} times={times} series={rates([workKey, 'commits', 'rollbacks'].filter((key, index) => index === 0 || workKey === 'transactions'))} format={formatRate} />
         <LineChart title="Connections" times={times} series={gauges(['connections', 'running', 'idleInTransaction'])} format={(value) => formatNumber(value)} />
-        <LineChart title={props.dialect === 'mysql' ? 'Statements per second' : 'Rows per second'} times={times} series={rates(['select', 'insert', 'update', 'delete'])} format={formatRate} />
+        <LineChart title={props.labels.rates} times={times} series={rates(['select', 'insert', 'update', 'delete'])} format={formatRate} />
         {has(last, 'bytesReceived') && <LineChart title="Traffic per second" times={times} series={rates(['bytesReceived', 'bytesSent'])} format={formatBytes} />}
         {totalHitRatio !== null && (
           <LineChart
-            title={props.dialect === 'mysql' ? 'Buffer pool hit ratio' : 'Cache hit ratio'}
+            title={props.labels.hitRatio}
             times={times}
             series={[{label: 'hit ratio', color: COLORS[1], values: samples.map((sample, index) => {
               const ratio = hitRatio(samples, index);

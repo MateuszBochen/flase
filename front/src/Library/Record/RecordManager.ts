@@ -5,6 +5,7 @@ import QueryRequestDataInterface from './Interface/QueryRequestDataInterface';
 import WebSocketQueryRequestDataInterface from './Interface/WebSocketQueryRequestDataInterface';
 import ApplyRowChangesRequestInterface from './Interface/ApplyRowChangesRequestInterface';
 import withBinaryUuids from '../Console/withBinaryUuids';
+import QueryTiming from '../Timing/QueryTiming';
 
 
 class RecordManager {
@@ -27,6 +28,7 @@ class RecordManager {
 
 
   sendQuery = (connection: ConnectionDataInterface, query: QueryRequestDataInterface) => {
+    if (query.tabId) QueryTiming.start(query.tabId);
     this.connectionManager.sendCommand<WebSocketQueryRequestDataInterface>(connection, CommandType.SEND_SELECT_QUERY, {
       // query bar keeps UUID as typed, server gets X'hex' for BINARY(16) columns
       query: withBinaryUuids(connection, query.database?.name ?? null, [query.query.query])[0],
