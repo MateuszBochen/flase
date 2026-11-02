@@ -44,6 +44,10 @@ import {
 } from '../../Interface/Data/CellToolsInterface';
 import {DatabaseObjectsInterface, ObjectRefInterface, ServerOptionsInterface} from '../../Interface/Data/DatabaseObjectsInterface';
 import {DatabaseOperationType, MaintenanceResultInterface} from '../../Interface/Data/DatabaseOperationInterface';
+import {DumpProgressCallbackType} from '../../../Transfer/DumpParts';
+import {POSTGRES_SYNTAX} from '../../Query/SqlSyntax';
+import DriverFeaturesInterface from '../../DriverFeaturesInterface';
+import PostgresFunctions from './PostgresFunctions';
 const { Parser } = require('node-sql-parser');
 
 /** types without = operator - rows are identified by text form of value */
@@ -55,6 +59,8 @@ const NO_EQUALITY_TYPE = /^(json|xml|point|line|lseg|box|path|polygon|circle)\b/
  */
 class PostgresAdapter implements DriverInterface {
   readonly dialect: SqlDialectType = 'postgresql';
+  readonly syntax = POSTGRES_SYNTAX;
+  readonly features: DriverFeaturesInterface = {columnPosition: false, databasesAboveSchemas: true};
   /** short queries (structure, lists, DDL) - never held while waiting for other connection */
   private pool: Pool | null = null;
   /**
@@ -73,7 +79,7 @@ class PostgresAdapter implements DriverInterface {
   private readonly watchedClients = new WeakSet<PoolClient>();
 
   constructor(private readonly connectionData: ConnectionRequestInterface, private readonly dsnOptions: ParsedDsn) {
-    this.analyser = new SelectAnalyser(new Parser(), this.dialect);
+    this.analyser = new SelectAnalyser(new Parser(), this.syntax);
   }
 
   /** database of connection - from DSN, otherwise database named as user (like psql), postgres when it does not exist */
@@ -81,6 +87,9 @@ class PostgresAdapter implements DriverInterface {
 
   /** database behind SSH server - pools connect to local end of tunnel */
   private tunnel: SshTunnel | null = null;
+
+  /** optional functions of PostgreSQL available on the server */
+  private functions = new PostgresFunctions();
 
   async connect(): Promise<DriverInterface> {
     const {ssh} = this.connectionData.connectionData;
@@ -121,6 +130,8 @@ class PostgresAdapter implements DriverInterface {
     }
     this.pool = pool;
     this.connected = true;
+    // compatible engines (CockroachDB, YugabyteDB) miss some functions - statements fall back to NULL
+    this.functions = await PostgresFunctions.detect((sql, params) => this.pool!.query(sql, params)).catch(() => new PostgresFunctions());
     return this;
   }
 
@@ -129,7 +140,7 @@ class PostgresAdapter implements DriverInterface {
   }
 
   server(): ServerAdminInterface {
-    return new PostgresServerAdmin((sql, params) => this.queryRows(sql, params));
+    return new PostgresServerAdmin((sql, params) => this.queryRows(sql, params), this.functions);
   }
 
   disconnect(): void {
@@ -197,7 +208,7 @@ class PostgresAdapter implements DriverInterface {
   }
 
   private catalog(): PostgresCatalog {
-    return new PostgresCatalog({query: (text, values) => this.getPool().query(text, values)});
+    return new PostgresCatalog({query: (text, values) => this.getPool().query(text, values)}, this.functions);
   }
 
   async openSession(database: string | null, tabId?: string): Promise<DriverSessionInterface> {
@@ -216,7 +227,7 @@ class PostgresAdapter implements DriverInterface {
     try {
       // pooled connection keeps transaction, SET variables, search_path, temporary tables and prepared statements
       // of previous session - every session starts with clean connection
-      await client.query('ROLLBACK');
+      await PostgresSql.rollbackIfAny(client);
       await client.query('DISCARD ALL');
       if (database) {
         await session.setSearchPath(database);
@@ -248,7 +259,7 @@ class PostgresAdapter implements DriverInterface {
   async getCatalogs(): Promise<{name: string, canConnect: boolean, current: boolean, size: number | null}[]> {
     const rows = await this.queryRows(
       `SELECT d.datname AS name, has_database_privilege(d.datname, 'CONNECT') AS can_connect, d.datname = current_database() AS current,
-              CASE WHEN has_database_privilege(d.datname, 'CONNECT') THEN pg_database_size(d.datname) END AS size
+              CASE WHEN has_database_privilege(d.datname, 'CONNECT') THEN ${this.functions.call('pg_database_size', 'd.datname')} END AS size
        FROM pg_database d WHERE NOT d.datistemplate AND d.datallowconn ORDER BY d.datname`,
     );
     return rows.map((row) => ({name: row.name, canConnect: !!row.can_connect, current: !!row.current, size: row.size === null ? null : Number(row.size)}));
@@ -286,8 +297,8 @@ class PostgresAdapter implements DriverInterface {
     }
   }
 
-  dump(options: DumpOptionsInterface, write: (text: string) => Promise<void>): Promise<{tables: number, rows: number}> {
-    return new PostgresDumper(this.getSessionPool(), options).dump(write);
+  dump(options: DumpOptionsInterface, write: (text: string) => Promise<void>, onProgress?: DumpProgressCallbackType): Promise<{tables: number, rows: number, withoutPrimaryKey?: string[]}> {
+    return new PostgresDumper(this.getSessionPool(), options, onProgress, this.functions).dump(write);
   }
 
   buildInsertStatement(database: string, table: string, columns: string[], rows: (string | null)[][]): string {
@@ -295,13 +306,13 @@ class PostgresAdapter implements DriverInterface {
       + rows.map((row) => `(${row.map((value) => PostgresSql.literal(value)).join(', ')})`).join(',\n');
   }
 
-  /** schemas of database, system schemas are at the end */
+  /** schemas of database, system schemas are at the end (crdb_internal, pg_extension of CockroachDB too) */
   getListOfDatabases(): Observable<DatabaseInterface> {
     return new Observable((observer) => {
       this.queryRows(
         `SELECT nspname AS name FROM pg_namespace
          WHERE nspname NOT LIKE 'pg\\_toast%' AND nspname NOT LIKE 'pg\\_temp\\_%'
-         ORDER BY nspname IN ('pg_catalog', 'information_schema'), nspname`,
+         ORDER BY nspname IN ('pg_catalog', 'information_schema', 'crdb_internal', 'pg_extension'), nspname`,
       ).then((rows) => {
         rows.forEach((row) => observer.next({name: row.name}));
         observer.complete();

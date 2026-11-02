@@ -51,11 +51,11 @@ class PostgresDatabaseOperations {
     const [tables, routines, triggers] = await Promise.all([
       load('Tables', this.queryRows(
         `SELECT c.relname AS name, c.relkind AS kind, c.reltuples, obj_description(c.oid, 'pg_class') AS comment, am.amname AS access_method,
-                CASE WHEN c.relkind IN ('r', 'p', 'm') THEN pg_table_size(c.oid) END AS data_length,
-                CASE WHEN c.relkind IN ('r', 'p', 'm') THEN pg_indexes_size(c.oid) END AS index_length
+                CASE WHEN c.relkind IN ('r', 'p', 'm') THEN ${this.catalog.functions.call('pg_table_size', 'c.oid')} END AS data_length,
+                CASE WHEN c.relkind IN ('r', 'p', 'm') THEN ${this.catalog.functions.call('pg_indexes_size', 'c.oid')} END AS index_length
          FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
          LEFT JOIN pg_am am ON am.oid = c.relam
-         WHERE n.nspname = $1 AND c.relkind = ANY($2) AND NOT c.relispartition
+         WHERE n.nspname = $1 AND c.relkind = ANY($2) AND NOT COALESCE(c.relispartition, false)
          ORDER BY c.relname`,
         [schema, RELATION_KINDS],
       ), []),

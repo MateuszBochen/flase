@@ -247,6 +247,18 @@ export default forwardRef<DataGridRefInterface|null, DataGridPropsInterface>((pr
     };
   }, [widths]);
 
+  /** widths of hidden columns left and right of visible ones - the same for all rows, computed once (not by every row) */
+  const spacers = useMemo(() => {
+    if (!visibleColumns) return {before: 0, after: 0};
+    let before = 0;
+    let after = 0;
+    widths.forEach((width, index) => {
+      if (index < visibleColumns[0]) before += width;
+      else if (index > visibleColumns[1]) after += width;
+    });
+    return {before, after};
+  }, [widths, visibleColumns]);
+
   /** callbacks are the same object for whole life of grid - memoized rows are not re-rendered because of them */
   const editRef = useRef(props.edit);
   editRef.current = props.edit;
@@ -273,6 +285,8 @@ export default forwardRef<DataGridRefInterface|null, DataGridPropsInterface>((pr
 
     return (
       <Row
+        // key of row (not of position in window) - rows staying in window after scroll are not rendered again,
+        // reuse of elements by position renders and lays out all of them (measured: 3x slower scroll)
         key={index}
         cellRender={props.cellRender}
         tabIndex={props.tabIndex}
@@ -283,6 +297,8 @@ export default forwardRef<DataGridRefInterface|null, DataGridPropsInterface>((pr
         columns={columns}
         widths={widths}
         visibleColumns={visibleColumns}
+        spacerBefore={spacers.before}
+        spacerAfter={spacers.after}
         hasEdit={!!edit}
         canEdit={!!edit?.canEdit}
         selected={edit?.selectedRow === index}
@@ -301,7 +317,7 @@ export default forwardRef<DataGridRefInterface|null, DataGridPropsInterface>((pr
       const calcMaxRows = Math.ceil((sizeTableContent.height)/rowHeight);
       const maxRows = Math.min(calcMaxRows, rowsCount);
       for (let i: number = 0; i < maxRows; i++) {
-        collections.push(displayRow(i+topScroll));
+        collections.push(displayRow(i + topScroll));
       }
     }
     return collections;

@@ -45,7 +45,6 @@ import useDatabaseOperation from '../../DatabaseOperations/useDatabaseOperation'
 import DatabaseFormPopup, {DatabaseFormModeType} from '../../DatabaseOperations/DatabaseFormPopup';
 import ObjectEditorPopup from '../../DatabaseOperations/ObjectEditorPopup';
 import ExecuteRoutinePopup from '../../DatabaseOperations/ExecuteRoutinePopup';
-import {maintenanceActions} from '../../DatabaseOperations/MaintenanceResultsPopup';
 import {ObjectTypeType, OBJECT_LABELS} from '../../DatabaseOperations/objectTemplates';
 import openConsole from '../../DatabaseOperations/openConsole';
 import TransferTab, {TransferTabPropsInterface} from '../Transfer/TransferTab';
@@ -84,7 +83,7 @@ const parametersText = (routine: DatabaseRoutineInterface) => routine.parameters
 const DatabaseOverview = (props: DatabaseOverviewPropsInterface) => {
   const connection = useConnectionSettings(props.connection);
   const driver = DriverFactory.getDriver(props.connection);
-  const isMysql = driver.dialect === 'mysql';
+  const {collations, labels} = driver.features;
   const label = driver.features.databaseLabel;
   const readOnly = !!connection.readOnly;
   const tabId = props.tabId || `overview:${props.database}`;
@@ -214,7 +213,7 @@ const DatabaseOverview = (props: DatabaseOverviewPropsInterface) => {
         return [{label: 'New table…', disabled: readOnly, onClick: openCreateTable}, 'separator', ...newObjectItems()];
       case 'more':
         return [
-          ...(isMysql ? [{label: 'Change collation…', disabled: readOnly, onClick: () => setDatabaseForm('collation')} as ContextMenuItem] : []),
+          ...(collations ? [{label: 'Change collation…', disabled: readOnly, onClick: () => setDatabaseForm('collation')} as ContextMenuItem] : []),
           {label: `Rename ${label.toLowerCase()}…`, disabled: readOnly, onClick: () => setDatabaseForm('rename')},
           'separator',
           {label: `Drop ${label.toLowerCase()}…`, danger: true, disabled: readOnly, onClick: () => run({kind: 'dropDatabase', name: props.database})},
@@ -236,7 +235,7 @@ const DatabaseOverview = (props: DatabaseOverviewPropsInterface) => {
           {
             label: 'Maintenance',
             disabled: readOnly || table.isView,
-            children: maintenanceActions(driver.dialect).map((item) => ({label: item.label, hint: item.hint.split(' - ')[0], onClick: () => maintenance(item.action, [table.name])})),
+            children: driver.features.maintenanceActions.map((item) => ({label: item.label, hint: item.hint.split(' - ')[0], onClick: () => maintenance(item.action, [table.name])})),
           },
           {label: 'Export…', onClick: () => openTransfer([table.name])},
           copyName(table.name),
@@ -350,7 +349,7 @@ const DatabaseOverview = (props: DatabaseOverviewPropsInterface) => {
               </button>
               <span className="overview-separator" />
               <FontAwesomeIcon icon={faScrewdriverWrench} className="overview-muted" title="Maintenance" />
-              {maintenanceActions(driver.dialect).map((item) => (
+              {driver.features.maintenanceActions.map((item) => (
                 <button key={item.action} type="button" disabled={!chosen.length || readOnly} onClick={() => maintenance(item.action, chosen)} title={item.hint}>
                   {item.label}
                 </button>
@@ -362,7 +361,7 @@ const DatabaseOverview = (props: DatabaseOverviewPropsInterface) => {
                   <tr>
                     <th><input type="checkbox" checked={allShownSelected} onChange={toggleAll} aria-label="Select all tables" /></th>
                     <th>Name</th><th>Type</th><th className="number">Rows</th><th className="number">Data</th><th className="number">Indexes</th>
-                    <th>{isMysql ? 'Engine' : 'Access method'}</th>{isMysql && <th>Collation</th>}<th>Comment</th>
+                    <th>{labels.engine}</th>{collations && <th>Collation</th>}<th>Comment</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -388,7 +387,7 @@ const DatabaseOverview = (props: DatabaseOverviewPropsInterface) => {
                       <td className="number">{size(table.dataLength)}</td>
                       <td className="number">{size(table.indexLength)}</td>
                       <td className="muted">{table.engine}</td>
-                      {isMysql && <td className="muted">{table.collation}</td>}
+                      {collations && <td className="muted">{table.collation}</td>}
                       <td>{table.comment}</td>
                     </tr>
                   ))}
@@ -401,7 +400,7 @@ const DatabaseOverview = (props: DatabaseOverviewPropsInterface) => {
                     <td className="number muted">~{totals.rows.toLocaleString()}</td>
                     <td className="number muted">{formatBytes(totals.data)}</td>
                     <td className="number muted">{formatBytes(totals.index)}</td>
-                    <td colSpan={isMysql ? 3 : 2} />
+                    <td colSpan={collations ? 3 : 2} />
                   </tr>
                 </tfoot>
               </table>

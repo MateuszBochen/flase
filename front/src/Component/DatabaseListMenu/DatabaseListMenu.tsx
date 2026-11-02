@@ -115,7 +115,7 @@ export default (props: DatabaseListMenuPropsInterface) => {
       'separator',
       {label: 'Reload tables', onClick: () => TableManager.getInstance().askForTableList(props.connection, {name: database}, true)},
       'separator',
-      ...(driver.dialect === 'mysql' ? [{label: 'Change collation…', disabled: readOnly, onClick: () => setForm({mode: 'collation', database})} as ContextMenuItem] : []),
+      ...(driver.features.collations ? [{label: 'Change collation…', disabled: readOnly, onClick: () => setForm({mode: 'collation', database})} as ContextMenuItem] : []),
       {label: `Rename ${label.toLowerCase()}…`, disabled: readOnly, onClick: () => setForm({mode: 'rename', database})},
       {label: `Drop ${label.toLowerCase()}…`, danger: true, disabled: readOnly, onClick: () => operation.run({kind: 'dropDatabase', name: database})},
       'separator',

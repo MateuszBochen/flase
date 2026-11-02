@@ -287,3 +287,70 @@
 .cmp-transfer .import-text textarea {
   height: 180px;
 }
+
+.cmp-transfer .export-table-list {
+  max-height: 360px;
+  padding: 0;
+  border-left: none;
+}
+
+.cmp-transfer .export-tables {
+  border-collapse: collapse;
+}
+
+.cmp-transfer .export-tables th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 3px 8px 5px;
+  border-bottom: solid 1px var(--panel);
+  background-color: var(--bg);
+  color: var(--text-strong);
+  font-weight: normal;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.cmp-transfer .export-tables td {
+  padding: 0 8px;
+}
+
+.cmp-transfer .export-tables tbody tr:hover {
+  background-color: var(--panel);
+}
+
+.cmp-transfer .export-tables tr.skipped td {
+  color: var(--text-muted);
+}
+
+.cmp-transfer .export-tables .export-mode {
+  text-align: center;
+}
+
+.cmp-transfer .export-tables th.export-mode label {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+}
+
+.cmp-transfer .export-tables .select-all {
+  margin-bottom: 0;
+}
+
+.cmp-transfer .export-progress {
+  min-width: 320px;
+}
+
+.cmp-transfer .export-insert-mode {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 2px;
+}
+
+.cmp-transfer .transfer-warning {
+  margin-top: 2px;
+  color: var(--accent);
+}

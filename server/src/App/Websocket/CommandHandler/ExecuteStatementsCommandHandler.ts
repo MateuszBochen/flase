@@ -14,6 +14,7 @@ import SingleSelectColumnInterface from '../../Driver/Interface/Data/SingleSelec
 import SingleSelectRecordInterface from '../../Driver/Interface/Data/SingleSelectRecordInterface';
 import {selectedDatabaseOf} from '../../Driver/Query/DatabaseSwitch';
 import QueryFinishedInterface from '../../Driver/Interface/Data/QueryFinishedInterface';
+import QueryStopwatch from '../Result/QueryStopwatch';
 
 const DEFAULT_MAX_ROWS = 1000;
 const LIMIT_MAX_ROWS = 100000;
@@ -32,6 +33,7 @@ class ExecuteStatementsCommandHandler extends AbstractCommandHandler<ExecuteStat
     }
     const maxRows = Math.min(Math.max(1, Number(data.maxRows) || DEFAULT_MAX_ROWS), LIMIT_MAX_ROWS);
 
+    const sessionStopwatch = new QueryStopwatch();
     let session: DriverSessionInterface;
     try {
       session = await this.driver.openSession(data.database || null, data.tabId);
@@ -46,9 +48,11 @@ class ExecuteStatementsCommandHandler extends AbstractCommandHandler<ExecuteStat
       return;
     }
 
+    sessionStopwatch.mark('session');
     let executed = 0;
     let failed = 0;
     let database = data.database || null;
+    const readOnly = ReadOnlyGuard.isReadOnly(this.command);
     try {
       for (let index = 0; index < data.statements.length; index++) {
         const sql = data.statements[index];
@@ -56,20 +60,32 @@ class ExecuteStatementsCommandHandler extends AbstractCommandHandler<ExecuteStat
         this.send<StatementStartedInterface>(MessageType.STATEMENT_STARTED, {tabId: data.tabId, index, sql});
 
         const started = Date.now();
+        // the first statement waited for the session, the others start on it
+        const stopwatch = index === 0 ? sessionStopwatch : new QueryStopwatch();
+        if (index > 0) stopwatch.mark('session');
         try {
           const columnsBuilder = new ResultColumnsBuilder(this.driver, database, sql);
           await columnsBuilder.loadMetadata();
+          stopwatch.mark('metadata');
 
+          let firstRow = true;
           const result = await session.execute(
             sql,
             (fields) => this.send<SingleSelectColumnInterface>(MessageType.SINGLE_SELECT_COLUMN, {tabId: resultTabId, ...columnsBuilder.build(fields, false)}),
-            (row) => this.send<SingleSelectRecordInterface>(MessageType.SINGLE_SELECT_RECORD, {tabId: resultTabId, rowDataValue: row as any}),
+            (row) => {
+              if (firstRow) {
+                firstRow = false;
+                stopwatch.mark('firstRow');
+              }
+              this.send<SingleSelectRecordInterface>(MessageType.SINGLE_SELECT_RECORD, {tabId: resultTabId, rowDataValue: row as any});
+            },
             maxRows,
           );
+          stopwatch.mark('lastRow');
           executed++;
 
           if (result.kind === 'rows') {
-            this.send<QueryFinishedInterface>(MessageType.QUERY_FINISHED, {tabId: resultTabId, rows: Math.min(result.rows, maxRows)});
+            this.send<QueryFinishedInterface>(MessageType.QUERY_FINISHED, {tabId: resultTabId, rows: Math.min(result.rows, maxRows), timing: stopwatch.timing()});
           }
           // following statements use database selected by USE (schema by SET search_path)
           database = selectedDatabaseOf(sql) ?? database;
@@ -85,6 +101,17 @@ class ExecuteStatementsCommandHandler extends AbstractCommandHandler<ExecuteStat
           if (data.stopOnError !== false) {
             break;
           }
+        }
+        // read only switched off by statement built at run time - the rest of the script is not executed
+        // (after the last one the session goes back to the pool, next session sets read only again)
+        if (readOnly && index + 1 < data.statements.length && !(await session.isReadOnly().catch(() => false))) {
+          await session.setReadOnly().catch(() => undefined);
+          failed++;
+          this.send<StatementFinishedInterface>(MessageType.STATEMENT_FINISHED, {
+            tabId: data.tabId, index: index + 1, sql: data.statements[index + 1], durationMs: 0,
+            error: 'Connection is read only - the previous statement switched read only mode off, execution was stopped',
+          });
+          break;
         }
       }
     } finally {

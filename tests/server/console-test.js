@@ -110,6 +110,49 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     const killError = await waitFor(() => messages.find((m) => m.payload?.tabId === listTab && m.message === 'QUERY_ERROR'));
     check('invalid process id refused', /Invalid process id/.test(killError?.payload.error || ''));
 
+    // read only connection: statements which switch read only mode off are refused, also hidden ones
+    {
+      const roConnection = {...connection, id: connection.id + '-ro', readOnly: true};
+      const roUser = await (await fetch(`${BASE}/api/login`, {method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({userData: {username: 'flase', password: 'flase'}, connectionData: roConnection})})).json();
+      const roWs = new WebSocket(`ws://php_flase:3001/ws/${roUser.token}`);
+      const roMessages = [];
+      roWs.on('message', (m) => roMessages.push(JSON.parse(m)));
+      await new Promise((resolve) => roWs.on('open', resolve));
+      const roRun = async (statements) => {
+        const tabId = 'ro' + Math.random();
+        roWs.send(JSON.stringify({connectionData: {user: roUser, connection: roConnection}, command: 'EXECUTE_STATEMENTS', payload: {tabId, database: 'shop', statements, stopOnError: false}}));
+        await waitFor(() => roMessages.find((m) => m.payload?.tabId === tabId && ['EXECUTION_FINISHED', 'QUERY_ERROR'].includes(m.message)));
+        return roMessages.filter((m) => m.payload?.tabId === tabId && ['STATEMENT_FINISHED', 'QUERY_ERROR'].includes(m.message)).map((m) => m.payload.error || 'ok');
+      };
+      const write = "UPDATE edit_test SET name = 'read only broken' WHERE id = 2";
+      for (const [name, statements] of [
+        ['executable comment', ['/*!50000 SET SESSION TRANSACTION READ WRITE */', write]],
+        ['PREPARE from variable', ["SET @s = CONCAT('SET SESSION TRANSACTION READ ', 'WRITE')", 'PREPARE st FROM @s', 'EXECUTE st', write]],
+        ['PREPARE from text', ["PREPARE st FROM 'SET SESSION TRANSACTION READ WRITE'", write]],
+      ]) {
+        const results = await roRun(statements);
+        check(`read only: ${name} refused`, results.length === 1 && /read only/.test(results[0]), JSON.stringify(results));
+      }
+      check('read only: SELECT works', JSON.stringify(await roRun(['SELECT 1', 'SELECT 2'])) === '["ok","ok"]');
+      const name = (await execute(['SELECT name FROM shop.edit_test WHERE id = 2'])).rowsOf(0)[0]?.name;
+      check('read only: row not changed', name === 'b', name);
+      roWs.close();
+      await fetch(`${BASE}/api/disconnect`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({token: roUser.token})});
+    }
+
+    // BEGIN without COMMIT - session goes back to the pool without its transaction (locks would block other connections)
+    r = await execute(['USE shop', 'BEGIN', "UPDATE edit_test SET name = 'locked by console' WHERE id = 1"]);
+    await sleep(300);
+    const direct = require('mysql').createConnection({host: dsn.replace('mysql://', ''), user: 'flase', password: 'flase', database: 'shop'});
+    const directQuery = (q) => new Promise((resolve) => direct.query(q, (error, rows) => resolve(error ? error.message : rows)));
+    await directQuery('SET SESSION innodb_lock_wait_timeout = 2');
+    const lockResult = await directQuery("UPDATE edit_test SET name = name WHERE id = 1");
+    const lockedName = await directQuery('SELECT name FROM edit_test WHERE id = 1');
+    direct.end();
+    check('open transaction of console is rolled back, row not locked', typeof lockResult === 'object' && lockedName[0]?.name !== 'locked by console',
+      `${typeof lockResult === 'string' ? lockResult : 'updated'} ${JSON.stringify(lockedName)}`);
+
     ws.close();
     await fetch(`${BASE}/api/disconnect`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({token: user.token})});
   }

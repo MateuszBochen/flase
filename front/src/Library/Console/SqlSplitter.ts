@@ -1,4 +1,7 @@
 import SqlDialectType from '../Database/Driver/SqlDialectType';
+import {
+  backslashInString, blockCommentEnd, delimiterCommandAt, dollarTagAt, isOnlyComments, lineCommentAt, skipQuoted, syntaxOf,
+} from '../Database/Driver/Syntax/SqlSyntax';
 
 export type SqlStatementType = {
   sql: string;
@@ -9,11 +12,10 @@ export type SqlStatementType = {
 
 /**
  * Splits SQL script into statements. Delimiters inside strings, identifiers and comments are ignored.
- * MySQL: DELIMITER command (procedures, triggers) changes the delimiter like in mysql client, # comments, `names`.
- * PostgreSQL: $tag$ bodies $tag$, nested block comments, backslash escapes only in E'strings'.
+ * Rules of the dialect are in SqlSyntax - DELIMITER command (MySQL procedures, triggers), $tag$ bodies $tag$ (PostgreSQL).
  */
 export const splitSql = (text: string, dialect: SqlDialectType = 'mysql'): SqlStatementType[] => {
-  const mysql = dialect === 'mysql';
+  const syntax = syntaxOf(dialect);
   const statements: SqlStatementType[] = [];
   let delimiter = ';';
   let start = 0;
@@ -22,7 +24,7 @@ export const splitSql = (text: string, dialect: SqlDialectType = 'mysql'): SqlSt
   const push = (end: number) => {
     const raw = text.slice(start, end);
     const sql = raw.trim();
-    if (sql && !isOnlyComments(sql, mysql)) {
+    if (sql && !isOnlyComments(sql, syntax)) {
       const leading = raw.length - raw.trimStart().length;
       statements.push({sql, start: start + leading, end: start + leading + sql.length});
     }
@@ -33,7 +35,7 @@ export const splitSql = (text: string, dialect: SqlDialectType = 'mysql'): SqlSt
     const next = text[index + 1];
 
     // DELIMITER at line start changes delimiter, the line itself is not a statement
-    if (mysql && (index === 0 || text[index - 1] === '\n') && /^delimiter\s/i.test(text.slice(index, index + 10))) {
+    if (delimiterCommandAt(text, index, syntax)) {
       const lineEnd = text.indexOf('\n', index) === -1 ? text.length : text.indexOf('\n', index);
       push(index);
       delimiter = text.slice(index + 9, lineEnd).trim() || ';';
@@ -42,29 +44,23 @@ export const splitSql = (text: string, dialect: SqlDialectType = 'mysql'): SqlSt
       continue;
     }
 
-    if (char === "'" || char === '"' || (char === '`' && mysql)) {
-      const backslash = mysql
-        ? char !== '`'
-        : char === "'" && /[eE]/.test(text[index - 1] || '') && !/[\w$]/.test(text[index - 2] || '');
-      index = skipQuoted(text, index, char, backslash);
+    if (syntax.stringQuotes.includes(char) || syntax.identifierQuotes.includes(char)) {
+      index = skipQuoted(text, index, char, backslashInString(text, index, syntax));
       continue;
     }
-    if (!mysql && char === '$' && !/[\w$]/.test(text[index - 1] || '')) {
-      const tag = /^\$(?:[A-Za-z_][A-Za-z0-9_]*)?\$/.exec(text.slice(index, index + 66));
-      if (tag) {
-        const close = text.indexOf(tag[0], index + tag[0].length);
-        index = close === -1 ? text.length : close + tag[0].length;
-        continue;
-      }
+    const tag = dollarTagAt(text, index, syntax);
+    if (tag) {
+      const close = text.indexOf(tag, index + tag.length);
+      index = close === -1 ? text.length : close + tag.length;
+      continue;
     }
-    // MySQL needs whitespace after --, PostgreSQL does not
-    if ((char === '-' && next === '-' && (!mysql || /\s/.test(text[index + 2] || ' '))) || (char === '#' && mysql)) {
+    if (lineCommentAt(text, index, syntax)) {
       const lineEnd = text.indexOf('\n', index);
       index = lineEnd === -1 ? text.length : lineEnd;
       continue;
     }
     if (char === '/' && next === '*') {
-      const commentEnd = mysql ? text.indexOf('*/', index + 2) : nestedCommentEnd(text, index);
+      const commentEnd = blockCommentEnd(text, index, syntax);
       index = commentEnd === -1 ? text.length : commentEnd + 2;
       continue;
     }
@@ -106,47 +102,4 @@ export const selectedDatabaseOf = (sql: string): string | null => {
     return searchPath[2]?.replace(/""/g, '"') ?? searchPath[3] ?? searchPath[4].toLowerCase();
   }
   return null;
-};
-
-const skipQuoted = (text: string, index: number, quote: string, backslash: boolean): number => {
-  let position = index + 1;
-  while (position < text.length) {
-    if (backslash && text[position] === '\\') {
-      position += 2;
-      continue;
-    }
-    if (text[position] === quote) {
-      // doubled quote is escaped quote
-      if (text[position + 1] === quote) {
-        position += 2;
-        continue;
-      }
-      return position + 1;
-    }
-    position++;
-  }
-  return text.length;
-};
-
-/** PostgreSQL block comments can be nested - index of closing star of the outer one, -1 when not closed */
-const nestedCommentEnd = (text: string, index: number): number => {
-  let depth = 0;
-  let position = index;
-  while (position < text.length - 1) {
-    if (text[position] === '/' && text[position + 1] === '*') {
-      depth++;
-      position += 2;
-    } else if (text[position] === '*' && text[position + 1] === '/') {
-      depth--;
-      if (depth === 0) return position;
-      position += 2;
-    } else {
-      position++;
-    }
-  }
-  return -1;
-};
-
-const isOnlyComments = (sql: string, mysql: boolean): boolean => {
-  return sql.replace(/\/\*[\s\S]*?\*\//g, '').replace(mysql ? /(--\s|#).*$/gm : /--.*$/gm, '').trim() === '';
 };

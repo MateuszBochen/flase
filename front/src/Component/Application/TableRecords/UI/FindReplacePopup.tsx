@@ -125,9 +125,7 @@ export default (props: FindReplacePopupPropsInterface) => {
         </label>
         <div className="hint">
           {regex
-            ? driver.dialect === 'mysql'
-              ? 'REGEXP_REPLACE - all matches; groups in replacement: $1 (MySQL), \\1 (MariaDB).'
-              : 'regexp_replace with flag g - all matches; groups in replacement: \\1.'
+            ? driver.features.hints.regexReplace
             : 'Text is found with exact letter case. Whole table is changed, not only shown rows.'}
         </div>
         {!textColumns.length && <div className="structure-error">Table has no text column.</div>}

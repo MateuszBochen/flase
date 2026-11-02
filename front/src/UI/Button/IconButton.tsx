@@ -1,6 +1,6 @@
 import React from 'react';
 import './style/style.css';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import Icon from '../Icon/Icon';
 import InvisibleButton from './InvisibleButton';
 import IconButtonInterface from './Interface/IconButtonInterface';
 
@@ -16,7 +16,7 @@ export default (props: IconButtonInterface) => {
       disabled={props.disabled}
       className={className}
     >
-      <FontAwesomeIcon icon={props.icon} />
+      <Icon icon={props.icon} />
     </InvisibleButton>
   );
 }

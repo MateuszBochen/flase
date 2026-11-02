@@ -3,6 +3,7 @@ import WsMessage from '../Dto/WsMessage';
 import MessageType from '../Enum/MessageType';
 import {TransferRequestType} from '../../Driver/Interface/Data/TransferInterface';
 import TransferRegistry from '../../Transfer/TransferRegistry';
+import {dumpHasContent} from '../../Transfer/DumpParts';
 
 type CreateTransferType = {tabId?: string, transfer: TransferRequestType};
 
@@ -40,7 +41,14 @@ class CreateTransferCommandHandler extends AbstractCommandHandler<CreateTransfer
     switch (transfer?.kind) {
       case 'dump':
         if (!isName(transfer.options?.database) || !Array.isArray(transfer.options.tables)) throw new Error('Database is required');
-        if (!transfer.options.structure && !transfer.options.data) throw new Error('Select structure or data');
+        if (transfer.options.tableModes !== undefined && (typeof transfer.options.tableModes !== 'object' || transfer.options.tableModes === null
+          || Object.values(transfer.options.tableModes).some((mode) => !['both', 'structure', 'data'].includes(mode)))) {
+          throw new Error('Unknown export mode of table');
+        }
+        if (!dumpHasContent(transfer.options)) throw new Error('Select structure or data');
+        if (transfer.options.insertMode !== undefined && !['insert', 'ignore', 'upsert', 'update'].includes(transfer.options.insertMode)) {
+          throw new Error('Unknown statement of data');
+        }
         return;
       case 'import-sql':
         return;

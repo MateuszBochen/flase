@@ -23,17 +23,6 @@ const withoutExplain = (query: string): string => query
   .replace(/^\s*(explain|analyze)\s+(analyze\s+)?(\((?:[^()]|\([^()]*\))*\)\s*)?(format\s*=\s*\w+\s+)?/i, '')
   .trim();
 
-/**
- * statements of plan - JSON of every server; ANALYZE executes the query:
- * PostgreSQL EXPLAIN (ANALYZE), MariaDB ANALYZE FORMAT=JSON, MySQL EXPLAIN ANALYZE (text tree, used when MariaDB syntax fails)
- */
-const planStatements = (dialect: string, query: string, analyze: boolean): string[] => {
-  if (dialect === 'postgresql') {
-    return [analyze ? `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) ${query}` : `EXPLAIN (FORMAT JSON) ${query}`];
-  }
-  return analyze ? [`ANALYZE FORMAT=JSON ${query}`, `EXPLAIN ANALYZE ${query}`] : [`EXPLAIN FORMAT=JSON ${query}`];
-};
-
 /** ExplainPopup - execution plan as tree (cost, rows, time of steps) and classic EXPLAIN table */
 export default (props: ExplainPopupPropsInterface) => {
   const driver = DriverFactory.getDriver(props.connection);
@@ -46,7 +35,7 @@ export default (props: ExplainPopupPropsInterface) => {
   const [attempt, setAttempt] = useState<number>(0);
   const plan = useStatementRunner(props.connection, `${props.tabId}:explain`);
   const table = useStatementRunner(props.connection, `${props.tabId}:explain-table`);
-  const statements = planStatements(driver.dialect, query, analyze);
+  const statements = driver.planStatements(query, analyze);
   const statement = statements[Math.min(attempt, statements.length - 1)];
 
   useEffect(() => {

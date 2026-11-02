@@ -3,6 +3,7 @@ import DriverInterface from './DriverInterface';
 import {parseConnectionDsnOrThrow} from '../../Connection/Dsn';
 import MysqlAdapter from './Adapter/MySql/MysqlAdapter';
 import PostgresAdapter from './Adapter/Postgres/PostgresAdapter';
+import {engineOfScheme} from '../../Connection/Engines';
 
 
 class DriverFactory {
@@ -17,20 +18,13 @@ class DriverFactory {
 
 
     const parsedDsn = parseConnectionDsnOrThrow(connection.dsn);
-    switch (parsedDsn.driver) {
-      // MariaDB speaks MySQL dialect
-      case 'mysql':
-      case 'mariadb':
-        DriverFactory.drivers[connection.id] = new MysqlAdapter();
-        return DriverFactory.drivers[connection.id];
-      case 'postgresql':
-      case 'postgres':
-      case 'pgsql':
-        DriverFactory.drivers[connection.id] = new PostgresAdapter();
-        return DriverFactory.drivers[connection.id];
-      default:
-        throw new Error(`Driver ${parsedDsn.driver} is not supported`);
+    const engine = engineOfScheme(parsedDsn.driver);
+    if (!engine) {
+      throw new Error(`Driver ${parsedDsn.driver} is not supported`);
     }
+    // compatible engines (MariaDB, TiDB / CockroachDB, YugabyteDB) use driver of their family
+    DriverFactory.drivers[connection.id] = engine.dialect === 'mysql' ? new MysqlAdapter() : new PostgresAdapter();
+    return DriverFactory.drivers[connection.id];
   }
 }
 

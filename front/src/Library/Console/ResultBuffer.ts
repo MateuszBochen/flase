@@ -17,6 +17,10 @@ class ResultBuffer {
   finished: number | null = null;
   private readonly listeners = new Set<(event: ResultBufferEventType) => void>();
 
+  /** tab of the result (`${run}:${index}`) - timing of the query */
+  constructor(readonly tabId: string = '') {
+  }
+
   push(event: ResultBufferEventType): void {
     if (event.type === 'columns') {
       this.columns = event.columns;

@@ -170,6 +170,13 @@ class PostgresSession implements DriverSessionInterface {
     await this.client.query('SET default_transaction_read_only = on');
   }
 
+  async isReadOnly(): Promise<boolean> {
+    const {rows: [row]} = await this.client.query(
+      "SELECT current_setting('default_transaction_read_only') = 'on' AND current_setting('transaction_read_only') = 'on' AS ro",
+    );
+    return row?.ro === true;
+  }
+
   /** called by adapter before pg_cancel_backend */
   markCancelled(): void {
     this.cancelled = true;
@@ -185,7 +192,9 @@ class PostgresSession implements DriverSessionInterface {
     }
     this.released = true;
     this.onRelease?.();
-    this.client.release();
+    // transaction left open (BEGIN without COMMIT) would keep its locks while the connection waits in the pool
+    // - it is rolled back as it would be at the next use of the connection; broken connection is closed
+    PostgresSql.rollbackIfAny(this.client).then(() => this.client.release(), (error: Error) => this.client.release(error));
   }
 
   /**

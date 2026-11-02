@@ -41,6 +41,8 @@ interface RecordsViewPropsInterface {
   columnWidthsKey?: string;
   /** stop running query of the grid */
   onCancelQuery?: () => void;
+  /** tab of the query - times of its steps are shown in footer */
+  timingTabId?: string;
   /** foreign key value was clicked */
   onOpenReference?: (column: ColumnInterface, value: CellValueType, newTab: boolean) => void;
 }

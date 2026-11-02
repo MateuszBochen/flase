@@ -19,7 +19,7 @@ interface TableOptionsFormPropsInterface {
 /** TableOptionsForm - engine, collation, comment and next auto increment value of table; only changed options are sent */
 export default (props: TableOptionsFormPropsInterface) => {
   const driver = DriverFactory.getDriver(props.connection);
-  const isMysql = driver.dialect === 'mysql';
+  const {tableEngine, collations, hints} = driver.features;
   const options = useServerOptions(props.connection);
   const [engine, setEngine] = useState<string>(props.info.engine || '');
   const [collation, setCollation] = useState<string>(props.info.collation || '');
@@ -30,8 +30,8 @@ export default (props: TableOptionsFormPropsInterface) => {
   const autoIncrementValue = autoIncrement.trim() === '' ? null : Number(autoIncrement);
   const change: StructureChangeType = {
     kind: 'options',
-    engine: isMysql && engine && engine !== props.info.engine ? engine : null,
-    collation: isMysql && collation && collation !== props.info.collation ? collation : null,
+    engine: tableEngine && engine && engine !== props.info.engine ? engine : null,
+    collation: collations && collation && collation !== props.info.collation ? collation : null,
     convert,
     comment: comment !== (props.info.comment || '') ? comment : null,
     autoIncrement: autoIncrementValue !== null && autoIncrementValue !== props.info.autoIncrement ? autoIncrementValue : null,
@@ -53,7 +53,7 @@ export default (props: TableOptionsFormPropsInterface) => {
       ]}
     >
       <form className="cmp-structure-form" onSubmit={(event) => { event.preventDefault(); preview(); }}>
-        {isMysql && (
+        {tableEngine && (
           <label>
             Engine
             <select value={engine} onChange={(event) => setEngine(event.target.value)} aria-label="Engine">
@@ -62,13 +62,13 @@ export default (props: TableOptionsFormPropsInterface) => {
             </select>
           </label>
         )}
-        {isMysql && (
+        {collations && (
           <label>
             Collation
             <CollationSelect options={options} value={collation} onChange={setCollation} />
           </label>
         )}
-        {isMysql && collation !== (props.info.collation || '') && (
+        {collations && collation !== (props.info.collation || '') && (
           <label className="checkbox">
             <input type="checkbox" checked={convert} onChange={(event) => setConvert(event.target.checked)} />
             Convert existing columns (CONVERT TO CHARACTER SET)
@@ -82,14 +82,12 @@ export default (props: TableOptionsFormPropsInterface) => {
             min={1}
             value={autoIncrement}
             onChange={(event) => setAutoIncrement(event.target.value)}
-            placeholder={isMysql ? '' : 'next value of identity / serial'}
+            placeholder={hints.autoIncrementPlaceholder}
             aria-label="Auto increment"
           />
         </label>
         <div className="hint">
-          {isMysql
-            ? 'Auto increment is the next value; InnoDB does not allow value lower than the current maximum.'
-            : 'Auto increment sets next value of identity / serial sequence of the table.'}
+          {hints.autoIncrement}
         </div>
         <button type="submit" hidden />
       </form>

@@ -25,7 +25,6 @@ import useStructureChange from '../Application/TableRecords/Structure/useStructu
 import TableNameForm from '../Application/TableRecords/Structure/TableNameForm';
 import SqlConfirmPopup from '../Application/TableRecords/Structure/SqlConfirmPopup';
 import useDatabaseOperation from '../DatabaseOperations/useDatabaseOperation';
-import {maintenanceActions} from '../DatabaseOperations/MaintenanceResultsPopup';
 import {MaintenanceActionType} from '../../Library/Database/Interface/DatabaseOperationInterface';
 import {useOpenTables} from '../../Library/Tabs/OpenTables';
 import SidebarFill from '../../Library/Sidebar/SidebarFill';
@@ -76,7 +75,7 @@ export default (props: TableListPropsInterface) => {
       {
         label: 'Maintenance',
         disabled: readOnly,
-        children: maintenanceActions(DriverFactory.getDriver(props.connection).dialect).map((item) => ({
+        children: DriverFactory.getDriver(props.connection).features.maintenanceActions.map((item) => ({
           label: item.label,
           hint: item.hint.split(' - ')[0],
           onClick: () => operation.run({kind: 'maintenance', action: item.action as MaintenanceActionType, database, tables: [table]}),

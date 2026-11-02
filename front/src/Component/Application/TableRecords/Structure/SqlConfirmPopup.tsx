@@ -11,7 +11,8 @@ interface SqlConfirmPopupPropsInterface {
   /** truncate / drop - option of foreign keys changes the change, its sql is previewed again */
   onChange?: (change: StructureChangeType) => void;
   /** MySQL turns foreign key checks off, PostgreSQL uses CASCADE */
-  isMysql?: boolean;
+  /** option of DROP / TRUNCATE ignoring foreign keys - FOREIGN_KEY_CHECKS = 0 or CASCADE */
+  ignoreForeignKeysLabel?: string;
   onExecute: () => void;
   onCancel: () => void;
 }
@@ -51,9 +52,7 @@ export default (props: SqlConfirmPopupPropsInterface) => {
             disabled={props.busy}
             onChange={(event) => props.onChange!({...props.change, ignoreForeignKeys: event.target.checked} as StructureChangeType)}
           />
-          {props.isMysql
-            ? 'Disable foreign key checks (FOREIGN_KEY_CHECKS = 0)'
-            : `CASCADE - also ${props.change.kind === 'drop' ? 'objects depending on the table' : 'tables referencing it'}`}
+          {props.ignoreForeignKeysLabel}
         </label>
       )}
       <pre className="cmp-sql-preview">{props.statements.map((statement) => `${statement};`).join('\n')}</pre>

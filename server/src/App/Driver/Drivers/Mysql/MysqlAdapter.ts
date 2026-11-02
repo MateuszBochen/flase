@@ -50,11 +50,16 @@ import {
 } from '../../Interface/Data/CellToolsInterface';
 import {DatabaseObjectsInterface, ObjectRefInterface, ServerOptionsInterface} from '../../Interface/Data/DatabaseObjectsInterface';
 import {DatabaseOperationType, MaintenanceResultInterface} from '../../Interface/Data/DatabaseOperationInterface';
+import {DumpProgressCallbackType} from '../../../Transfer/DumpParts';
+import {MYSQL_SYNTAX} from '../../Query/SqlSyntax';
+import DriverFeaturesInterface from '../../DriverFeaturesInterface';
 const mysql = require('mysql');
 const { Parser } = require('node-sql-parser');
 
 class MysqlAdapter implements DriverInterface {
   readonly dialect: SqlDialectType = 'mysql';
+  readonly syntax = MYSQL_SYNTAX;
+  readonly features: DriverFeaturesInterface = {columnPosition: true, databasesAboveSchemas: false};
   private consoleLog = true;
   /** short queries (structure, lists, DDL) - never held while waiting for other connection */
   private pool: Pool | null = null;
@@ -76,7 +81,7 @@ class MysqlAdapter implements DriverInterface {
   constructor(connectionData: ConnectionRequestInterface, dsnOptions: ParsedDsn) {
     this.connectionData = connectionData;
     this.parser = new Parser();
-    this.analyser = new SelectAnalyser(this.parser, this.dialect);
+    this.analyser = new SelectAnalyser(this.parser, this.syntax);
     this.dsnOptions = dsnOptions;
   }
 
@@ -244,8 +249,8 @@ class MysqlAdapter implements DriverInterface {
     }));
   }
 
-  dump(options: DumpOptionsInterface, write: (text: string) => Promise<void>): Promise<{tables: number, rows: number}> {
-    return new MysqlDumper(this.getSessionPool(), options).dump(write);
+  dump(options: DumpOptionsInterface, write: (text: string) => Promise<void>, onProgress?: DumpProgressCallbackType): Promise<{tables: number, rows: number, withoutPrimaryKey?: string[]}> {
+    return new MysqlDumper(this.getSessionPool(), options, onProgress).dump(write);
   }
 
   buildInsertStatement(database: string, table: string, columns: string[], rows: (string | null)[][]): string {

@@ -23,6 +23,8 @@ export interface AdviceInterface {
 export interface ServerStatusInterface {
   tabId?: string;
   version: string;
+  /** server software - MySQL, MariaDB, TiDB, PostgreSQL, CockroachDB... (the same protocol hides different engines) */
+  product: string;
   /** seconds since start of server */
   uptime: number;
   /** time of reading (ms) - rates are computed from difference of two readings */

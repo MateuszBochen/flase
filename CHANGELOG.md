@@ -3,6 +3,76 @@
 All notable changes of Flase are documented here. Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versions follow [Semantic Versioning](https://semver.org/). A `v*` tag publishes the Docker image of the version.
 
+## [0.9.0] - 2026-10-29
+
+### Added
+- **Compatible engines: TiDB, CockroachDB, YugabyteDB** - DSN `tidb://`, `cockroachdb://` (`cockroach://`),
+  `yugabytedb://` (`yugabyte://`) with their default ports (4000, 26257, 5433) and tiles in the connection form; they use
+  driver of their family (MySQL / PostgreSQL). Functions missing in an engine (sizes of tables and databases, start time,
+  definition of triggers in CockroachDB) are found after login and left out instead of failing the whole view.
+  Cloud services speaking MySQL / PostgreSQL (Supabase, Neon, RDS, Aurora) connect as before
+- **Time of query with steps** - stopwatch in footer of data grid and of results of SQL console shows time from
+  request to painted rows; hover shows steps: connection of the pool, metadata of tables, COUNT for paging, execution
+  until the first row, fetch of rows, network with size of received data and render. Server reads only borders of
+  steps (nothing per row)
+- **Server software in Server status** - the same protocol hides different engines; status shows MySQL, MariaDB, TiDB,
+  Percona Server, PostgreSQL, CockroachDB or YugabyteDB with its version
+- **Export: structure / data per table** - table of export has "Structure & data", "Structure" and "Data" for every
+  table (structure and data by default, header sets all selected tables), e.g. big log tables only with structure.
+  Views are dumped with structure, triggers with structure of their table
+- **Export: progress and cancel** - running dump shows current table, dumped rows of estimated rows (statistics of
+  server), percent and sent size; Cancel stops the dump on server and the browser marks the download as failed
+  (not as a complete file). Only the session which started the dump can cancel it
+- **Export: statements of data** ("Data as") - INSERT, INSERT skipping existing rows (`INSERT IGNORE` /
+  `ON CONFLICT DO NOTHING`), INSERT or update existing rows (`ON DUPLICATE KEY UPDATE` / `ON CONFLICT (key) DO UPDATE`)
+  and UPDATE of existing rows by primary key; tables without primary key get plain INSERT with a comment and the
+  export shows their names. Options "One row per INSERT" (easy to diff) and "TRUNCATE before data" of tables exported
+  as Data only
+
+### Changed
+- **Faster first table** - SQL editor of query bar is mounted after rows are painted (its loading took about half of
+  CPU of opening the first table), icons of grid, headers and buttons are written as plain SVG, rows walk only visible
+  columns. Opening of the first table (production build): 50 columns 152 -> 81 ms of script, 500 columns
+  477 -> 147 ms, click to painted rows of 500 columns about 640 -> 356 ms
+- **Differences of SQL dialects are in drivers** - lexical rules of SQL (strings, names, comments, DELIMITER, $tag$),
+  labels, hints, maintenance actions, EXPLAIN, CALL of routines and templates of objects come from the driver of the
+  connection through one interface; components and shared code of server no longer check the dialect
+
+### Security
+- **Read only connection could be switched to read write** - statements which turn read only mode off were refused
+  by text, but MySQL / MariaDB executable comments (`/*!50000 SET SESSION TRANSACTION READ WRITE */`), statements
+  built at run time (`PREPARE st FROM @s`, `EXECUTE IMMEDIATE`) and PostgreSQL `set_config('default_transaction_' ||
+  'read_only', 'off', false)` passed and the following statements could change data. Executable comments are checked
+  as statements, `PREPARE` from a variable and `EXECUTE IMMEDIATE` are refused, and the server checks after every
+  statement of a read only console run that the database session is still read only - otherwise the run is stopped
+  and read only mode is set again
+
+### Fixed
+- **CockroachDB: tables were not listed and console failed** - `pg_class.relispartition` is NULL there and
+  `ROLLBACK` without transaction is an error (session reset of pooled connection)
+- **Import of mysqldump / phpMyAdmin dumps skipped executable comments** - `/*!40101 SET NAMES utf8mb4 */;`,
+  `/*!40014 SET FOREIGN_KEY_CHECKS=0 */;` and triggers written as `/*!50003 CREATE*/ /*!50003 TRIGGER ... */` were
+  taken for comments and not executed (import of a mysqldump file failed on binary data, triggers were lost);
+  the same in SQL console
+- **MySQL / MariaDB dump of views** - views were written in alphabetical order (import failed when a view uses
+  a view with later name) and, when the dumped database was not the current database of the connection, with the
+  database name (`VIEW \`shop\`.\`v\` AS ... FROM \`shop\`.\`t\``) - import into other database created the views
+  in the original one. Views are now written in order of their use and without database name
+- **CSV import kept UTF-8 byte order mark** (CSV saved by Excel) in the first value of the file
+- **Error of SELECT during dump stopped the server** (MySQL / MariaDB) - e.g. table changed during dump
+  (`ER_TABLE_DEF_CHANGED`) or lost connection; now only the dump ends with the error. Connection of stopped dump
+  is closed instead of returned to the pool
+- **PostgreSQL: import of dump removed foreign keys of other tables** - `DROP TABLE ... CASCADE` (option DROP before
+  CREATE) also drops foreign keys of tables which are not created by the dump (not exported or exported as Data only)
+  and point to dropped tables; the dump now adds them again after data (only when the table exists and the key is missing)
+- **Transaction left open in SQL console locked rows** - `BEGIN` / `START TRANSACTION` (or `autocommit = 0`) without
+  `COMMIT` kept the transaction in the pooled connection with its locks, other connections (e.g. the application)
+  waited for those rows until the connection was used again. The transaction is now rolled back when the run ends
+  (its changes were never kept anyway)
+- **PostgreSQL: lost connection during dump stopped the server** - connection closed by the database server while
+  the dump waited for the download (restart, `pg_terminate_backend`, timeout) stopped the whole Flase server; now
+  the dump ends with the error and the download does not hang
+
 ## [0.8.1] - 2026-10-28
 
 ### Added
@@ -321,6 +391,7 @@ First public version - web database manager for MySQL, MariaDB and PostgreSQL, a
 - Production Docker image (`docker/production/Dockerfile`): application, API and websocket on one port
 - GitHub Actions workflow publishing the image to Docker Hub on a `v*` tag
 
+[0.9.0]: https://github.com/MateuszBochen/flase/compare/v0.8.1...v0.9.0
 [0.8.1]: https://github.com/MateuszBochen/flase/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/MateuszBochen/flase/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/MateuszBochen/flase/compare/v0.6.0...v0.7.0

@@ -5,12 +5,12 @@ import {binaryUuidLiterals, UuidTableLookupType} from './UuidLiterals';
 
 /** columns of tables from loaded lists of tables of the connection */
 export const loadedTablesLookup = (connection: ConnectionDataInterface, currentDatabase: string | null): UuidTableLookupType => {
-  const dialect = DriverFactory.getDriver(connection).dialect;
+  const {syntax} = DriverFactory.getDriver(connection);
   return (database, table) => {
     const name = database ?? currentDatabase;
     if (!name) return undefined;
     const tables = TableManager.getInstance().getTablesListForDatabase(connection, {name});
-    const found = tables.find((item) => dialect === 'mysql' ? item.tableName.toLowerCase() === table.toLowerCase() : item.tableName === table);
+    const found = tables.find((item) => syntax.caseInsensitiveNames ? item.tableName.toLowerCase() === table.toLowerCase() : item.tableName === table);
     return found && found.columns.length ? found.columns : undefined;
   };
 };
@@ -18,7 +18,7 @@ export const loadedTablesLookup = (connection: ConnectionDataInterface, currentD
 /** statements of connection with UUID strings of BINARY(16) columns converted */
 const withBinaryUuids = (connection: ConnectionDataInterface, database: string | null, statements: string[]): string[] => {
   const driver = DriverFactory.getDriver(connection);
-  if (driver.dialect !== 'mysql') return statements;
+  if (!driver.features.binaryUuidText) return statements;
   const lookup = loadedTablesLookup(connection, database);
   return statements.map((sql) => binaryUuidLiterals(sql, driver.dialect, lookup).sql);
 };

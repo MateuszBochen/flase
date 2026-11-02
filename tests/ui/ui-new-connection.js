@@ -35,13 +35,13 @@ const check = (name, ok, info = '') => {
 
   // --- engine sets default port, preview of DSN
   check('default mysql', await fieldStarting('Port').inputValue() === '3306' && await preview() === 'mysql://localhost:3306', await preview());
-  await form.getByRole('radio', {name: /PostgreSQL/}).click();
+  await form.getByRole('radio', {name: /^PostgreSQL/}).click();
   check('postgres default port', await fieldStarting('Port').inputValue() === '5432' && await preview() === 'postgresql://localhost:5432', await preview());
   await fieldStarting('Port').fill('6543');
-  await form.getByRole('radio', {name: /MariaDB/}).click();
+  await form.getByRole('radio', {name: /^MariaDB/}).click();
   check('port typed by user is kept', await fieldStarting('Port').inputValue() === '6543');
   await fieldStarting('Port').fill('');
-  await form.getByRole('radio', {name: /MySQL/}).click();
+  await form.getByRole('radio', {name: /^MySQL/}).click();
   check('empty port gets default', await fieldStarting('Port').inputValue() === '3306');
 
   // --- validation
@@ -54,7 +54,7 @@ const check = (name, ok, info = '') => {
   await fieldStarting('DSN').fill('postgresql://postgres:5432/shop');
   await form.getByRole('button', {name: /Host/}).click();
   check('DSN parsed into fields', await fieldStarting('Host').inputValue() === 'postgres' && await fieldStarting('Port').inputValue() === '5432'
-    && await fieldStarting('Database').inputValue() === 'shop' && await form.getByRole('radio', {name: /PostgreSQL/}).getAttribute('aria-checked') === 'true');
+    && await fieldStarting('Database').inputValue() === 'shop' && await form.getByRole('radio', {name: /^PostgreSQL/}).getAttribute('aria-checked') === 'true');
   check('suggested name from host and database', await fieldStarting('Name').getAttribute('placeholder') === 'postgres · shop');
   await form.getByRole('button', {name: 'DSN', exact: true}).click();
   await fieldStarting('DSN').fill('ftp://x');
@@ -115,7 +115,7 @@ const check = (name, ok, info = '') => {
 
   // --- save without connect, duplicate name refused
   await fieldStarting('Host').fill('mariadb');
-  await form.getByRole('radio', {name: /MariaDB/}).click();
+  await form.getByRole('radio', {name: /^MariaDB/}).click();
   await fieldStarting('Database').fill('');
   await fieldStarting('User').fill('flase');
   await fieldStarting('Name').fill('PG shop');

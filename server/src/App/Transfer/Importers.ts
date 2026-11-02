@@ -50,9 +50,16 @@ class ImportState {
 /** text chunks of stream, multi byte characters are not broken between chunks */
 async function* textChunks(input: Readable, state: ImportState): AsyncGenerator<string> {
   const decoder = new StringDecoder('utf8');
+  // byte order mark of UTF-8 (CSV saved by Excel) is not part of the first value - browser preview leaves it out too
+  let start = true;
   for await (const chunk of input) {
     state.bytes += chunk.length;
-    yield decoder.write(chunk);
+    let text = decoder.write(chunk);
+    if (start && text) {
+      text = text.replace(/^﻿/, '');
+      start = false;
+    }
+    yield text;
   }
   yield decoder.end();
 }

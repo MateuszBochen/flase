@@ -6,6 +6,7 @@ import EstablishedUser from './App/Connection/Interface/EstablishedUser';
 import WebsocketRequest from './App/Websocket/WebsocketRequest';
 import {CLOSE_SESSION_NOT_FOUND, sessionStore} from './App/Session/SessionStore';
 import TransferRegistry from './App/Transfer/TransferRegistry';
+import {DumpProgressType} from './App/Transfer/DumpParts';
 import {importCsv, importSql} from './App/Transfer/Importers';
 import MessageType from './App/Websocket/Enum/MessageType';
 import AbstractCommandHandler from './App/Websocket/CommandHandler/AbstractCommandHandler';
@@ -86,7 +87,7 @@ app.post('/api/login/database', (req: Request, res: Response) => {
     res.status(401).send({error: 'Session expired or does not exist, log in again'});
     return;
   }
-  if (found.session.driver.dialect !== 'postgresql') {
+  if (!found.session.driver.features.databasesAboveSchemas) {
     res.status(400).send({error: 'Only PostgreSQL connection has databases above schemas'});
     return;
   }
@@ -148,6 +149,8 @@ app.get('/api/transfer/:ticket', async (req: Request, res: Response) => {
   if (gzip) output.pipe(res);
   let bytes = 0;
   let aborted = false;
+  /** Cancel in the page - download is broken off, browser marks the file as failed (not as complete dump) */
+  let cancelled = false;
   // browser cancelled download - dump must stop, not wait for drain forever
   res.on('close', () => {
     if (!res.writableFinished) {
@@ -155,6 +158,27 @@ app.get('/api/transfer/:ticket', async (req: Request, res: Response) => {
       output.emit('drain');
     }
   });
+  const cancel = () => {
+    cancelled = true;
+    aborted = true;
+    output.emit('drain');
+    res.destroy();
+  };
+  TransferRegistry.started(ticket.tabId, ticket.driver, cancel);
+  // progress is sent at most twice a second - dumper reports every table and INSERT
+  let progress: DumpProgressType | null = null;
+  let reported: DumpProgressType | null = null;
+  const sendProgress = () => {
+    if (progress && progress !== reported) {
+      reported = progress;
+      ticket.notify(MessageType.DUMP_PROGRESS, {...progress, bytes});
+    }
+  };
+  const progressTimer = setInterval(sendProgress, 500);
+  const stopProgress = () => {
+    clearInterval(progressTimer);
+    TransferRegistry.finished(ticket.tabId, cancel);
+  };
   const write = (text: string) => new Promise<void>((resolve, reject) => {
     if (aborted) return reject(new Error('Download was cancelled'));
     bytes += Buffer.byteLength(text);
@@ -163,11 +187,13 @@ app.get('/api/transfer/:ticket', async (req: Request, res: Response) => {
   });
 
   try {
-    const summary = await ticket.driver.dump(options, write);
+    const summary = await ticket.driver.dump(options, write, (state) => { progress = state; });
+    stopProgress();
     ticket.notify(MessageType.DUMP_FINISHED, {...summary, bytes});
   } catch (e) {
-    const error = AbstractCommandHandler.errorToString(e);
-    ticket.notify(MessageType.DUMP_FINISHED, {tables: 0, rows: 0, bytes, error});
+    stopProgress();
+    const error = cancelled ? 'Export was cancelled' : AbstractCommandHandler.errorToString(e);
+    ticket.notify(MessageType.DUMP_FINISHED, {tables: 0, rows: 0, bytes, error, cancelled: aborted});
     if (!bytes && !aborted && !res.headersSent) {
       // failed before first line (missing database / table) - error status instead of empty file
       if (gzip) {

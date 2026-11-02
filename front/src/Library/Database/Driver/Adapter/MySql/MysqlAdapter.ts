@@ -9,30 +9,75 @@ import SqlLiteral from './SqlLiteral';
 import SqlDialectType from '../../SqlDialectType';
 import DriverFeaturesInterface from '../../DriverFeaturesInterface';
 import defaultMysqlKeyWords from './DefaultAutocompleteKeywords';
+import {MYSQL_SYNTAX} from '../../Syntax/SqlSyntax';
+import {DatabaseRoutineInterface, ObjectRefInterface} from '../../../Interface/DatabaseObjectsInterface';
+import {RoutineValueType} from '../../RoutineCallInterface';
+import {MYSQL_MAINTENANCE, mysqlObjectTemplate, mysqlPlanStatements, mysqlRoutineStatements} from './MysqlStatements';
 import {SearchModeType} from '../../../Interface/DatabaseSearchInterface';
 
 class MysqlAdapter implements DriverInterface {
   readonly dialect: SqlDialectType = 'mysql';
   readonly sql = new SqlLiteral();
   readonly keywords = defaultMysqlKeyWords;
+  readonly syntax = MYSQL_SYNTAX;
   readonly features: DriverFeaturesInterface = {
+    productName: 'MySQL / MariaDB',
     databaseLabel: 'Database',
     columnTypes: [
       'int', 'int unsigned', 'bigint', 'bigint unsigned', 'tinyint(1)', 'smallint', 'decimal(10,2)', 'float', 'double',
       'varchar(255)', 'char(36)', 'text', 'mediumtext', 'longtext', 'json',
       'date', 'datetime', 'timestamp', 'time', 'year', "enum('a','b')", 'blob',
     ],
+    autoIncrementType: 'int unsigned',
     columnPosition: true,
     onUpdateTimestamp: true,
     indexKinds: ['INDEX', 'UNIQUE', 'FULLTEXT', 'PRIMARY'],
     indexLength: true,
+    foreignKeyActions: ['RESTRICT', 'CASCADE', 'SET NULL', 'NO ACTION'],
+    tableEngine: true,
+    collations: true,
+    transactionalDdl: false,
+    binaryUuidText: true,
+    maintenanceActions: MYSQL_MAINTENANCE,
     dumpCreateDatabaseLabel: 'CREATE DATABASE + USE',
     dumpHint: 'Data are read in one transaction (consistent snapshot of InnoDB tables). DEFINER of views and triggers is left out.',
+    labels: {
+      engine: 'Engine',
+      engines: 'Storage engines',
+      engineSupport: 'Support',
+      characterSet: 'Character set',
+      hitRatio: 'Buffer pool hit ratio',
+      rates: 'Statements per second',
+    },
+    hints: {
+      regexReplace: 'REGEXP_REPLACE - all matches; groups in replacement: $1 (MySQL), \\1 (MariaDB).',
+      objectEditor: 'Write one CREATE statement without DELIMITER - semicolons inside BEGIN … END are fine.',
+      objectReplace: 'Object is dropped and created again; when CREATE fails, the previous definition is restored.',
+      autoIncrement: 'Auto increment is the next value; InnoDB does not allow value lower than the current maximum.',
+      autoIncrementPlaceholder: '',
+      ignoreForeignKeys: () => 'Disable foreign key checks (FOREIGN_KEY_CHECKS = 0)',
+      renameDatabase: 'MySQL has no RENAME DATABASE - tables are moved to new database and the old one is dropped. Privileges granted on the old name are not moved.',
+      renameDatabaseForm: 'Tables are moved to a new database. Databases with views, routines, triggers or events cannot be renamed this way.',
+      dropDatabase: null,
+      objectRestore: 'When CREATE fails, the previous definition is created again.',
+    },
   };
   private readonly parser;
 
   constructor() {
     this.parser = new Parser();
+  }
+
+  planStatements(query: string, analyze: boolean): string[] {
+    return mysqlPlanStatements(query, analyze);
+  }
+
+  routineStatements(database: string, routine: DatabaseRoutineInterface, values: RoutineValueType[]): string[] {
+    return mysqlRoutineStatements(this.sql, database, routine, values);
+  }
+
+  objectTemplate(type: ObjectRefInterface['type'], table: string): string {
+    return mysqlObjectTemplate(type, table);
   }
 
   getDefaultQuery(table: TableInformationInterface): QueryInterface {

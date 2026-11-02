@@ -42,7 +42,7 @@ export default (props: ForeignKeyFormPropsInterface) => {
   const [onDelete, setOnDelete] = useState<string>('RESTRICT');
   const [onUpdate, setOnUpdate] = useState<string>('RESTRICT');
   // InnoDB refuses SET DEFAULT
-  const actions = driver.dialect === 'mysql' ? ['RESTRICT', 'CASCADE', 'SET NULL', 'NO ACTION'] : ['NO ACTION', 'RESTRICT', 'CASCADE', 'SET NULL', 'SET DEFAULT'];
+  const actions = driver.features.foreignKeyActions;
 
   useEffect(() => {
     tableManager.askForTableList(props.connection, database, false);

@@ -1,6 +1,6 @@
 import {memo} from 'react';
 import CellPropsInterface from '../Interface/CellPropsInterface';
-import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
+import Icon from '../../../UI/Icon/Icon';
 import {faArrowUpRightFromSquare} from '@fortawesome/free-solid-svg-icons';
 import {binaryLabel, isBinaryValue, isLongText} from '../../../Library/Record/BinaryValue';
 import CellEditor from '../Edit/CellEditor';
@@ -104,7 +104,7 @@ export default memo((props: CellPropsInterface) => {
                 }}
                 onDoubleClick={(event) => event.stopPropagation()}
               >
-                <FontAwesomeIcon icon={faArrowUpRightFromSquare} />
+                <Icon icon={faArrowUpRightFromSquare} />
               </button>
             )}
             {(props.transform && !isLongText(props.value) && renderTransformed(props.value, props.transform, column, rowIndex)) || renderValue(props.value, props.placeholder)}

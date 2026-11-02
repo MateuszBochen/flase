@@ -1,5 +1,6 @@
 import SqlDialectType from '../Database/Driver/SqlDialectType';
 import {SqlTokenType, tokenizeSql} from './SqlTokenizer';
+import {syntaxOf} from '../Database/Driver/Syntax/SqlSyntax';
 
 export type SqlProblemType = {
   /** offsets in inspected text, end is exclusive */
@@ -165,8 +166,9 @@ export const inspectSql = (text: string, statements: {sql: string, start: number
   const allTokens = tokenizeSql(text, dialect);
   const defined = definedNames(allTokens);
   const tables = schema.tables && schema.tables.length ? schema.tables : null;
+  const syntax = syntaxOf(dialect);
   // PostgreSQL folds unquoted names to lower case, MySQL is compared without case (lower_case_table_names differs between servers)
-  const key = (name: string, quoted: boolean): string => dialect === 'mysql' || !quoted ? name.toLowerCase() : name;
+  const key = (name: string, quoted: boolean): string => syntax.caseInsensitiveNames || !quoted ? name.toLowerCase() : name;
   const tableOf = (name: string, quoted: boolean) => tables?.find((table) => key(table.name, true) === key(name, quoted));
 
   statements.forEach((statement) => {
@@ -187,7 +189,7 @@ export const inspectSql = (text: string, statements: {sql: string, start: number
     references.forEach((reference) => {
       const sameDatabase = reference.database === null || reference.database === schema.database;
       const table = sameDatabase ? tableOf(reference.name, reference.quoted) : undefined;
-      const systemName = dialect === 'postgresql' && /^pg_/i.test(reference.name) || dialect === 'mysql' && /^dual$/i.test(reference.name);
+      const systemName = syntax.isSystemTable(reference.name);
       if (sameDatabase && !table && !systemName && !defined.has(reference.name.toLowerCase())) {
         problems.push({start: statement.start + reference.start, end: statement.start + reference.end, message: `Unknown table ${reference.name} in ${schema.database}`});
       }

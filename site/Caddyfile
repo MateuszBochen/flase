@@ -1,0 +1,16 @@
+flase.dev {
+	root * /srv/site
+	encode zstd gzip
+	file_server
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+	}
+	@static path /img/* /favicon.svg
+	header @static Cache-Control "public, max-age=2592000"
+}
+
+www.flase.dev {
+	redir https://flase.dev{uri} permanent
+}

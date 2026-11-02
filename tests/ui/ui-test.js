@@ -142,6 +142,11 @@ const check = (name, ok, info = '') => {
   check('no pending after submit', await grid.locator('.pending-count').count() === 0);
   const texts = await rows.allInnerTexts();
   check('refreshed data', texts.length === 3 && texts[0].includes("O'Brien") && texts[1].includes("it's done") && texts[2].includes('from form'), JSON.stringify(texts));
+  const timingBadge = grid.locator('.query-timing');
+  await timingBadge.hover();
+  await page.waitForTimeout(200);
+  const timingText = await timingBadge.innerText().catch(() => '');
+  check('timing of query in footer, steps on hover', /\d+(\.\d)? (ms|s)/.test(timingText) && /Execution/.test(timingText) && /Render/.test(timingText) && await timingBadge.locator('.query-timing-panel').isVisible(), timingText.replace(/\n/g, ' | '));
 
   // --- read only query
   const editor = page.locator('.monaco-editor').last();

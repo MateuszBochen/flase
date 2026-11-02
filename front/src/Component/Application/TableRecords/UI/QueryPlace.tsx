@@ -25,6 +25,8 @@ import FilterWasRequested, {FilterRequestType} from '../Event/FilterWasRequested
 import QueryStore from '../../../../Library/Console/QueryStore';
 import toast from 'react-hot-toast';
 import TabState from '../../../../Library/Tabs/TabState';
+import {loader} from '@monaco-editor/react';
+import QueryTimingWasMeasured from '../../../../Library/Timing/Event/QueryTimingWasMeasured';
 
 /** QueryPlace */
 export default (props: QueryPlacePropsInterface) => {
@@ -37,6 +39,30 @@ export default (props: QueryPlacePropsInterface) => {
   });
   const [hints, setHints] = useState<string[]>([]);
   const tableManager = TableManager.getInstance();
+
+  /**
+   * SQL editor of the first table tab is loaded while rows come - loading (about 170 ms of CPU, measured) delayed
+   * painting of rows; query is shown as text until rows are painted, the editor is mounted then (or on click / after 1.5 s).
+   * Loaded editor is mounted at once in next tabs.
+   */
+  const [editorReady, setEditorReady] = useState<boolean>(() => !!loader.__getMonacoInstance());
+  useEffect(() => {
+    if (editorReady) return undefined;
+    const ready = () => setEditorReady(true);
+    const timer = setTimeout(ready, 1500);
+    const timingId = EventBus.subscribe<{tabId: string}>(QueryTimingWasMeasured.name, (event) => {
+      if (event.getData().tabId === props.tabId) ready();
+    });
+    const errorId = EventBus.subscribe<MessageInterface<any>>(WebsocketReceivedAMessage.name, (event) => {
+      const message = event.getData();
+      if (message.payload?.tabId === props.tabId && message.message === MessageType.QUERY_ERROR) ready();
+    });
+    return () => {
+      clearTimeout(timer);
+      EventBus.unSub(timingId);
+      EventBus.unSub(errorId);
+    };
+  }, [editorReady, props.tabId]);
 
   useEffect(() => {
     changeQueryHandler(currentQuery);
@@ -223,19 +249,28 @@ export default (props: QueryPlacePropsInterface) => {
           </div>
         </div>
         <div className="cmp-table-data-navbar-editor-wrapper">
-          <Editor
-            defaultText={currentQuery.query}
-            syntax={"sql"}
-            hints={hints}
-            customKeyWords={DriverFactory.getDriver(props.connection).keywords}
-            completionName={(name) => DriverFactory.getDriver(props.connection).sql.completionName(name)}
-            getCompletionTables={getCompletionTables}
-            isOneliner={true}
-            onSearch={onSearchHandler}
-           /* }
-            onSearch={() => {}}
-            hints={[]}*/
-          />
+          {editorReady ? (
+            <Editor
+              defaultText={currentQuery.query}
+              syntax={"sql"}
+              hints={hints}
+              customKeyWords={DriverFactory.getDriver(props.connection).keywords}
+              completionName={(name) => DriverFactory.getDriver(props.connection).sql.completionName(name)}
+              getCompletionTables={getCompletionTables}
+              isOneliner={true}
+              onSearch={onSearchHandler}
+            />
+          ) : (
+            <div
+              className="query-preview"
+              tabIndex={0}
+              title="Query - editor is loaded after rows"
+              onMouseDown={() => setEditorReady(true)}
+              onFocus={() => setEditorReady(true)}
+            >
+              {currentQuery.query}
+            </div>
+          )}
         </div>
       </div>
     </div>

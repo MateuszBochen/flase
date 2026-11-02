@@ -10,6 +10,7 @@ import MessageType from './Enum/MessageType';
 import QueryErrorInterface from '../Record/Interface/QueryErrorInterface';
 import WebsocketConnectionWasLost from './Event/WebsocketConnectionWasLost';
 import WebsocketConnectionWasRestored from './Event/WebsocketConnectionWasRestored';
+import QueryTiming from '../Timing/QueryTiming';
 
 /** close code sent by server when session expired or does not exist - reconnecting would not help */
 const CLOSE_SESSION_NOT_FOUND = 4001;
@@ -85,6 +86,7 @@ class WebSocketApiClient {
 
     socket.onmessage = (event) => {
       const message = JSON.parse(event.data) as MessageInterface<any>;
+      QueryTiming.received(message, event.data.length);
       if (WebSocketApiClient.isFinalTabMessage(message)) {
         this.pendingTabCommands.delete(message.payload.tabId);
       }

@@ -6,6 +6,9 @@ import {SearchModeType} from '../Interface/DatabaseSearchInterface';
 import SqlDialectType from './SqlDialectType';
 import SqlLiteralInterface from './SqlLiteralInterface';
 import DriverFeaturesInterface from './DriverFeaturesInterface';
+import {SqlSyntaxInterface} from './Syntax/SqlSyntax';
+import {DatabaseRoutineInterface, ObjectRefInterface} from '../Interface/DatabaseObjectsInterface';
+import {RoutineValueType} from './RoutineCallInterface';
 
 
 interface DriverInterface {
@@ -18,6 +21,18 @@ interface DriverInterface {
   readonly keywords: string[];
 
   readonly features: DriverFeaturesInterface;
+
+  /** lexical rules of SQL - strings, names, comments, delimiters */
+  readonly syntax: SqlSyntaxInterface;
+
+  /** EXPLAIN of query as JSON (ANALYZE executes it) - next statement is tried when the previous one fails */
+  planStatements(query: string, analyze: boolean): string[];
+
+  /** SELECT of function / CALL of procedure with values typed by user */
+  routineStatements(database: string, routine: DatabaseRoutineInterface, values: RoutineValueType[]): string[];
+
+  /** CREATE statement of new object - user changes names and body */
+  objectTemplate(type: ObjectRefInterface['type'], table: string): string;
 
   /**
    * Method for returning default sql

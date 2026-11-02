@@ -98,6 +98,28 @@ const check = (name, ok, info = '') => {
   const [gzDownload] = await Promise.all([page.waitForEvent('download', {timeout: 15000}), exportPanel().getByRole('button', {name: 'Download dump'}).click()]);
   check('gzip dump', gzDownload.suggestedFilename().endsWith('.sql.gz') && require('zlib').gunzipSync(fs.readFileSync(await gzDownload.path())).toString().includes('CREATE TABLE `edit_test`'));
 
+  // --- structure / data per table
+  await exportPanel().locator('label', {hasText: 'Compress'}).locator('input').uncheck();
+  check('table mode is structure and data by default', await exportPanel().getByLabel('Structure & data of edit_test', {exact: true}).isChecked()
+    && await exportPanel().getByLabel('Data of orders', {exact: true}).isDisabled());
+  await exportPanel().getByLabel('Structure of edit_test', {exact: true}).check();
+  const [structureDownload] = await Promise.all([page.waitForEvent('download', {timeout: 15000}), exportPanel().getByRole('button', {name: 'Download dump'}).click()]);
+  const structureDump = fs.readFileSync(await structureDownload.path(), 'utf8');
+  check('dump of structure only', structureDump.includes('CREATE TABLE `edit_test`') && !structureDump.includes('INSERT INTO `edit_test`'), structureDump.slice(0, 300));
+  await page.screenshot({path: `${OUT}/a1-export-modes.png`});
+  await exportPanel().locator('thead').getByLabel('Structure & data', {exact: true}).check();
+  check('header radio sets mode of selected tables', await exportPanel().getByLabel('Structure & data of edit_test', {exact: true}).isChecked());
+  await exportPanel().getByLabel('Data as').selectOption({label: 'INSERT, skip existing rows'});
+  await exportPanel().getByLabel('One row per INSERT').check();
+  check('TRUNCATE only with Data only tables', await exportPanel().getByLabel('TRUNCATE before data (Data only tables)').isDisabled());
+  const [ignoreDownload] = await Promise.all([page.waitForEvent('download', {timeout: 15000}), exportPanel().getByRole('button', {name: 'Download dump'}).click()]);
+  const ignoreText = fs.readFileSync(await ignoreDownload.path(), 'utf8');
+  check('dump with INSERT IGNORE, one row per statement', (ignoreText.match(/^INSERT IGNORE INTO `edit_test`/gm) || []).length === 3, ignoreText.slice(-400));
+  await page.screenshot({path: `${OUT}/a1-export-insert.png`});
+  await exportPanel().getByLabel('Data as').selectOption('insert');
+  await exportPanel().getByLabel('One row per INSERT').uncheck();
+  await page.waitForTimeout(800);
+
   // --- import: break data, restore from dump
   await importFile('break.sql', 'DELETE FROM edit_test;');
   check('sql file recognized', (await importPanel().innerText()).includes('SQL script'));
@@ -134,7 +156,7 @@ const check = (name, ok, info = '') => {
   await page.screenshot({path: `${OUT}/a3-csv.png`, fullPage: true});
   text = await runImport();
   check('csv imported', /3 row\(s\)/.test(text) && !/failed/.test(text), text);
-  const stillSelected = await exportPanel().locator('.transfer-table-list input:checked').evaluateAll((items) => items.map((item) => item.parentElement.textContent));
+  const stillSelected = await exportPanel().locator('.transfer-table-list tbody input[type="checkbox"]:checked').evaluateAll((items) => items.map((item) => item.parentElement.textContent));
   check('export selection kept after table list reload', JSON.stringify(stillSelected) === '["edit_test"]', JSON.stringify(stillSelected));
   await page.getByText('csv_target', {exact: true}).first().dispatchEvent('mousedown', {button: 1});
   await page.waitForTimeout(1500);
@@ -148,7 +170,7 @@ const check = (name, ok, info = '') => {
   await page.waitForTimeout(1500);
   await visibleTab().getByRole('button', {name: 'Import / export table…'}).click();
   await page.waitForTimeout(1200);
-  const checked = await transfer().locator('.transfer-table-list input:checked').evaluateAll((items) => items.map((item) => item.parentElement.textContent));
+  const checked = await transfer().locator('.transfer-table-list tbody input[type="checkbox"]:checked').evaluateAll((items) => items.map((item) => item.parentElement.textContent));
   check('opened from table: only that table selected', JSON.stringify(checked) === '["edit_test"]' && (await transfer().locator('.transfer-title').innerText()).includes('shop.edit_test'), JSON.stringify(checked));
 
   await page.locator('.tab-label-list-item').filter({hasText: /Import \/ export: shop(?!\.)/}).first().click();

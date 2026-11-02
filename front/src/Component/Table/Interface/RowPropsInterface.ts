@@ -11,6 +11,9 @@ interface RowPropsInterface {
   widths: number[];
   /** first and last rendered column (horizontal virtualization), null = all */
   visibleColumns: [number, number] | null;
+  /** widths of hidden columns before / after visible ones (spacers keep horizontal scroll) */
+  spacerBefore: number;
+  spacerAfter: number;
   tabIndex: number;
   cellRender: () => void;
   key?: string|number;

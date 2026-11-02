@@ -112,7 +112,7 @@ export default (props: SchemaComparePropsInterface) => {
       </div>
       <div className="compare-hint">
         Script changes target to the structure of source: tables, columns, indexes and foreign keys. Other connections of the same kind
-        ({driver.dialect === 'mysql' ? 'MySQL / MariaDB' : 'PostgreSQL'}) can be target - log in to them in sidebar.
+        ({driver.features.productName}) can be target - log in to them in sidebar.
       </div>
 
       {error && <div className="compare-error">{error}</div>}

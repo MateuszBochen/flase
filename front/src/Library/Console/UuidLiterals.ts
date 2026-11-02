@@ -119,7 +119,8 @@ const insertedColumns = (tokens: SqlTokenType[], lookup: UuidTableLookupType): M
  * columns - names of converted columns (empty when nothing changed)
  */
 export const binaryUuidLiterals = (sql: string, dialect: SqlDialectType, lookup: UuidTableLookupType): {sql: string, columns: string[]} => {
-  if (dialect !== 'mysql' || !/[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}/i.test(sql)) return {sql, columns: []};
+  // only BINARY(16) / VARBINARY(16) columns of MySQL / MariaDB are converted (driver feature binaryUuidText)
+  if (!/[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}/i.test(sql)) return {sql, columns: []};
   const tokens = tokenizeSql(sql, dialect);
   /** alias or table name -> its columns */
   const sources = new Map<string, UuidColumnType[]>();

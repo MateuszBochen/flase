@@ -52,6 +52,12 @@ interface DriverSessionInterface {
   /** statements of session cannot change data or structure (read only connection) */
   setReadOnly(): Promise<void>;
 
+  /**
+   * read only mode of setReadOnly is still on - statement built at run time (PREPARE, set_config, procedure)
+   * can switch it off, which the check of statement text cannot see
+   */
+  isReadOnly(): Promise<boolean>;
+
   /** cancel was requested for the session - long running work (import) stops before next statement */
   isCancelled(): boolean;
 
