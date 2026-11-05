@@ -12,11 +12,16 @@ import QueryFinishedInterface from '../../Driver/Interface/Data/QueryFinishedInt
 import ResultFieldInterface from '../../Driver/Interface/Data/ResultFieldInterface';
 import ResultColumnsBuilder, {ResultColumnsType} from '../Result/ResultColumnsBuilder';
 import QueryStopwatch from '../Result/QueryStopwatch';
+import CountCache, {CountedRowsInterface} from '../Result/CountCache';
+import CountTimeoutError from '../../Driver/Query/CountTimeoutError';
+
+/** longer COUNT is stopped and rows are estimated - billions of rows are counted for minutes */
+export const COUNT_TIMEOUT_MS = 3000;
 
 
 /**
  * command handler for select query request
- * Message order for client: total count -> columns -> records -> finished (or error at any point)
+ * Message order for client: columns -> records -> finished -> total count (or error at any point)
  * @author Mateusz Bochen
  */
 class HandleSelectQueryRequestHandler extends AbstractCommandHandler<QueryRequestDataInterface> {
@@ -45,16 +50,18 @@ class HandleSelectQueryRequestHandler extends AbstractCommandHandler<QueryReques
       await columnsBuilder.loadMetadata();
       stopwatch.mark('metadata');
 
-      // count is queued on the same connection before select, so it does not slow down rows
-      const counting = this.countRecords(session, data).then(() => stopwatch.mark('count'));
       const rows = await this.streamQueries(session, data, columnsBuilder, stopwatch);
-      await counting;
 
       this.clientWebsocket.send<QueryFinishedInterface>(new WsMessage<QueryFinishedInterface>(
         this.command.connectionData.connection,
         MessageType.QUERY_FINISHED,
         {tabId: data.tabId, rows, timing: stopwatch.timing()},
       ));
+
+      // after the rows - queries of one connection run one by one, rows would wait for COUNT of whole table
+      if (data.count !== false) {
+        await this.sendTotal(session, data);
+      }
     } catch (e) {
       this.sendError(e, data.tabId);
     } finally {
@@ -62,20 +69,52 @@ class HandleSelectQueryRequestHandler extends AbstractCommandHandler<QueryReques
     }
   }
 
-  /** count failure is not fatal - the select itself reports the sql error */
-  private countRecords = (session: DriverSessionInterface, data: QueryRequestDataInterface): Promise<void> => {
-    return session.countRecords(data.query).then((totalCountDto) => {
-      this.clientWebsocket.send<TotalCountInterface>(new WsMessage<TotalCountInterface>(
-        this.command.connectionData.connection,
-        MessageType.SELECT_TOTAL_COUNT,
-        {
-          tabId: data.tabId,
-          totalCount: totalCountDto.totalCount,
-        },
-      ));
-    }).catch((e) => {
-      console.warn(HandleSelectQueryRequestHandler.name, 'countRecords', AbstractCommandHandler.errorToString(e));
-    });
+  /**
+   * rows of the query for paging - remembered count of the same query, exact count when it takes at most
+   * COUNT_TIMEOUT_MS, otherwise estimate of database (user can count exactly by COUNT_RECORDS).
+   * Count failure is not fatal - rows were already sent.
+   */
+  private sendTotal = async (session: DriverSessionInterface, data: QueryRequestDataInterface): Promise<void> => {
+    let countQuery: string;
+    try {
+      countQuery = this.driver.getCountQuery(data.query);
+    } catch (e) {
+      return;
+    }
+    const database = data.database.name;
+    const cached = data.recount ? undefined : CountCache.get(this.driver, database, countQuery);
+    const running = cached ? undefined : CountCache.running(this.driver, database, countQuery);
+    if (cached || running) {
+      // connection is not needed - free it for other queries
+      session.release();
+      const counted = cached ?? await running!.catch(() => null);
+      if (counted) this.sendCount({tabId: data.tabId, totalCount: counted.total, estimated: counted.estimated, cached: true});
+      return;
+    }
+
+    const started = Date.now();
+    const counted = await CountCache.track(this.driver, database, countQuery, this.count(session, data.query));
+    this.sendCount({tabId: data.tabId, totalCount: counted.total, estimated: counted.estimated, countMs: Date.now() - started});
+  }
+
+  /** exact count, estimate when it takes too long (or fails) */
+  private count = async (session: DriverSessionInterface, query: string): Promise<CountedRowsInterface> => {
+    try {
+      return {total: (await session.countRecords(query, COUNT_TIMEOUT_MS)).totalCount, estimated: false};
+    } catch (e) {
+      if (!(e instanceof CountTimeoutError)) {
+        console.warn(HandleSelectQueryRequestHandler.name, 'countRecords', AbstractCommandHandler.errorToString(e));
+      }
+      return {total: await session.estimateRecords(query).catch(() => null), estimated: true};
+    }
+  }
+
+  private sendCount(payload: TotalCountInterface): void {
+    this.clientWebsocket.send<TotalCountInterface>(new WsMessage<TotalCountInterface>(
+      this.command.connectionData.connection,
+      MessageType.SELECT_TOTAL_COUNT,
+      payload,
+    ));
   }
 
   /** resolves with number of sent rows */

@@ -38,6 +38,9 @@ class MysqlDumper {
       const {database} = this.options;
       // the same values on any server: dates are dumped as stored, TIMESTAMP in UTC
       await this.query("SET SESSION time_zone = '+00:00'");
+      // browser which stops reading for a while (slow disk, sleep of computer, full buffer of proxy) pauses the rows -
+      // server would close the connection after net_write_timeout (60 s), the dump of big table would be broken
+      await this.query('SET SESSION net_write_timeout = 86400').catch(() => undefined);
       await this.query('SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ');
       await this.query('START TRANSACTION WITH CONSISTENT SNAPSHOT');
 

@@ -16,9 +16,13 @@ import {TransactionOptionsInterface} from './ForeignKeyChecks';
 interface DriverSessionInterface {
 
   /**
-   * Function returns total rows of given select query
+   * Function returns total rows of given select query.
+   * timeoutMs stops the count in database - rejects with CountTimeoutError.
    */
-  countRecords(query: string): Promise<TotalCountDto>;
+  countRecords(query: string, timeoutMs?: number): Promise<TotalCountDto>;
+
+  /** rows of select query by plan of database (EXPLAIN) - instant, null when database does not tell */
+  estimateRecords(query: string): Promise<number | null>;
 
   /**
    * Stream rows of given select query. Observable completes when all rows were sent.

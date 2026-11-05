@@ -107,7 +107,9 @@ export default (props: GridViewPropsInterface) => {
     const eventId = EventBus.subscribe<MessageInterface<TotalCountInterface>>(WebsocketReceivedAMessage.name, (event) => {
       const eventData = event.getData();
       if (eventData.payload.tabId === props.tabId && eventData.message === MessageType.SELECT_TOTAL_COUNT) {
-        recordsRef.current!.setTotal(eventData.payload.totalCount);
+        const {totalCount, ...count} = eventData.payload;
+        if (count.error) toast.error(`Rows were not counted: ${count.error}`);
+        recordsRef.current!.setTotal(totalCount, count);
       }
     });
 
@@ -328,7 +330,15 @@ export default (props: GridViewPropsInterface) => {
       database: props.database,
       tabId: exportTabId,
       fullValues: true,
+      count: false,
     });
+  }, [props.connection, props.database, props.tabId, props.queryRef]);
+
+  /** rows were only estimated - count them without time limit (Cancel of the grid stops it) */
+  const onCountExactly = useCallback(() => {
+    const currentQuery = props.queryRef?.current;
+    if (!currentQuery) return;
+    RecordManager.getInstance().countRecords(props.connection, {query: currentQuery, database: props.database, tabId: props.tabId});
   }, [props.connection, props.database, props.tabId, props.queryRef]);
 
   /** foreign key value - open referenced row */
@@ -388,6 +398,7 @@ export default (props: GridViewPropsInterface) => {
         onQuickFilter={onQuickFilter}
         onExportAll={onExportAll}
         onCancelQuery={() => ConsoleApi.getInstance().cancel(props.connection, props.tabId)}
+        onCountExactly={onCountExactly}
         exportName={props.table.tableName}
         columnWidthsKey={`${props.connection.id}/${props.table.dataBaseName}.${props.table.tableName}`}
         submitting={submitting}

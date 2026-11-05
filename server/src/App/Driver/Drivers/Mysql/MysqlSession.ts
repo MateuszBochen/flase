@@ -11,6 +11,10 @@ import {StatementResultType} from '../../Interface/Data/StatementInterface';
 import SelectAnalyser from '../../Query/SelectAnalyser';
 import {serializeValue} from '../BinaryValue';
 import {FOREIGN_KEY_CHECKS_OFF, TransactionOptionsInterface} from '../../ForeignKeyChecks';
+import CountTimeoutError from '../../Query/CountTimeoutError';
+
+/** select stopped by time limit - MySQL ER_QUERY_TIMEOUT, MariaDB ER_STATEMENT_TIMEOUT, interrupted query (TiDB) */
+const TIMEOUT_ERRORS = [3024, 1969, 1317];
 
 /**
  * Single pooled mysql connection with selected database
@@ -34,24 +38,51 @@ class MysqlSession implements DriverSessionInterface {
     return this.connection.threadId;
   }
 
-  countRecords(query: string): Promise<TotalCountDto> {
-    return new Promise((resolve, reject) => {
-      let countQuery: string;
-      try {
-        countQuery = this.analyser.getCountQuery(query);
-      } catch (e) {
-        reject(e);
-        return;
+  async countRecords(query: string, timeoutMs?: number): Promise<TotalCountDto> {
+    const countQuery = this.analyser.getCountQuery(query);
+    const limit = timeoutMs ? await this.limitTime(timeoutMs) : null;
+    try {
+      const [row] = await this.query(countQuery);
+      return new TotalCountDto(+row.total);
+    } catch (e: any) {
+      if (limit && TIMEOUT_ERRORS.includes(e?.errno)) {
+        throw new CountTimeoutError(timeoutMs!);
       }
+      throw e;
+    } finally {
+      if (limit) await this.query(`SET SESSION ${limit} = DEFAULT`).catch(() => undefined);
+    }
+  }
 
-      this.connection.query(countQuery, (err: MysqlError | null, results: any) => {
-        if (err) {
-          reject(err);
-          return;
-        }
-        resolve(new TotalCountDto(+results[0].total));
-      });
-    });
+  /**
+   * rows of the first select of plan (joined tables multiply) - MySQL / MariaDB rows x filtered, TiDB estRows of root
+   */
+  async estimateRecords(query: string): Promise<number | null> {
+    const plan: any[] = await this.query(`EXPLAIN ${this.analyser.getCountPlan(query).rowsQuery}`);
+    if (!plan.length) {
+      return null;
+    }
+    if (plan[0].estRows !== undefined) {
+      return Math.round(Number(plan[0].estRows));
+    }
+    if (plan.some((row) => /Impossible WHERE|no matching row/i.test(String(row.Extra ?? '')))) {
+      return 0;
+    }
+    const first = plan.filter((row) => String(row.id) === String(plan[0].id) && row.rows !== null && row.rows !== undefined);
+    if (!first.length) {
+      return null;
+    }
+    return Math.round(first.reduce((rows, row) => rows * Number(row.rows) * (row.filtered === undefined || row.filtered === null ? 1 : Number(row.filtered) / 100), 1));
+  }
+
+  /** variable which stops long select - MySQL / TiDB in ms, MariaDB in seconds; null when server has none */
+  private async limitTime(timeoutMs: number): Promise<string | null> {
+    try {
+      await this.query(`SET SESSION max_execution_time = ${Math.round(timeoutMs)}`);
+      return 'max_execution_time';
+    } catch (e) {
+      return this.query(`SET SESSION max_statement_time = ${timeoutMs / 1000}`).then(() => 'max_statement_time', () => null);
+    }
   }
 
   streamSelect(query: string, onFields?: (fields: ResultFieldInterface[]) => void, fullValues = false): Observable<RowDto> {
@@ -219,9 +250,10 @@ class MysqlSession implements DriverSessionInterface {
     }
     this.released = true;
     this.onRelease?.();
-    // transaction left open (BEGIN without COMMIT, autocommit = 0) would keep its locks while the connection waits
-    // in the pool - it is rolled back as it would be at the next use of the connection
-    this.connection.query('ROLLBACK', (error) => error ? this.connection.destroy() : this.connection.release());
+    // transaction left open (BEGIN without COMMIT, autocommit = 0) and LOCK TABLES of interrupted import (mysqldump)
+    // would block other connections while this one waits in the pool - reset of session rolls back, unlocks tables,
+    // drops temporary tables and SET variables, as it would at the next use of the connection
+    this.connection.changeUser({}, (error) => error ? this.connection.destroy() : this.connection.release());
   }
 
   /** key is column name, `table.name` when name repeats in result */

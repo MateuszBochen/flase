@@ -197,7 +197,7 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
       }
       dataGridViewRef.current!.reset(keepScroll);
       footerRef.current!.setLength(0);
-      footerRef.current!.setTotal(0);
+      footerRef.current!.setTotal(null);
       footerRef.current!.setLimit(0, 100);
       // footerRef.current!.setPerPage(100);
       totalRows.current = 0;
@@ -733,6 +733,7 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
           onPageChange={props.onPageChange}
           loading={status.loading}
           onCancel={props.onCancelQuery}
+          onCountExactly={props.onCountExactly}
           ref={footerRef}
         >
           {selectionSummary && <span className="pager-selection-stats" title="Selected cells - sum, average, minimum and maximum of numbers">{selectionSummary}</span>}

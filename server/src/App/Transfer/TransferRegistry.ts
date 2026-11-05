@@ -39,7 +39,7 @@ class TransferRegistry {
     return ticket && ticket.expiresAt > Date.now() ? ticket : null;
   }
 
-  /** dump which is being downloaded - Cancel of the tab stops it */
+  /** dump which is being downloaded / import which is running - Cancel of the tab stops it */
   static started(tabId: string, driver: DriverInterface, cancel: () => void): void {
     TransferRegistry.running.set(tabId, {driver, cancel});
   }
@@ -48,6 +48,14 @@ class TransferRegistry {
     if (TransferRegistry.running.get(tabId)?.cancel === cancel) {
       TransferRegistry.running.delete(tabId);
     }
+  }
+
+  /** dump or import of the driver is running - its session must keep the database connection (closed tab, expired token) */
+  static isRunning(driver: DriverInterface): boolean {
+    for (const running of TransferRegistry.running.values()) {
+      if (running.driver === driver) return true;
+    }
+    return false;
   }
 
   /** only session which started the dump can stop it - tab ids are chosen by browser */

@@ -1,3 +1,4 @@
+import TableFooterRefInterface from '../../Application/TableRecords/Interface/TableFooterRefInterface';
 import {SingleRowType} from './RecordsViewPropsInterface';
 import ColumnInterface from '../../../Library/Table/Interface/ColumnInterface';
 import EditableResultInterface from '../../../Library/Record/Interface/EditableResultInterface';
@@ -9,7 +10,7 @@ interface RecordsViewRefInterface {
   setColumns: (columns: ColumnInterface[], editable?: EditableResultInterface | null, readOnlyReason?: string) => void;
   /** keepScroll - stay at the same position, rows of the same query are loaded again */
   reset: (option?: string, keepScroll?: boolean) => void;
-  setTotal: (total: number) => void;
+  setTotal: TableFooterRefInterface['setTotal'];
   setLimit: (offset: number, perPage: number) => void;
   setFinished: (rows: number) => void;
   setError: (error: string) => void;

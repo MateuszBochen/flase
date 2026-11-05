@@ -65,7 +65,7 @@ export default (props: QueryPlacePropsInterface) => {
   }, [editorReady, props.tabId]);
 
   useEffect(() => {
-    changeQueryHandler(currentQuery);
+    changeQueryHandler(currentQuery, false);
 
 
     /** handle event of page change */
@@ -74,7 +74,7 @@ export default (props: QueryPlacePropsInterface) => {
       if (eventData.tabId === props.tabId) {
         setCurrentQuery((previousQuery) => {
           const newQueryModel = previousQuery.changeOffset(eventData.page * eventData.perPage);
-          changeQueryHandler(newQueryModel);
+          changeQueryHandler(newQueryModel, false);
           return newQueryModel;
         });
       }
@@ -86,7 +86,7 @@ export default (props: QueryPlacePropsInterface) => {
       if (eventData.tabId === props.tabId) {
         setCurrentQuery((previousQuery) => {
           const newQueryModel = previousQuery.toggleOrder(eventData.column, eventData.direction, !!eventData.multiple);
-          changeQueryHandler(newQueryModel);
+          changeQueryHandler(newQueryModel, false);
           return newQueryModel;
         });
       }
@@ -164,7 +164,7 @@ export default (props: QueryPlacePropsInterface) => {
   const applyWhere = (previousQuery: QueryInterface, where: string): QueryInterface => {
     try {
       const newQueryModel = previousQuery.changeWhere(where);
-      changeQueryHandler(newQueryModel);
+      changeQueryHandler(newQueryModel, false);
       return newQueryModel;
     } catch (e: any) {
       toast.error(`Invalid filter: ${(e?.message || String(e)).slice(0, 120)}`);
@@ -172,7 +172,8 @@ export default (props: QueryPlacePropsInterface) => {
     }
   };
 
-  const changeQueryHandler = useCallback((query: QueryInterface) => {
+  /** recount - count rows again, not the count remembered by server (paging and sorting keep it) */
+  const changeQueryHandler = useCallback((query: QueryInterface, recount: boolean = true) => {
     if (props.queryRef) {
       props.queryRef.current = query;
     }
@@ -182,6 +183,7 @@ export default (props: QueryPlacePropsInterface) => {
       query: query,
       database: props.database,
       tabId: props.tabId,
+      recount,
     }
 
     EventBus.emit<QueryRequestDataInterface>(new QueryWasChanged(queryRequest));

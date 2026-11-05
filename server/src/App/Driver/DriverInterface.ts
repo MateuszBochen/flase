@@ -123,6 +123,9 @@ interface DriverInterface {
    */
   getEditableTableOfQuery(query: string): {table: SelectFromType | null, reason?: string};
 
+  /** COUNT(*) query of select (without LIMIT and ORDER BY) - the same for every page and sort, key of counted rows */
+  getCountQuery(query: string): string;
+
   /**
    * Build escaped sql statements for row changes of given table
    */

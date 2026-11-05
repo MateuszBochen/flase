@@ -131,7 +131,12 @@ const connect = async (connection) => {
     c.send('CREATE_TRANSFER', {tabId: 'imp', transfer: {kind: 'import-sql', database, gzip: false, stopOnError: true, fileName: 'd.sql'}});
     await sleep(800);
     const importTicket = c.messages.find((m) => m.payload?.tabId === 'imp' && m.message === 'TRANSFER_TICKET')?.payload.ticket;
-    const imported = importTicket ? await (await fetch(`${BASE}/api/transfer/${importTicket}`, {method: 'POST', headers: {'Content-Type': 'application/octet-stream'}, body: dump})).json() : {failed: true, errors: [{error: 'no ticket'}]};
+    let imported = importTicket ? await (await fetch(`${BASE}/api/transfer/${importTicket}`, {method: 'POST', headers: {'Content-Type': 'application/octet-stream'}, body: dump})).json() : {failed: true, errors: [{error: 'no ticket'}]};
+    // file was uploaded (202), result of import comes over websocket
+    if (imported.accepted) {
+      for (let start = Date.now(); Date.now() - start < 60000 && !c.messages.some((m) => m.payload?.tabId === 'imp' && m.message === 'IMPORT_FINISHED');) await sleep(50);
+      imported = c.messages.find((m) => m.payload?.tabId === 'imp' && m.message === 'IMPORT_FINISHED')?.payload || {failed: true, errors: [{error: 'no IMPORT_FINISHED'}]};
+    }
     r = await c.sql([`SELECT COUNT(*) AS n FROM ${q('eng_test')}`], database);
     check('import of dump', !imported.failed && String(r.rows(0)[0]?.n) === '3', JSON.stringify(imported.errors || imported).slice(0, 300));
 

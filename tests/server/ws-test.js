@@ -59,6 +59,8 @@ const waitFor = async (fn, ms = 5000) => {
     const select = async (tabId, database, query) => {
       send('SEND_SELECT_QUERY', {query, database: {name: database}, tabId});
       await waitFor(() => doneTab(tabId));
+      // count comes after the rows
+      if (doneTab(tabId)?.message === 'QUERY_FINISHED') await waitFor(() => forTab(tabId).some((m) => m.message === 'SELECT_TOTAL_COUNT'), 1000);
       const msgs = forTab(tabId);
       return {
         msgs,
@@ -85,7 +87,7 @@ const waitFor = async (fn, ms = 5000) => {
     check('select ok: finished', s.done?.message === 'QUERY_FINISHED' && s.done.payload.rows === 5, s.order);
     const timing = s.done?.payload.timing;
     check('select: timing of steps', timing && ['sessionMs', 'metadataMs', 'executionMs', 'fetchMs', 'serverMs'].every((key) => typeof timing[key] === 'number' && timing[key] >= 0)
-      && timing.serverMs >= timing.executionMs + timing.fetchMs && (timing.countMs === null || typeof timing.countMs === 'number'), JSON.stringify(timing));
+      && timing.serverMs >= timing.executionMs + timing.fetchMs, JSON.stringify(timing));
     check('select ok: total 200', s.total === 200, String(s.total));
     check('select ok: columns from metadata', s.columns.includes('email') && s.columns.includes('city'), s.columns.join(','));
 
