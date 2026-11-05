@@ -37,7 +37,7 @@ import and export dumps, draw ER diagrams and manage users - all from one self-h
 - Export rows as **CSV, Excel (XLSX), OpenDocument (ODS), JSON, XML, SQL, HTML, LaTeX or PDF**
 - **Charts** of results (bar, line, pie, scatter, grouping) and **map** of spatial values (OpenStreetMap background)
 - Foreign key navigation (open referenced row in the same or a new tab)
-- Quick filters from cell values, sorting by more columns (Ctrl + click), paging, query bar with history and SQL completion
+- Quick filters from cell values, sorting by more columns (Ctrl + click), paging (big tables: rows first, COUNT limited to 3 s with estimate of database and exact Count on request), query bar with history and SQL completion
 - **Find and replace** in column (text or regular expression) with preview of changed rows
 - Value of **referenced row next to foreign key** (display column) and **transformations** - image, link, date from Unix time, size, yes / no
 - Resizable columns (drag the header edge, double click to fit content) remembered per table
@@ -236,6 +236,7 @@ the fingerprint to the log of the server and to the user.
 | `FLASE_CERT_DIR` | `/app/certs` | Directory of CA / client certificates for TLS of database connections |
 | `FLASE_SSH_KEY_DIR` | `FLASE_CERT_DIR` | Directory of private keys of SSH tunnels (`keyFile`) |
 | `FLASE_CONNECT_TIMEOUT_SECONDS` | `10` | Login to an unreachable database server fails after this time |
+| `FLASE_UPLOAD_DIR` | system temp directory | Uploaded import file is kept here while it is imported (as large as the file, deleted at the end) |
 
 Predefined connections are resolved by the server: the address is never taken from the browser and `readOnly`
 is enforced for the whole session. Credentials written in a predefined DSN are never sent to the browser.

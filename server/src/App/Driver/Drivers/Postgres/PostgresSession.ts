@@ -12,6 +12,7 @@ import SelectAnalyser from '../../Query/SelectAnalyser';
 import PostgresSql from './PostgresSql';
 import {serializeValue} from '../BinaryValue';
 import {FOREIGN_KEY_CHECKS_OFF, TransactionOptionsInterface} from '../../ForeignKeyChecks';
+import CountTimeoutError from '../../Query/CountTimeoutError';
 const Cursor = require('pg-cursor');
 
 /** rows read from cursor at once */
@@ -48,9 +49,33 @@ class PostgresSession implements DriverSessionInterface {
     return (this.client as any).processID ?? null;
   }
 
-  async countRecords(query: string): Promise<TotalCountDto> {
-    const result = await this.client.query({text: this.analyser.getCountQuery(query), types: PostgresSql.types});
-    return new TotalCountDto(Number(result.rows[0].total));
+  async countRecords(query: string, timeoutMs?: number): Promise<TotalCountDto> {
+    const text = this.analyser.getCountQuery(query);
+    if (timeoutMs) await this.client.query(`SET statement_timeout = ${Math.round(timeoutMs)}`);
+    try {
+      const result = await this.client.query({text, types: PostgresSql.types});
+      return new TotalCountDto(Number(result.rows[0].total));
+    } catch (e: any) {
+      // query_canceled - by statement_timeout (cancel of user too, the count is unknown either way)
+      if (timeoutMs && e?.code === '57014') {
+        throw new CountTimeoutError(timeoutMs);
+      }
+      throw e;
+    } finally {
+      if (timeoutMs) await this.client.query('RESET statement_timeout').catch(() => undefined);
+    }
+  }
+
+  /** rows of the top node of plan - PostgreSQL / YugabyteDB "rows=N", CockroachDB "estimated row count: N" */
+  async estimateRecords(query: string): Promise<number | null> {
+    const {rows} = await this.client.query({text: `EXPLAIN ${this.analyser.getCountPlan(query).rowsQuery}`, rowMode: 'array'});
+    for (const [line] of rows) {
+      const found = /\brows=(\d+)/.exec(String(line)) || /estimated row count: ([\d,]+)/.exec(String(line));
+      if (found) {
+        return Number(found[1].replace(/,/g, ''));
+      }
+    }
+    return null;
   }
 
   streamSelect(query: string, onFields?: (fields: ResultFieldInterface[]) => void, fullValues = false): Observable<RowDto> {
@@ -194,7 +219,10 @@ class PostgresSession implements DriverSessionInterface {
     this.onRelease?.();
     // transaction left open (BEGIN without COMMIT) would keep its locks while the connection waits in the pool
     // - it is rolled back as it would be at the next use of the connection; broken connection is closed
-    PostgresSql.rollbackIfAny(this.client).then(() => this.client.release(), (error: Error) => this.client.release(error));
+    // advisory locks and SET of the session (statement_timeout = 0 of pg_dump) go away with DISCARD ALL
+    PostgresSql.rollbackIfAny(this.client)
+      .then(() => this.client.query('DISCARD ALL'))
+      .then(() => this.client.release(), (error: Error) => this.client.release(error));
   }
 
   /**

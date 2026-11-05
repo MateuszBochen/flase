@@ -137,7 +137,7 @@ export default (props: ImportPanelPropsInterface) => {
           options: {database: props.database, table, delimiter, header, columns: mapping, nullValue, truncate},
         }
         : {kind: 'import-sql', database: props.database, gzip: isGzip, stopOnError, fileName: file.name});
-      const result = await TransferApi.upload(ticket, file, (sent, total) => setUploaded({sent, total}));
+      const result = await TransferApi.upload(ticket, importTabId.current, file, (sent, total) => setUploaded({sent, total}));
       setFinished(result);
       if (result.cancelled) toast('Import was cancelled');
       else if (result.failed) toast.error('Import stopped on error');

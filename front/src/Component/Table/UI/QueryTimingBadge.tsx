@@ -5,9 +5,8 @@ import EventBus from '../../../Library/EventBus/EventBus';
 import QueryTiming, {QueryTimingInterface} from '../../../Library/Timing/QueryTiming';
 import QueryTimingWasMeasured from '../../../Library/Timing/Event/QueryTimingWasMeasured';
 import {formatBytes} from '../../../Library/Record/BinaryValue';
+import formatCount from '../../../Library/Record/formatCount';
 
-/** 12,345 - toLocaleString initialises Intl (about 10 ms on first use, measured) */
-const formatCount = (count: number): string => String(count).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
 const formatMs = (ms: number): string => ms >= 1000 ? `${(ms / 1000).toFixed(2)} s` : ms < 10 ? `${ms.toFixed(1)} ms` : `${Math.round(ms)} ms`;
 
@@ -20,7 +19,6 @@ const stepsOf = (timing: QueryTimingInterface): StepType[] => {
   if (server) {
     steps.push({label: 'Connection', ms: server.sessionMs, hint: 'Free connection of the pool, new session'});
     steps.push({label: 'Metadata', ms: server.metadataMs, hint: 'Structure of tables of the query (types, keys, references)'});
-    if (server.countMs !== null) steps.push({label: 'Count', ms: server.countMs, hint: 'COUNT of all rows for paging, before the query'});
     steps.push({label: 'Execution', ms: server.executionMs, hint: 'Database until the first row (with network to the database)'});
     steps.push({label: `Fetch ${formatCount(timing.rows)} row(s)`, ms: server.fetchMs, hint: 'From the first to the last row - reading and sending'});
   }

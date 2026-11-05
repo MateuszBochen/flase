@@ -10,9 +10,11 @@ import {DumpProgressType} from './App/Transfer/DumpParts';
 import {importCsv, importSql} from './App/Transfer/Importers';
 import MessageType from './App/Websocket/Enum/MessageType';
 import AbstractCommandHandler from './App/Websocket/CommandHandler/AbstractCommandHandler';
-import {Readable} from 'stream';
+import {Readable, pipeline} from 'stream';
 import PredefinedConnections from './App/Settings/PredefinedConnections';
 import Settings from './App/Settings/Settings';
+import CountCache from './App/Websocket/Result/CountCache';
+import UploadSpool from './App/Transfer/UploadSpool';
 const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
@@ -204,10 +206,18 @@ app.get('/api/transfer/:ticket', async (req: Request, res: Response) => {
       res.status(400).type('text/plain').send(`Dump failed: ${error}`);
       return;
     }
-    if (!aborted) {
-      output.write(`\n-- ERROR: dump is not complete: ${error}\n`);
+    // incomplete dump must not look like complete file - the reason is written, then the download is broken off
+    // and browser marks it as failed
+    if (aborted) {
+      res.destroy();
+      return;
     }
-    output.end();
+    output.write(`\n-- ERROR: dump is not complete: ${error}\n`);
+    if (gzip) {
+      (output as any).flush(() => setTimeout(() => res.destroy(), 100));
+    } else {
+      res.write('', () => res.destroy());
+    }
     return;
   }
   output.end();
@@ -221,28 +231,51 @@ app.post('/api/transfer/:ticket', async (req: Request, res: Response) => {
     return;
   }
   const request = ticket.request;
-  let input: Readable = req;
+  let spool: UploadSpool;
+  try {
+    spool = await UploadSpool.create(req);
+  } catch (e) {
+    req.resume();
+    res.status(500).send({error: `Upload cannot be stored: ${AbstractCommandHandler.errorToString(e)}`});
+    return;
+  }
+  let input: Readable = spool.stream();
   if (request.gzip) {
     const gunzip = zlib.createGunzip();
     // corrupted / truncated gzip: importer gets the error from the stream, unhandled 'error' event would stop the server
-    // (zlib may emit it after the input ended, so stream.pipeline is not enough)
+    // (zlib may emit it after the input ended); interrupted upload destroys gunzip too - importer would wait forever
     gunzip.on('error', () => undefined);
-    req.pipe(gunzip);
+    pipeline(input, gunzip, () => undefined);
     input = gunzip;
   }
   const onProgress = (progress: any) => ticket.notify(MessageType.IMPORT_PROGRESS, progress);
+  // running import keeps connections of its session (tab closed, token expired) - cancel stops its statement
+  const cancel = () => ticket.driver.cancel(ticket.tabId).catch(() => false);
+  TransferRegistry.started(ticket.tabId, ticket.driver, cancel);
+
+  // request ends with the upload - import of big file takes longer than proxies and Node keep requests open (408);
+  // result comes over websocket (IMPORT_FINISHED)
+  spool.upload.then(
+    (bytes) => !res.headersSent && res.status(202).send({accepted: true, bytes}),
+    (e) => !res.headersSent && res.status(400).send({error: AbstractCommandHandler.errorToString(e)}),
+  );
 
   try {
     const finished = request.kind === 'import-sql'
       ? await importSql(ticket.driver, request.database, ticket.tabId, request.stopOnError, input, onProgress)
       : await importCsv(ticket.driver, request.options, ticket.tabId, input, onProgress);
     ticket.notify(MessageType.IMPORT_FINISHED, finished);
-    res.send(finished);
+    if (!res.headersSent) res.send(finished);
   } catch (e) {
     const error = AbstractCommandHandler.errorToString(e);
     ticket.notify(MessageType.IMPORT_FINISHED, {bytes: 0, statements: 0, rows: 0, errors: [{statement: '', error}], cancelled: false, failed: true, durationMs: 0});
-    req.resume();
-    res.status(500).send({error});
+    if (!res.headersSent) res.status(500).send({error});
+  } finally {
+    TransferRegistry.finished(ticket.tabId, cancel);
+    // rest of upload is not needed (import stopped on error) - it is read and thrown away
+    spool.discard();
+    // imported rows - remembered counts of grids are not valid
+    CountCache.clear(ticket.driver);
   }
 });
 
@@ -300,9 +333,12 @@ app.use((error: any, req: Request, res: Response, next: (error?: any) => void) =
 });
 
 const PORT = Number(process.env.PORT) || 3001;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Flase server listening on port ${PORT}`);
 });
+// upload of big import over slow network takes longer than 5 minutes (default of Node, then 408);
+// headers still have their time limit (headersTimeout)
+server.requestTimeout = 0;
 
 
 /** close database connections of expired sessions */

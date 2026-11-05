@@ -35,6 +35,17 @@ class RecordManager {
       database: query.database,
       tabId: query.tabId,
       fullValues: query.fullValues,
+      count: query.count,
+      recount: query.recount,
+    } as WebSocketQueryRequestDataInterface);
+  }
+
+  /** exact count of rows of the query without time limit - answer is SELECT_TOTAL_COUNT of the tab */
+  countRecords = (connection: ConnectionDataInterface, query: QueryRequestDataInterface) => {
+    this.connectionManager.sendCommand<WebSocketQueryRequestDataInterface>(connection, CommandType.COUNT_RECORDS, {
+      query: withBinaryUuids(connection, query.database?.name ?? null, [query.query.query])[0],
+      database: query.database,
+      tabId: query.tabId,
     } as WebSocketQueryRequestDataInterface);
   }
 

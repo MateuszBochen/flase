@@ -6,6 +6,35 @@ let failures = 0;
 const check = (name, ok, info = '') => { if (!ok) failures++; console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${info ? '  -- ' + String(info).slice(0, 300) : ''}`); };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+const http = require('http');
+
+/** body sent, then connection is broken - as browser closed or proxy cut the upload */
+const interruptedUpload = (ticket, body) => new Promise((resolve) => {
+  const url = new URL(`${BASE}/api/transfer/${ticket}`);
+  const request = http.request({hostname: url.hostname, port: url.port, path: url.pathname, method: 'POST',
+    headers: {'Content-Type': 'application/octet-stream', 'Transfer-Encoding': 'chunked'}});
+  request.on('error', () => resolve());
+  request.write(body);
+  setTimeout(() => { request.destroy(); resolve(); }, 1500);
+});
+/** beginning of gzip stream which can be decompressed (rest of the file never comes) */
+const syncFlushedGzip = (text) => new Promise((resolve) => {
+  const gzip = zlib.createGzip();
+  const chunks = [];
+  gzip.on('data', (chunk) => chunks.push(chunk));
+  gzip.write(text);
+  gzip.flush(zlib.constants.Z_SYNC_FLUSH, () => resolve(Buffer.concat(chunks)));
+});
+/** own connection, not of Flase - locked table makes it wait for lock_wait_timeout */
+const directQuery = (host, sql, user = 'flase') => new Promise((resolve) => {
+  const [hostname, port] = host.split(':');
+  const connection = require('mysql').createConnection({host: hostname, port: Number(port) || 3306, user, password: user === 'root' ? 'root' : 'flase', database: 'shop'});
+  connection.query('SET SESSION lock_wait_timeout = 3', () => connection.query(sql, (error, rows) => {
+    connection.destroy();
+    resolve({ok: !error, error: error?.message, rows});
+  }));
+});
+
 (async () => {
   for (const dsn of ['mysql://mariadb', 'mysql://mysql']) {
     console.log(`\n=== ${dsn}`);
@@ -36,7 +65,11 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     const upload = async (transfer, body) => {
       const t = await ticket(transfer);
       const res = await fetch(`${BASE}/api/transfer/${t.ticket}`, {method: 'POST', headers: {'Content-Type': 'application/octet-stream'}, body});
-      return {tabId: t.tabId, status: res.status, result: await res.json()};
+      const answer = await res.json();
+      // 202 - file was uploaded, result of import comes over websocket
+      if (res.status !== 202) return {tabId: t.tabId, status: res.status, result: answer};
+      const finished = await waitFor(() => messages.find((m) => m.payload?.tabId === t.tabId && m.message === 'IMPORT_FINISHED'), 60000);
+      return {tabId: t.tabId, status: finished ? 200 : 'no IMPORT_FINISHED', result: finished?.payload};
     };
     const checksums = async (tables) => {
       const r = await sql([`CHECKSUM TABLE ${tables.join(', ')}`]);
@@ -194,10 +227,44 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     const dumpThread = (await sql(["SELECT ID FROM information_schema.PROCESSLIST WHERE INFO LIKE 'SELECT %dump_big%' AND INFO NOT LIKE '%PROCESSLIST%'"])).rows(0)[0]?.ID;
     await sql([`KILL ${dumpThread}`]);
     await sleep(500);
-    try { for (;;) { if ((await killedReader.read()).done) break; } } catch (e) { /* broken download is fine too */ }
+    // incomplete dump must not look like complete file - download is broken off
+    let killedBroken = false;
+    try { for (;;) { if ((await killedReader.read()).done) break; } } catch (e) { killedBroken = true; }
     const killedDump = (await waitFor(() => messages.find((m) => m.payload?.tabId === t.tabId && m.message === 'DUMP_FINISHED'), 10000))?.payload;
     const aliveAfterKill = await fetch(`${BASE}/api/config`).then((x) => x.status).catch(() => 0);
-    check('lost connection of dump: error, server alive', !!dumpThread && !!killedDump?.error && aliveAfterKill === 200, `${dumpThread} ${JSON.stringify(killedDump)} ${aliveAfterKill}`);
+    check('lost connection of dump: error, download broken off, server alive', !!dumpThread && !!killedDump?.error && killedBroken && aliveAfterKill === 200, `${dumpThread} ${JSON.stringify(killedDump)} broken=${killedBroken} ${aliveAfterKill}`);
+
+    // long download: tab closed (connections of idle session are released after 30 s) and browser does not read
+    // for longer than net_write_timeout of server - dump must still be complete
+    if (dsn === 'mysql://mariadb') {
+      // bigger than buffers of network - server must wait for the browser
+      await sql(['CREATE TABLE dump_long AS SELECT * FROM dump_big', 'INSERT INTO dump_long SELECT * FROM dump_big', 'INSERT INTO dump_long SELECT * FROM dump_big']);
+      await directQuery(dsn.replace('mysql://', ''), 'SET GLOBAL net_write_timeout = 5', 'root');
+      const other = await (await fetch(`${BASE}/api/login`, {method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({userData: {username: 'flase', password: 'flase'}, connectionData: {...connection, id: connection.id + '-long'}})})).json();
+      const otherConnection = {...connection, id: connection.id + '-long'};
+      const otherWs = new WebSocket(`ws://php_flase:3001/ws/${other.token}`);
+      const otherMessages = [];
+      otherWs.on('message', (m) => otherMessages.push(JSON.parse(m)));
+      await new Promise((r) => otherWs.on('open', r));
+      otherWs.send(JSON.stringify({connectionData: {user: other, connection: otherConnection}, command: 'CREATE_TRANSFER',
+        payload: {tabId: 'long', transfer: {kind: 'dump', gzip: false, options: {...dumpOptions, tables: ['dump_long', 'edit_test']}}}}));
+      const longTicket = (await waitFor(() => otherMessages.find((m) => m.message === 'TRANSFER_TICKET')))?.payload.ticket;
+      const longRes = await fetch(`${BASE}/api/transfer/${longTicket}`);
+      const longReader = longRes.body.getReader();
+      let longText = '';
+      const decoder = new TextDecoder();
+      for (let i = 0; i < 5; i++) longText += decoder.decode((await longReader.read()).value, {stream: true});
+      otherWs.close();
+      await sleep(35000);
+      let longBroken = false;
+      try { for (;;) { const chunk = await longReader.read(); if (chunk.done) break; longText += decoder.decode(chunk.value, {stream: true}); } } catch (e) { longBroken = true; }
+      await directQuery(dsn.replace('mysql://', ''), 'SET GLOBAL net_write_timeout = 60', 'root');
+      check('long download with closed tab and pause of browser: complete dump', !longBroken && !/dump is not complete/.test(longText)
+        && /CREATE TABLE `edit_test`/.test(longText) && /SET FOREIGN_KEY_CHECKS = 1;\s*$/.test(longText), `broken=${longBroken} ${longText.slice(-200)}`);
+      await fetch(`${BASE}/api/disconnect`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({token: other.token})});
+      await sql(['DROP TABLE dump_long']);
+    }
     await sql(['DROP TABLE dump_big']);
 
     // --- break data, import dump, compare
@@ -217,6 +284,32 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     imp = await upload({kind: 'import-sql', database: 'shop', gzip: true, stopOnError: true, fileName: 'x.sql.gz'}, zlib.gzipSync("SELECT 1;\nSET @gz = 'ok';"));
     check('gzip import', imp.status === 200 && imp.result.statements === 2 && !imp.result.failed, JSON.stringify(imp.result));
 
+    // --- long statement does not hold up the upload - answer comes when the file is uploaded, not when it is imported
+    {
+      const t = await ticket({kind: 'import-sql', database: 'shop', gzip: false, stopOnError: true, fileName: 'slow.sql'});
+      const started = Date.now();
+      const res = await fetch(`${BASE}/api/transfer/${t.ticket}`, {method: 'POST', headers: {'Content-Type': 'application/octet-stream'},
+        body: 'SELECT SLEEP(3);\n' + 'SELECT 1;\n'.repeat(20000)});
+      const answered = Date.now() - started;
+      const finished = await waitFor(() => messages.find((m) => m.payload?.tabId === t.tabId && m.message === 'IMPORT_FINISHED'), 20000);
+      check('long statement: answer after upload (202), result over websocket', res.status === 202 && answered < 2000 && finished?.payload.statements === 20001 && Date.now() - started >= 3000,
+        `${res.status} after ${answered} ms ${JSON.stringify(finished?.payload).slice(0, 200)}`);
+    }
+
+    // --- interrupted upload must not leave LOCK TABLES of mysqldump on connection of the pool
+    const host = dsn.replace('mysql://', '');
+    for (const gzip of [false, true]) {
+      const t = await ticket({kind: 'import-sql', database: 'shop', gzip, stopOnError: true, fileName: gzip ? 'cut.sql.gz' : 'cut.sql'});
+      const text = 'LOCK TABLES edit_test WRITE;\nINSERT INTO edit_test (name) VALUES (\'cut upload\');\n';
+      const body = gzip ? await syncFlushedGzip(text) : Buffer.from(text);
+      await interruptedUpload(t.ticket, body);
+      const finished = await waitFor(() => messages.find((m) => m.payload?.tabId === t.tabId && m.message === 'IMPORT_FINISHED'), 10000);
+      const lock = await directQuery(host, 'SELECT COUNT(*) AS n FROM edit_test');
+      check(`interrupted ${gzip ? 'gzip ' : ''}upload: import ends, table is not locked`, !!finished && finished.payload.errors.some((e) => /interrupted/i.test(e.error)) && lock.ok,
+        `${JSON.stringify(finished?.payload)} ${lock.error || ''}`);
+    }
+    await sql(["DELETE FROM edit_test WHERE name = 'cut upload'"]);
+
     // errors
     const broken = 'CREATE TEMPORARY TABLE tmp_i (a INT);\nINSERT INTO tmp_i VALUES (1);\nINSERT INTO missing_table VALUES (1);\nINSERT INTO tmp_i VALUES (2);';
     imp = await upload({kind: 'import-sql', database: 'shop', gzip: false, stopOnError: true, fileName: 'x.sql'}, broken);
@@ -231,7 +324,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     const pending = fetch(`${BASE}/api/transfer/${cancelTicket.ticket}`, {method: 'POST', body: slow}).then((x) => x.json());
     await sleep(700);
     send('CANCEL_QUERY', {tabId: cancelTicket.tabId});
-    const cancelled = await pending;
+    // answer of upload (202), result of import over websocket
+    await pending;
+    const cancelled = (await waitFor(() => messages.find((m) => m.payload?.tabId === cancelTicket.tabId && m.message === 'IMPORT_FINISHED'), 10000))?.payload;
     check('import cancelled', cancelled.cancelled === true && cancelled.statements < 40 && Date.now() - started < 4000, JSON.stringify(cancelled));
 
     // --- CSV

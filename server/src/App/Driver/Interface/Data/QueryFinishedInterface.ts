@@ -8,8 +8,6 @@ export interface ServerQueryTimingInterface {
   sessionMs: number;
   /** structure of tables of the query - types, keys, references */
   metadataMs: number;
-  /** COUNT of rows for paging - executed on the same connection before the query, null without count */
-  countMs: number | null;
   executionMs: number;
   /** from the first to the last row - reading and sending */
   fetchMs: number;

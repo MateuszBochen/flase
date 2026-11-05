@@ -73,7 +73,10 @@ const COMMANDS = ['RELOAD_DATABASE_LIST', 'RELOAD_TABLES_LIST', 'SEND_SELECT_QUE
     const ticket = s.messages.find((m) => m.message === 'TRANSFER_TICKET')?.payload.ticket;
     const res = await fetch(`${BASE}/api/transfer/${ticket}`, {method: 'POST', headers: {'Content-Type': 'application/octet-stream'}, body})
       .then(async (r) => [r.status, await r.text()]).catch((e) => ['ERR', e.message]);
-    check(`import of ${name} gzip -> error`, res[0] === 500, res.join(' '));
+    // uploaded (202) - failure of import comes over websocket
+    await sleep(500);
+    const finished = s.messages.find((m) => m.message === 'IMPORT_FINISHED')?.payload;
+    check(`import of ${name} gzip -> error`, res[0] === 500 || (res[0] === 202 && finished?.failed && finished.errors.length > 0), res.join(' ') + ' ' + JSON.stringify(finished));
     check(`import of ${name} gzip: server alive`, await alive());
     s.ws.close();
   }

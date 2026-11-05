@@ -1,6 +1,7 @@
 import DriverInterface from '../Driver/DriverInterface';
 import JWT from '../JWT/JWT';
 import Settings from '../Settings/Settings';
+import TransferRegistry from '../Transfer/TransferRegistry';
 import EstablishedUser from '../Connection/Interface/EstablishedUser';
 import ConnectionRequestInterface from '../Connection/Interface/ConnectionRequestInterface';
 const uuid = require('uuid');
@@ -114,11 +115,14 @@ class SessionStore {
     }
   }
 
-  /** close sessions which tokens expired, returns number of active sessions */
+  /**
+   * close sessions which tokens expired, returns number of active sessions;
+   * session with running dump / import is closed after it (download of big dump takes hours)
+   */
   removeExpired(): number {
     const now = Date.now();
     Object.keys(this.sessions)
-      .filter((sessionId) => this.sessions[sessionId].expiresAt <= now)
+      .filter((sessionId) => this.sessions[sessionId].expiresAt <= now && !TransferRegistry.isRunning(this.sessions[sessionId].driver))
       .forEach((sessionId) => this.close(sessionId));
     return Object.keys(this.sessions).length;
   }
@@ -127,9 +131,15 @@ class SessionStore {
     const session = this.sessions[sessionId];
     SessionStore.cancelRelease(session);
     session.releaseTimer = setTimeout(() => {
-      if (this.sessions[sessionId] && session.websockets.size === 0) {
-        session.driver.releaseConnections();
+      if (!this.sessions[sessionId] || session.websockets.size > 0) {
+        return;
       }
+      // browser downloads the dump also when the tab was closed - connections are released after it
+      if (TransferRegistry.isRunning(session.driver)) {
+        this.scheduleRelease(sessionId);
+        return;
+      }
+      session.driver.releaseConnections();
     }, Settings.getIdleConnectionReleaseMs());
   }
 

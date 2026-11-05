@@ -31,6 +31,8 @@ import {
 import {GetDatabaseObjectsCommandHandler, GetObjectDdlCommandHandler, GetServerOptionsCommandHandler} from './CommandHandler/DatabaseObjectsCommandHandlers';
 import QueryErrorInterface from '../Driver/Interface/Data/QueryErrorInterface';
 import CompareSchemaCommandHandler from './CommandHandler/CompareSchemaCommandHandler';
+import CountRecordsCommandHandler from './CommandHandler/CountRecordsCommandHandler';
+import CountCache from './Result/CountCache';
 
 class WebsocketRequest {
   /** same command sent again in this time is skipped (react strict mode runs effects twice) */
@@ -42,7 +44,12 @@ class WebsocketRequest {
   private static readonly USER_ACTIONS: string[] = [
     CommandType.APPLY_ROW_CHANGES, CommandType.CHANGE_STRUCTURE, CommandType.CHANGE_USER, CommandType.DATABASE_OPERATION,
     CommandType.SET_SERVER_VARIABLE, CommandType.REPLICATION_ACTION, CommandType.FIND_REPLACE, CommandType.KILL_PROCESS,
-    CommandType.EXECUTE_STATEMENTS, CommandType.CANCEL_QUERY,
+    CommandType.EXECUTE_STATEMENTS, CommandType.CANCEL_QUERY, CommandType.COUNT_RECORDS,
+  ];
+  /** commands which change data - remembered counts of rows of the connection are not valid anymore */
+  private static readonly CHANGING_DATA: string[] = [
+    CommandType.APPLY_ROW_CHANGES, CommandType.CHANGE_STRUCTURE, CommandType.DATABASE_OPERATION, CommandType.FIND_REPLACE,
+    CommandType.EXECUTE_STATEMENTS, CommandType.CREATE_TRANSFER,
   ];
 
   private databaseDriver: DriverInterface;
@@ -126,16 +133,23 @@ class WebsocketRequest {
     // only user actions wait for their end - reads are skipped by time (stream of rows can be long)
     const tracked = WebsocketRequest.USER_ACTIONS.includes(command.command);
     if (tracked) this.running.add(rawCommand);
+    // before and after - count started during the change would be remembered with old data
+    const changing = WebsocketRequest.CHANGING_DATA.includes(command.command);
+    if (changing) CountCache.clear(this.databaseDriver);
     Promise.resolve()
       .then(() => new Handler(this.databaseDriver, new ClientWebSocket(this.clientWebsocket), command).handle(payload))
       .catch((e) => this.sendError(command, e))
-      .finally(() => tracked && this.running.delete(rawCommand));
+      .finally(() => {
+        if (tracked) this.running.delete(rawCommand);
+        if (changing) CountCache.clear(this.databaseDriver);
+      });
   }
 
   private static readonly HANDLERS: {[command: string]: new (driver: DriverInterface, ws: ClientWebSocket, command: CommandInterface) => {handle: (data: any) => void | Promise<void>}} = {
     [CommandType.RELOAD_DATABASE_LIST]: ReloadDatabaseListCommandHandler,
     [CommandType.RELOAD_TABLES_LIST]: ReloadTablesListCommandHandler,
     [CommandType.SEND_SELECT_QUERY]: HandleSelectQueryRequestHandler,
+    [CommandType.COUNT_RECORDS]: CountRecordsCommandHandler,
     [CommandType.APPLY_ROW_CHANGES]: ApplyRowChangesCommandHandler,
     [CommandType.GET_TABLE_STRUCTURE]: GetTableStructureCommandHandler,
     [CommandType.CHANGE_STRUCTURE]: ChangeStructureCommandHandler,

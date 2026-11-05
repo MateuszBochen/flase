@@ -33,6 +33,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   };
   const select = async (query, database = 'public') => {
     const r = await request('SEND_SELECT_QUERY', {query, database: {name: database}}, ['QUERY_FINISHED']);
+    // count comes after the rows
+    if (r.message === 'QUERY_FINISHED') await waitFor(() => forTab(r.tabId).some((m) => m.message === 'SELECT_TOTAL_COUNT'), 1000);
     await sleep(50);
     const all = forTab(r.tabId);
     const colMsg = all.find((m) => m.message === 'SINGLE_SELECT_COLUMN')?.payload;
@@ -247,7 +249,11 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const upload = async (transfer, body) => {
     const t = await ticket(transfer);
     const res = await fetch(`${BASE}/api/transfer/${t.ticket}`, {method: 'POST', headers: {'Content-Type': 'application/octet-stream'}, body});
-    return {status: res.status, result: await res.json()};
+    const answer = await res.json();
+    // 202 - file was uploaded, result of import comes over websocket
+    if (res.status !== 202) return {status: res.status, result: answer};
+    const finished = await waitFor(() => forTab(t.tabId).find((m) => m.message === 'IMPORT_FINISHED'), 60000);
+    return {status: finished ? 200 : 'no IMPORT_FINISHED', result: finished?.payload};
   };
   const dumpTables = ['value_test', 'edit_test', 'edit_nopk', 'struct_test', 'struct_child', 'struct_view'];
   const checksum = async () => {
@@ -357,10 +363,12 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   for (let i = 0; i < 5; i++) await killedReader.read();
   await sql(["SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE query LIKE '%dump_big%' AND pid <> pg_backend_pid()"]);
   await sleep(500);
-  try { for (;;) { if ((await killedReader.read()).done) break; } } catch (e) { /* broken download is fine too */ }
+  // incomplete dump must not look like complete file - download is broken off
+  let killedBroken = false;
+  try { for (;;) { if ((await killedReader.read()).done) break; } } catch (e) { killedBroken = true; }
   const killedDump = (await waitFor(() => forTab(t.tabId).find((m) => m.message === 'DUMP_FINISHED'), 10000))?.payload;
   const aliveAfterKill = await fetch(`${BASE}/api/config`).then((x) => x.status).catch(() => 0);
-  check('lost connection of dump: error, server alive', !!killedDump?.error && aliveAfterKill === 200, JSON.stringify(killedDump) + ' ' + aliveAfterKill);
+  check('lost connection of dump: error, download broken off, server alive', !!killedDump?.error && killedBroken && aliveAfterKill === 200, JSON.stringify(killedDump) + ` broken=${killedBroken} ` + aliveAfterKill);
   await sql(['DROP TABLE dump_big']);
 
   r = await sql(['DROP VIEW struct_view', 'DROP TABLE struct_child', 'DELETE FROM edit_test', 'UPDATE value_test SET data = NULL']);

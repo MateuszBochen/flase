@@ -406,6 +406,10 @@ class PostgresAdapter implements DriverInterface {
     return byTable;
   }
 
+  getCountQuery(query: string): string {
+    return this.analyser.getCountQuery(query);
+  }
+
   getEditableTableOfQuery(query: string): {table: SelectFromType | null, reason?: string} {
     return this.analyser.getEditableTable(query);
   }

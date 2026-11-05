@@ -3,6 +3,43 @@
 All notable changes of Flase are documented here. Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versions follow [Semantic Versioning](https://semver.org/). A `v*` tag publishes the Docker image of the version.
 
+## [0.10.0] - 2026-11-04
+
+### Changed
+- **Rows of big tables are not waiting for COUNT** - data grid gets its rows first and counts them after, on the same
+  connection (before, the first page of a table of billions of rows waited until all rows were counted)
+- **COUNT has a time limit of 3 s** - longer count is stopped by the database (MySQL / TiDB `max_execution_time`,
+  MariaDB `max_statement_time`, PostgreSQL, CockroachDB, YugabyteDB `statement_timeout`) and the footer shows the
+  estimate of the database from `EXPLAIN` (`≈ 1,234,567`, `?` without statistics). Button **Count** next to it counts
+  exactly, without time limit; Cancel of the footer stops it
+- **Count is remembered** - next page, other sort and opening the table again within a minute do not count again
+  (the count query is the same). Changes made through Flase (grid, console, structure, import) forget the counts of the
+  connection, Refresh counts again. Pages clicked quickly one after another wait for one count, they do not start their
+  own counts on other connections of the pool
+- Paging without exact count - next page is possible while pages are full
+- Export of all rows does not count rows; stopwatch of query has no COUNT step anymore (the count follows the query),
+  time of the count is in title of the total
+
+### Fixed
+- **Import of big file failed with `Import failed (408)` and left a lock in database** - statements were executed while
+  the file was uploaded, so a long statement stopped the upload; Node (after 5 minutes) or a proxy (much sooner)
+  closed the request. Upload now goes to a temporary file at speed of network (`FLASE_UPLOAD_DIR`) while the import
+  reads it at speed of database, the request ends when the file is uploaded and result of import comes over websocket.
+  Interrupted upload stops the import also for `.gz` files (before, import of gzip waited forever and kept its connection)
+- **Export of big database was broken off** - closed tab of Flase (also sleep of computer or lost network) released
+  database connections of the session after 30 s and an expired token closed the session, also while the browser was
+  still downloading the dump; dump of MySQL / MariaDB stopped also when the browser did not read for more than 60 s
+  (`net_write_timeout` of server). Running dump and import now keep their session until they end, dump sets
+  `net_write_timeout` of its connection to 24 hours, PostgreSQL dump turns off `statement_timeout` and
+  `idle_in_transaction_session_timeout` for its transaction
+- Incomplete dump (lost connection to database, error) is not a complete looking file anymore - the reason is written
+  at its end and the download is broken off, so browser marks it as failed
+- Connection returned to the pool is reset - `LOCK TABLES` of an interrupted mysqldump import, temporary tables and SET
+  variables (MySQL / MariaDB), advisory locks and SET (PostgreSQL) do not stay on an idle connection and do not block
+  other clients. Summary of interrupted import has executed statements and the error, not zeros
+- Total of `SELECT MAX(id) FROM t` (aggregate without GROUP BY) was the number of rows of the table instead of 1,
+  total of UNION counted only its first SELECT
+
 ## [0.9.0] - 2026-10-29
 
 ### Added

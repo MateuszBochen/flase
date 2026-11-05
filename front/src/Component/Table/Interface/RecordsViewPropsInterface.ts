@@ -41,6 +41,8 @@ interface RecordsViewPropsInterface {
   columnWidthsKey?: string;
   /** stop running query of the grid */
   onCancelQuery?: () => void;
+  /** count rows exactly when they were only estimated (grid of table) */
+  onCountExactly?: () => void;
   /** tab of the query - times of its steps are shown in footer */
   timingTabId?: string;
   /** foreign key value was clicked */

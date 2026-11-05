@@ -107,11 +107,13 @@ export const importSql = async (
     if (goOn) {
       await run(splitter.end());
     }
+  } catch (e) {
+    // interrupted upload, broken gzip - executed statements stay, rest of file never came
+    state.addError('', e);
+    failed = true;
   } finally {
     session.release();
   }
-  // rest of upload is not needed anymore
-  input.resume();
   return state.finished(session.isCancelled(), failed);
 };
 
@@ -199,7 +201,6 @@ export const importCsv = async (
     await session.execute('ROLLBACK', () => undefined, () => undefined, 0).catch(() => undefined);
     // nothing was saved
     state.rows = 0;
-    input.resume();
   } finally {
     session.release();
   }

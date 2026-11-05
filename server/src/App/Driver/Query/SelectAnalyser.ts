@@ -62,11 +62,17 @@ class SelectAnalyser {
 
   /**
    * Select query changed into count query.
-   * Grouped / distinct queries are wrapped into sub select so groups are counted, not rows.
+   * Grouped / distinct / UNION queries are wrapped into sub select so rows of result are counted, not rows of table.
+   * Aggregates without GROUP BY (SELECT MAX(id) FROM t) have always one row.
    * Other queries just replace columns with COUNT(*) - sub select would fail on duplicated
    * column names (SELECT * FROM a JOIN b).
    */
   getCountQuery(query: string): string {
+    return this.getCountPlan(query).countQuery;
+  }
+
+  /** count query and query whose plan estimates the rows (both without LIMIT and ORDER BY) */
+  getCountPlan(query: string): {countQuery: string, rowsQuery: string} {
     const parsed = this.parser.astify(query, this.options);
     const statements = Array.isArray(parsed) ? parsed : [parsed];
 
@@ -77,9 +83,15 @@ class SelectAnalyser {
     const ast = statements[0];
     ast.limit = null;
     ast.orderby = null;
+    const rowsQuery = this.parser.sqlify(ast, this.options);
 
-    if (SelectAnalyser.isGrouped(ast)) {
-      return `SELECT COUNT(*) AS total FROM (${this.parser.sqlify(ast, this.options)}) AS flase_count`;
+    if (SelectAnalyser.isGrouped(ast) || ast._next || ast.union) {
+      return {countQuery: `SELECT COUNT(*) AS total FROM (${rowsQuery}) AS flase_count`, rowsQuery};
+    }
+    const columns = Array.isArray(ast.columns) ? ast.columns : [];
+    // window functions (COUNT(*) OVER ()) keep all rows
+    if (columns.some((column: any) => column?.expr?.type === 'aggr_func' && !column.expr.over)) {
+      return {countQuery: 'SELECT 1 AS total', rowsQuery};
     }
 
     ast.columns = [
@@ -94,7 +106,7 @@ class SelectAnalyser {
       },
     ];
 
-    return this.parser.sqlify(ast, this.options);
+    return {countQuery: this.parser.sqlify(ast, this.options), rowsQuery};
   }
 
   /** DISTINCT, GROUP BY or HAVING - rows of result are not rows of table. PostgreSQL AST has distinct {type: null} without DISTINCT */

@@ -51,6 +51,15 @@ class PostgresDumper {
 
     try {
       await this.client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
+      // transaction waits between batches of cursor while browser downloads - server limits (managed services set them)
+      // would end a dump which takes hours
+      for (const setting of ['statement_timeout', 'idle_in_transaction_session_timeout']) {
+        await this.client.query('SAVEPOINT flase_setting');
+        await this.client.query(`SET LOCAL ${setting} = 0`).then(
+          () => this.client!.query('RELEASE SAVEPOINT flase_setting'),
+          () => this.client!.query('ROLLBACK TO SAVEPOINT flase_setting'),
+        );
+      }
       // names of the schema are written without schema - dump can be imported into other schema
       await this.client.query(`SET LOCAL search_path TO ${id(schema)}`);
 

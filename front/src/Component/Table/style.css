@@ -628,6 +628,26 @@
   cursor: pointer;
 }
 
+/* rows of query only estimated - exact count took too long */
+.cmp-records-view-pager-root .pager-total.estimated {
+  cursor: help;
+  border-bottom: dotted 1px var(--text-muted);
+}
+.cmp-records-view-pager-root .pager-count {
+  margin-left: 8px;
+  padding: 0 8px;
+  border: solid 1px var(--border);
+  border-radius: 3px;
+  color: var(--text);
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+.cmp-records-view-pager-root .pager-count:hover {
+  color: var(--text-strong);
+  background-color: var(--tab-bg);
+}
+
 /* place of columns which are not rendered (horizontal virtualization) */
 .data-table-content .data-table-row .data-table-spacer {
   flex: none;
