@@ -3,6 +3,25 @@
 All notable changes of Flase are documented here. Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versions follow [Semantic Versioning](https://semver.org/). A `v*` tag publishes the Docker image of the version.
 
+## [0.11.0] - 2026-11-06
+
+### Added
+- **Import without checks of foreign keys** - option *Disable foreign key checks* of SQL and CSV import: rows may come
+  before rows they reference (tables in any order, CSV of child table first). MySQL / MariaDB `FOREIGN_KEY_CHECKS = 0`,
+  PostgreSQL `session_replication_role = replica` (also other triggers are skipped, needs superuser or SET privilege
+  of the variable - without it the import stops before the first statement). Only the session of the import is
+  affected, checks are on again when it ends
+- **Always select opened table** (as in IDE) - button with crosshairs above sidebar. When it is on, switching of tab
+  opens in sidebar the connection, database (also its group and database of PostgreSQL server) and table of the tab
+  and scrolls the list of tables to it. Tabs without table (console, overview, ER) open their database. Off by default,
+  remembered in browser
+
+### Fixed
+- **Progress of import** - the bar was full as soon as the file was uploaded, while the import still ran. First half of
+  the bar is the upload, second half the import (bytes of the file read by import, compressed bytes of `.gz`).
+  Result of import is shown as a box under the button - completed (with database, statements, size and time),
+  completed with errors, stopped on error or cancelled - not only as a toast
+
 ## [0.10.0] - 2026-11-04
 
 ### Changed
@@ -428,6 +447,8 @@ First public version - web database manager for MySQL, MariaDB and PostgreSQL, a
 - Production Docker image (`docker/production/Dockerfile`): application, API and websocket on one port
 - GitHub Actions workflow publishing the image to Docker Hub on a `v*` tag
 
+[0.11.0]: https://github.com/MateuszBochen/flase/compare/v0.10.0...v0.11.0
+[0.10.0]: https://github.com/MateuszBochen/flase/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/MateuszBochen/flase/compare/v0.8.1...v0.9.0
 [0.8.1]: https://github.com/MateuszBochen/flase/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/MateuszBochen/flase/compare/v0.7.0...v0.8.0

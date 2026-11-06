@@ -16,6 +16,8 @@ const READ_BYTES = 256 * 1024;
  */
 class UploadSpool {
   private written = 0;
+  /** bytes of the file read by import - progress of import, compressed bytes for gzip */
+  private position = 0;
   private uploaded = false;
   private error: Error | null = null;
   /** import does not need the rest of upload - it is read and thrown away */
@@ -53,16 +55,19 @@ class UploadSpool {
     if (this.uploaded || this.error) this.close();
   }
 
+  get readBytes(): number {
+    return this.position;
+  }
+
   private async* read(): AsyncGenerator<Buffer> {
-    let position = 0;
     for (;;) {
       if (this.discarded) {
         return;
       }
-      if (position < this.written) {
-        const buffer = Buffer.alloc(Math.min(READ_BYTES, this.written - position));
-        const {bytesRead} = await this.file.read(buffer, 0, buffer.length, position);
-        position += bytesRead;
+      if (this.position < this.written) {
+        const buffer = Buffer.alloc(Math.min(READ_BYTES, this.written - this.position));
+        const {bytesRead} = await this.file.read(buffer, 0, buffer.length, this.position);
+        this.position += bytesRead;
         yield buffer.subarray(0, bytesRead);
       } else if (this.error) {
         throw this.error;

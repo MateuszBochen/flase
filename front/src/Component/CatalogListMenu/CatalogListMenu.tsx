@@ -19,7 +19,8 @@ import Box from '../../UI/Box/Box';
 import TabOpener from '../TabOpener/TabOpener';
 import DatabaseListMenu from '../DatabaseListMenu/DatabaseListMenu';
 import SqlConsole, {SqlConsolePropsInterface} from '../Application/SqlConsole/SqlConsole';
-import groupedItems from '../../UI/VerticalSlider/groupedItems';
+import groupedItems, {revealOf} from '../../UI/VerticalSlider/groupedItems';
+import {useRevealTarget} from '../../Library/Sidebar/RevealActiveTab';
 import DatabaseGrouping, {useDatabaseGrouping} from '../../Library/Database/DatabaseGrouping';
 import ContextMenu from '../../UI/ContextMenu/ContextMenu';
 import './style.css';
@@ -105,6 +106,7 @@ export default (props: {connection: ConnectionDataInterface, collapseSignal?: nu
   const grouping = useDatabaseGrouping(props.connection.id);
   const [menu, setMenu] = useState<{x: number, y: number} | null>(null);
   const storageKey = `open-catalog:${props.connection.id}`;
+  const target = useRevealTarget();
 
   useEffect(() => {
     setList(Catalogs.listOf(props.connection));
@@ -131,11 +133,12 @@ export default (props: {connection: ConnectionDataInterface, collapseSignal?: nu
     component: <CatalogItem parent={props.connection} catalog={catalog} key={catalog.name} />,
     onContextMenu: openMenu,
   }));
-  const items = groupedItems(catalogItems, {enabled: grouping, storageKey, multiple: true, onGroupContextMenu: openMenu});
+  const reveal = target && target.parentId === props.connection.id && target.catalog !== null ? {label: target.catalog, seq: target.seq} : null;
+  const items = groupedItems(catalogItems, {enabled: grouping, storageKey, multiple: true, onGroupContextMenu: openMenu, reveal});
 
   return (
     <Box maxPossibleHeight={true} className="cmp-catalog-list">
-      <VerticalSlider items={items} multiple={true} allowClose={true} automateOpenFirst={false} storageKey={storageKey} labelIfEmpty="No database" collapseSignal={props.collapseSignal} />
+      <VerticalSlider items={items} multiple={true} allowClose={true} automateOpenFirst={false} storageKey={storageKey} labelIfEmpty="No database" collapseSignal={props.collapseSignal} reveal={revealOf(items, reveal)} />
       {menu && (
         <ContextMenu x={menu.x} y={menu.y} onClose={() => setMenu(null)} items={[{
           label: grouping ? 'Do not group databases by prefix' : 'Group databases by prefix',

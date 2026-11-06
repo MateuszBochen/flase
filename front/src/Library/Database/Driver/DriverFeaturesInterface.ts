@@ -61,6 +61,8 @@ interface DriverFeaturesInterface {
     autoIncrementPlaceholder: string;
     /** option of DROP / TRUNCATE of table(s) ignoring foreign keys */
     ignoreForeignKeys: (action: string, many: boolean) => string;
+    /** what option of import without checks of foreign keys does (title of the checkbox) */
+    importWithoutForeignKeys: string;
     /** shown with rename of database, null without note */
     renameDatabase: string | null;
     /** shown in form of rename of database, null without note */

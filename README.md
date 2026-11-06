@@ -154,6 +154,8 @@ or `postgresql://db-host:5432/database` - compatible engines have own schemes: `
 without database (`postgresql://db-host:5432`) it shows all databases of the server with their schemas, like pgAdmin. Passwords are not stored on the server; optionally they can be remembered in the browser
 (encrypted with a non-extractable key of the browser, available over HTTPS or localhost).
 
+![Connecting to a database and listing its tables](docs/tutorial-connect.gif)
+
 ### docker compose
 
 ```yaml

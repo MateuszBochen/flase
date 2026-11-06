@@ -56,6 +56,7 @@ class MysqlAdapter implements DriverInterface {
       autoIncrement: 'Auto increment is the next value; InnoDB does not allow value lower than the current maximum.',
       autoIncrementPlaceholder: '',
       ignoreForeignKeys: () => 'Disable foreign key checks (FOREIGN_KEY_CHECKS = 0)',
+      importWithoutForeignKeys: 'SET FOREIGN_KEY_CHECKS = 0 for the import - rows may reference rows imported later (tables in any order). Rows referencing missing rows are not found afterwards.',
       renameDatabase: 'MySQL has no RENAME DATABASE - tables are moved to new database and the old one is dropped. Privileges granted on the old name are not moved.',
       renameDatabaseForm: 'Tables are moved to a new database. Databases with views, routines, triggers or events cannot be renamed this way.',
       dropDatabase: null,

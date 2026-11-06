@@ -24,7 +24,8 @@ import DatabaseSearch from '../Application/DatabaseSearch/DatabaseSearch';
 import ErDiagram from '../Application/ErDiagram/ErDiagram';
 import QueryBuilder from '../Application/QueryBuilder/QueryBuilder';
 import SchemaCompare from '../Application/SchemaCompare/SchemaCompare';
-import groupedItems from '../../UI/VerticalSlider/groupedItems';
+import groupedItems, {revealOf} from '../../UI/VerticalSlider/groupedItems';
+import {useRevealTarget} from '../../Library/Sidebar/RevealActiveTab';
 import DatabaseGrouping, {useDatabaseGrouping} from '../../Library/Database/DatabaseGrouping';
 
 const connectionManger = ConnectionManager.getInstance();
@@ -43,12 +44,16 @@ export default (props: DatabaseListMenuPropsInterface) => {
   const label = driver.features.databaseLabel;
   const grouping = useDatabaseGrouping(props.connection.id);
   const storageKey = `open-database:${props.connection.id}`;
+  const target = useRevealTarget();
+  const reveal = useMemo(() => target && target.connectionId === props.connection.id && target.database !== null
+    ? {label: target.database, seq: target.seq} : null, [target, props.connection.id]);
   const items = useMemo(() => groupedItems(state, {
     enabled: grouping,
     storageKey,
     fold: `${label.toLowerCase()}s`,
     onGroupContextMenu: (event, prefix) => setMenu({x: event.clientX, y: event.clientY, database: prefix, group: true}),
-  }), [state, grouping, storageKey, label]);
+    reveal,
+  }), [state, grouping, storageKey, label, reveal]);
 
   const operation = useDatabaseOperation(props.connection, `sidebar:${props.connection.id}`, () => {
     setForm(null);
@@ -135,6 +140,7 @@ export default (props: DatabaseListMenuPropsInterface) => {
             // opened database survives reload of page
             storageKey={storageKey}
             fold={`${label.toLowerCase()}s`}
+            reveal={revealOf(items, reveal)}
           />
         </Box>
       )}

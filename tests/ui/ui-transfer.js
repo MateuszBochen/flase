@@ -123,12 +123,32 @@ const check = (name, ok, info = '') => {
   // --- import: break data, restore from dump
   await importFile('break.sql', 'DELETE FROM edit_test;');
   check('sql file recognized', (await importPanel().innerText()).includes('SQL script'));
+  check('option to disable foreign key checks, off by default', await importPanel().getByLabel('Disable foreign key checks').count() === 1
+    && !(await importPanel().getByLabel('Disable foreign key checks').isChecked())
+    && /FOREIGN_KEY_CHECKS = 0/.test(await importPanel().locator('label', {hasText: 'Disable foreign key checks'}).getAttribute('title') || ''));
   let text = await runImport();
   check('delete executed', /1 statement\(s\)/.test(text), text);
   await importFile('restore.sql', dump);
   text = await runImport();
   check('dump imported', /\d+ statement\(s\)/.test(text) && !/stopped/.test(text), text);
+  check('success of import is clearly shown', await importPanel().locator('.import-outcome.success').count() === 1
+    && /Import completed into shop/.test(await importPanel().locator('.import-outcome').innerText()), text);
   await page.screenshot({path: `${OUT}/a2-import.png`, fullPage: true});
+
+  // big statements executed slowly - upload is done, import goes on: first half of the bar full, second half moving
+  await importFile('slow.sql', Array.from({length: 6}, () => `/* ${'x'.repeat(200 * 1024)} */ SELECT SLEEP(0.6);\n`).join(''));
+  await importPanel().getByRole('button', {name: 'Start import'}).click();
+  await page.waitForFunction(() => {
+    const halves = [...document.querySelectorAll('.cmp-transfer .import-bar-half > div')].map((bar) => parseFloat(bar.style.width));
+    return halves.length === 2 && halves[0] === 100 && halves[1] > 0 && halves[1] < 100;
+  }, null, {timeout: 5000}).catch(() => {});
+  const halves = await importPanel().locator('.import-bar-half > div').evaluateAll((bars) => bars.map((bar) => parseFloat(bar.style.width)));
+  const during = (await importPanel().locator('.progress-text').innerText().catch(() => '')).replace(/\s+/g, ' ');
+  check('progress: upload is first half, import second half', halves[0] === 100 && halves[1] > 0 && halves[1] < 100 && /uploaded · importing \d+%/.test(during), `${JSON.stringify(halves)} ${during}`);
+  await page.screenshot({path: `${OUT}/a2-import-progress.png`, fullPage: true});
+  await importPanel().locator('.import-outcome').waitFor({timeout: 15000}).catch(() => {});
+  text = (await importPanel().locator('.import-progress').innerText()).replace(/\s+/g, ' ');
+  check('slow import completed', /6 statement\(s\)/.test(text) && await importPanel().locator('.import-outcome.success').count() === 1, text);
   await page.getByText('edit_test', {exact: true}).first().dispatchEvent('mousedown', {button: 1});
   await page.waitForTimeout(1500);
   await page.locator('[class*="tab-label"]').filter({hasText: 'shop/edit_test'}).last().click();
@@ -140,6 +160,7 @@ const check = (name, ok, info = '') => {
   await page.locator('[class*="tab-label"]').filter({hasText: 'Import / export: shop'}).last().click();
   await importFile('broken.sql', 'SELECT 1;\nSELECT * FROM no_such_table;\nSELECT 2;');
   text = await runImport();
+  check('failed import shown as failure', await importPanel().locator('.import-outcome.failed').count() === 1, text);
   check('import stops on error', /1 statement\(s\)/.test(text) && /stopped on error/.test(text) && (await importPanel().locator('.import-error-message').innerText()).includes('no_such_table'), text);
 
   // --- CSV

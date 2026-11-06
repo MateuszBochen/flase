@@ -22,6 +22,7 @@ import {SHORTCUT_HELP_EVENT} from '../../Library/Shortcuts/Shortcuts';
 import SqlConsole, {SqlConsolePropsInterface} from '../Application/SqlConsole/SqlConsole';
 import TabPersistence from './TabPersistence';
 import OpenTables from '../../Library/Tabs/OpenTables';
+import RevealActiveTab from '../../Library/Sidebar/RevealActiveTab';
 
 /**
  * ApplicationRenderer
@@ -41,6 +42,7 @@ export default (props: ApplicationRendererPropsInterface) => {
     TabPersistence.save(context);
     // sidebar marks tables of open tabs
     OpenTables.publish(context.tabs, context.currentTab);
+    RevealActiveTab.publish(context.tabs, context.currentTab);
   }, [context]);
 
   /**

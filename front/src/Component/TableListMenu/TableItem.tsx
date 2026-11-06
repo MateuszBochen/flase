@@ -4,6 +4,7 @@ import TabInterface from '../ApplicationRenderer/Interface/TabInterface';
 import TableRecords from '../Application/TableRecords/TableRecords';
 import TableRecordsPropsInterface from '../Application/TableRecords/Interface/TableRecordsPropsInterface';
 import {useEffect, useRef} from 'react';
+import {useRevealTarget} from '../../Library/Sidebar/RevealActiveTab';
 
 /** highlighted - chosen by arrows, open-in-tab - used by some tab, active-in-tab - used by the current tab */
 const classNames = (props: TableItemPropsInterface): string => [
@@ -22,6 +23,18 @@ export default (props: TableItemPropsInterface) => {
       itemRef.current?.scrollIntoView({block: 'nearest'});
     }
   }, [props.highlighted]);
+
+  // table of the current tab - list scrolls to it (always select opened table)
+  const reveal = useRevealTarget();
+  const revealSeq = props.activeInTab && reveal?.table === props.table.tableName ? reveal.seq : null;
+  useEffect(() => {
+    if (revealSeq === null) return;
+    // after layout - height of just opened list is set by SidebarFill in next frame
+    let frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(() => itemRef.current?.scrollIntoView({block: 'nearest'}));
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [revealSeq]);
 
   const tab:TabInterface<TableRecordsPropsInterface> = {
     component: TableRecords,

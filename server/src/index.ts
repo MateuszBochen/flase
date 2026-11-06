@@ -248,7 +248,8 @@ app.post('/api/transfer/:ticket', async (req: Request, res: Response) => {
     pipeline(input, gunzip, () => undefined);
     input = gunzip;
   }
-  const onProgress = (progress: any) => ticket.notify(MessageType.IMPORT_PROGRESS, progress);
+  // bytes of the file read by import - client shows progress of import against size of the file
+  const onProgress = (progress: any) => ticket.notify(MessageType.IMPORT_PROGRESS, {...progress, fileBytes: spool.readBytes});
   // running import keeps connections of its session (tab closed, token expired) - cancel stops its statement
   const cancel = () => ticket.driver.cancel(ticket.tabId).catch(() => false);
   TransferRegistry.started(ticket.tabId, ticket.driver, cancel);
@@ -262,9 +263,9 @@ app.post('/api/transfer/:ticket', async (req: Request, res: Response) => {
 
   try {
     const finished = request.kind === 'import-sql'
-      ? await importSql(ticket.driver, request.database, ticket.tabId, request.stopOnError, input, onProgress)
-      : await importCsv(ticket.driver, request.options, ticket.tabId, input, onProgress);
-    ticket.notify(MessageType.IMPORT_FINISHED, finished);
+      ? await importSql(ticket.driver, request.database, ticket.tabId, request.stopOnError, input, onProgress, !!request.ignoreForeignKeys)
+      : await importCsv(ticket.driver, request.options, ticket.tabId, input, onProgress, !!request.ignoreForeignKeys);
+    ticket.notify(MessageType.IMPORT_FINISHED, {...finished, fileBytes: spool.readBytes});
     if (!res.headersSent) res.send(finished);
   } catch (e) {
     const error = AbstractCommandHandler.errorToString(e);

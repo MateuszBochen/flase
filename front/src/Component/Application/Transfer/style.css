@@ -193,6 +193,71 @@
   transition: width 0.2s;
 }
 
+.cmp-transfer .progress-bar.import-bar {
+  display: flex;
+  gap: 2px;
+  height: 8px;
+  background-color: transparent;
+}
+/* more specific than .progress-bar > div - halves are the track, their children the fill */
+.cmp-transfer .progress-bar.import-bar > .import-bar-half {
+  flex: 1;
+  overflow: hidden;
+  background-color: var(--panel);
+  transition: none;
+}
+.cmp-transfer .import-bar-half:first-child {
+  border-radius: 3px 0 0 3px;
+}
+.cmp-transfer .import-bar-half:last-child {
+  border-radius: 0 3px 3px 0;
+}
+.cmp-transfer .import-bar-half > div {
+  height: 100%;
+  transition: width 0.2s;
+}
+.cmp-transfer .import-bar-half > .upload {
+  background-color: #4b6eaf;
+}
+.cmp-transfer .import-bar-half > .import {
+  background-color: var(--success-text);
+}
+
+/* result of import - must be seen, toast alone is easy to miss */
+.cmp-transfer .import-outcome {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 600px;
+  padding: 10px 14px;
+  border: solid 1px currentColor;
+  border-left-width: 4px;
+  border-radius: 4px;
+}
+.cmp-transfer .import-outcome > svg {
+  font-size: 1.6rem;
+}
+.cmp-transfer .import-outcome.success {
+  color: var(--success-text);
+}
+.cmp-transfer .import-outcome.warning {
+  color: #c9a227;
+}
+.cmp-transfer .import-outcome.failed {
+  color: var(--danger-text);
+}
+.cmp-transfer .import-outcome.cancelled {
+  color: var(--text-muted);
+}
+.cmp-transfer .import-outcome-title {
+  font-weight: 600;
+  font-size: 1.05rem;
+}
+.cmp-transfer .import-outcome-summary {
+  margin-top: 2px;
+  color: var(--text-strong);
+}
+
 .cmp-transfer .progress-text {
   margin-top: 4px;
   color: var(--text-strong);
