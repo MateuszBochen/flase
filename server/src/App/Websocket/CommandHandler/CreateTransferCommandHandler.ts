@@ -51,8 +51,10 @@ class CreateTransferCommandHandler extends AbstractCommandHandler<CreateTransfer
         }
         return;
       case 'import-sql':
+        if (transfer.ignoreForeignKeys !== undefined && typeof transfer.ignoreForeignKeys !== 'boolean') throw new Error('Invalid option of foreign keys');
         return;
       case 'import-csv': {
+        if (transfer.ignoreForeignKeys !== undefined && typeof transfer.ignoreForeignKeys !== 'boolean') throw new Error('Invalid option of foreign keys');
         const options = transfer.options;
         if (!isName(options?.database) || !isName(options.table)) throw new Error('Database and table are required');
         if (!Array.isArray(options.columns) || !options.columns.some((column) => isName(column))) throw new Error('Select at least one target column');

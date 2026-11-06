@@ -16,6 +16,8 @@ interface VerticalSliderPropsInterface {
    * closed items around it are folded into one row "⋯ 12 databases"
    */
   fold?: string;
+  /** item opened when seq changes (id of item, label without id) - item of the current tab */
+  reveal?: {id: string, seq: number} | null;
 }
 
 export default VerticalSliderPropsInterface;

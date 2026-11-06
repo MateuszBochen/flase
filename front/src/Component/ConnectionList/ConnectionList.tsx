@@ -12,6 +12,7 @@ import ConnectionWasRemoved from '../../Library/Connection/Event/ConnectionWasRe
 import ConnectionListWasChanged from '../../Library/Connection/Event/ConnectionListWasChanged';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faLock, faServer} from '@fortawesome/free-solid-svg-icons';
+import {useRevealTarget} from '../../Library/Sidebar/RevealActiveTab';
 
 /** ConnectionList */
 export default () => {
@@ -33,6 +34,7 @@ export default () => {
   });
 
   const [state, setState] = useState<VerticalSliderItem[]>(connectionSettings.getConnections().map(toItem));
+  const target = useRevealTarget();
 
   // name, color and read only of connection changed - items are built again
   useEffect(() => {
@@ -68,6 +70,7 @@ export default () => {
       items={state}
       multiple
       storageKey="open-connections"
+      reveal={target ? {id: target.parentId ?? target.connectionId, seq: target.seq} : null}
     />
   );
 }

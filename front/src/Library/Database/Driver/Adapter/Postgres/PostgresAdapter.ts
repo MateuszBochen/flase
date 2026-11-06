@@ -59,6 +59,7 @@ class PostgresAdapter implements DriverInterface {
       ignoreForeignKeys: (action, many) => `CASCADE - also ${action === 'drop'
         ? `objects depending on the ${many ? 'tables' : 'table'}`
         : `tables referencing ${many ? 'them' : 'it'}`}`,
+      importWithoutForeignKeys: "SET session_replication_role = 'replica' for the import - foreign keys and also other triggers are not run. Needs superuser (or SET privilege of session_replication_role).",
       renameDatabase: null,
       renameDatabaseForm: null,
       dropDatabase: 'Everything in the schema is dropped (CASCADE).',

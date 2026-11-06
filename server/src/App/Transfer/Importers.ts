@@ -6,6 +6,7 @@ import StreamingSqlSplitter from './StreamingSqlSplitter';
 import CsvParser from './CsvParser';
 import {CsvImportOptionsInterface, ImportFinishedInterface, ImportProgressInterface} from '../Driver/Interface/Data/TransferInterface';
 import AbstractCommandHandler from '../Websocket/CommandHandler/AbstractCommandHandler';
+import {FOREIGN_KEY_CHECKS_OFF_SESSION} from '../Driver/ForeignKeyChecks';
 
 const PROGRESS_INTERVAL_MS = 300;
 const CSV_BATCH_ROWS = 500;
@@ -64,6 +65,19 @@ async function* textChunks(input: Readable, state: ImportState): AsyncGenerator<
   yield decoder.end();
 }
 
+/** foreign keys are not checked by statements of the session - fails before import when database does not allow it */
+const turnOffForeignKeys = async (driver: DriverInterface, session: DriverSessionInterface): Promise<() => Promise<void>> => {
+  const checksOff = FOREIGN_KEY_CHECKS_OFF_SESSION[driver.dialect];
+  try {
+    for (const sql of checksOff.before) await session.execute(sql, () => undefined, () => undefined, 0);
+  } catch (e) {
+    throw new Error(`Foreign key checks cannot be turned off: ${AbstractCommandHandler.errorToString(e)}`);
+  }
+  return async () => {
+    for (const sql of checksOff.after) await session.execute(sql, () => undefined, () => undefined, 0).catch(() => undefined);
+  };
+};
+
 /**
  * SQL file - statements are executed one by one while the file is uploaded
  */
@@ -74,9 +88,17 @@ export const importSql = async (
   stopOnError: boolean,
   input: Readable,
   onProgress: ProgressCallback,
+  ignoreForeignKeys: boolean = false,
 ): Promise<ImportFinishedInterface> => {
   const state = new ImportState(onProgress);
   const session: DriverSessionInterface = await driver.openSession(database, tabId);
+  let turnOnForeignKeys: (() => Promise<void>) | null = null;
+  try {
+    if (ignoreForeignKeys) turnOnForeignKeys = await turnOffForeignKeys(driver, session);
+  } catch (e) {
+    session.release();
+    throw e;
+  }
   const splitter = new StreamingSqlSplitter(driver.dialect);
   let failed = false;
 
@@ -112,6 +134,7 @@ export const importSql = async (
     state.addError('', e);
     failed = true;
   } finally {
+    await turnOnForeignKeys?.();
     session.release();
   }
   return state.finished(session.isCancelled(), failed);
@@ -126,6 +149,7 @@ export const importCsv = async (
   tabId: string,
   input: Readable,
   onProgress: ProgressCallback,
+  ignoreForeignKeys: boolean = false,
 ): Promise<ImportFinishedInterface> => {
   const state = new ImportState(onProgress);
   const mapped = options.columns
@@ -166,7 +190,10 @@ export const importCsv = async (
     }
   };
 
+  let turnOnForeignKeys: (() => Promise<void>) | null = null;
   try {
+    // before TRUNCATE - table referenced by other tables cannot be truncated with checks (MySQL)
+    if (ignoreForeignKeys) turnOnForeignKeys = await turnOffForeignKeys(driver, session);
     if (options.truncate) {
       // TRUNCATE commits by itself - it cannot be part of the transaction
       const [truncate] = await driver.buildStructureChangeStatements({databaseName: options.database, name: options.table}, {kind: 'truncate'});
@@ -202,6 +229,7 @@ export const importCsv = async (
     // nothing was saved
     state.rows = 0;
   } finally {
+    await turnOnForeignKeys?.();
     session.release();
   }
   return state.finished(session.isCancelled(), failed);

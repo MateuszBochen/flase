@@ -50,12 +50,14 @@ export interface CsvImportOptionsInterface {
 
 export type TransferRequestType =
   | {kind: 'dump', options: DumpOptionsInterface, gzip: boolean}
-  | {kind: 'import-sql', database: string | null, gzip: boolean, stopOnError: boolean, fileName: string}
-  | {kind: 'import-csv', options: CsvImportOptionsInterface, gzip: boolean, fileName: string};
+  | {kind: 'import-sql', database: string | null, gzip: boolean, stopOnError: boolean, fileName: string, ignoreForeignKeys?: boolean}
+  | {kind: 'import-csv', options: CsvImportOptionsInterface, gzip: boolean, fileName: string, ignoreForeignKeys?: boolean};
 
 export interface ImportProgressInterface {
   tabId?: string;
   bytes: number;
+  /** bytes of uploaded file read by import (compressed bytes of gzip) - progress against size of the file */
+  fileBytes?: number;
   /** statements executed (SQL) or rows inserted (CSV) */
   statements: number;
   rows: number;

@@ -255,6 +255,23 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     const finished = await waitFor(() => forTab(t.tabId).find((m) => m.message === 'IMPORT_FINISHED'), 60000);
     return {status: finished ? 200 : 'no IMPORT_FINISHED', result: finished?.payload};
   };
+  {
+    // --- import without checks of foreign keys: child row before its parent
+    await sql(['DROP TABLE IF EXISTS fk_imp_child', 'DROP TABLE IF EXISTS fk_imp_parent', 'CREATE TABLE fk_imp_parent (id INT PRIMARY KEY)',
+      'CREATE TABLE fk_imp_child (id INT PRIMARY KEY, parent_id INT, FOREIGN KEY (parent_id) REFERENCES fk_imp_parent (id))']);
+    const script = 'INSERT INTO fk_imp_child VALUES (1, 10);\nINSERT INTO fk_imp_parent VALUES (10);';
+    let fk = await upload({kind: 'import-sql', database: 'public', gzip: false, stopOnError: true, fileName: 'fk.sql'}, script);
+    check('import with foreign key checks: child before parent fails', fk.result?.failed && /foreign key/i.test(fk.result.errors[0]?.error || ''), JSON.stringify(fk.result));
+    fk = await upload({kind: 'import-sql', database: 'public', gzip: false, stopOnError: true, fileName: 'fk.sql', ignoreForeignKeys: true}, script);
+    check('import without foreign key checks: child before parent', !fk.result?.failed && fk.result.statements === 2, JSON.stringify(fk.result));
+    fk = await upload({kind: 'import-csv', gzip: false, fileName: 'fk.csv', ignoreForeignKeys: true,
+      options: {database: 'public', table: 'fk_imp_child', delimiter: ',', header: false, columns: ['id', 'parent_id'], nullValue: 'empty', truncate: false}}, '2,20\n');
+    check('CSV import without foreign key checks', !fk.result?.failed && fk.result.rows === 1, JSON.stringify(fk.result));
+    const after = await sql(['INSERT INTO fk_imp_child VALUES (3, 30)']);
+    check('checks of foreign keys are on again for next sessions', after.errors.length === 1 && /foreign key/i.test(after.errors[0]), after.errors.join());
+    await sql(['DROP TABLE fk_imp_child', 'DROP TABLE fk_imp_parent']);
+  }
+
   const dumpTables = ['value_test', 'edit_test', 'edit_nopk', 'struct_test', 'struct_child', 'struct_view'];
   const checksum = async () => {
     const res = await sql(dumpTables.slice(0, 5).map((t) => `SELECT md5(string_agg(x::text, '|' ORDER BY x::text)) AS sum FROM ${t} x`));

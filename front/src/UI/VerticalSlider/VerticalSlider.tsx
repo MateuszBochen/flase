@@ -60,6 +60,22 @@ export default (props: VerticalSliderPropsInterface) => {
     setState((previous) => previous.map((item) => ({...item, isActive: false})));
   }, [props.collapseSignal]);
 
+  // item of the current tab is opened (always select opened table) - other open items stay open only in multiple
+  useEffect(() => {
+    if (!props.reveal) return;
+    const id = props.reveal.id;
+    if (props.multiple || props.storageKey) {
+      setOpen((previous) => {
+        if (previous.has(id)) return previous;
+        const next = props.multiple ? new Set(previous).add(id) : new Set([id]);
+        saveOpen(props.storageKey, next);
+        return next;
+      });
+      return;
+    }
+    setState((previous) => previous.map((item) => ({...item, isActive: itemId(item) === id})));
+  }, [props.reveal?.seq]);
+
   useEffect(() => {
     if (containerRef.current) {
       containerRef.current.style.height = `calc(100% - ${containerRef.current.offsetTop + 3}px`;

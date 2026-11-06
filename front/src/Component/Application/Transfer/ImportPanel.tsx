@@ -14,6 +14,10 @@ import CsvParser from '../../../Library/Transfer/CsvParser';
 import {CsvImportOptionsInterface, ImportFinishedInterface, ImportProgressInterface} from '../../../Library/Transfer/TransferInterface';
 import {formatBytes} from '../../../Library/Record/BinaryValue';
 import useConnectionSettings from '../../../Library/Connection/useConnectionSettings';
+import Icon from '../../../UI/Icon/Icon';
+import {faCircleCheck, faCircleXmark, faTriangleExclamation, faBan} from '@fortawesome/free-solid-svg-icons';
+
+const OUTCOME_ICONS = {success: faCircleCheck, warning: faTriangleExclamation, failed: faCircleXmark, cancelled: faBan};
 
 interface ImportPanelPropsInterface {
   connection: ConnectionDataInterface;
@@ -45,6 +49,7 @@ export default (props: ImportPanelPropsInterface) => {
   const [header, setHeader] = useState<boolean>(true);
   const [nullValue, setNullValue] = useState<CsvImportOptionsInterface['nullValue']>('empty');
   const [truncate, setTruncate] = useState<boolean>(false);
+  const [ignoreForeignKeys, setIgnoreForeignKeys] = useState<boolean>(false);
   const [previewText, setPreviewText] = useState<string>('');
   const [mapping, setMapping] = useState<(string | null)[]>([]);
   const [running, setRunning] = useState<boolean>(false);
@@ -58,7 +63,13 @@ export default (props: ImportPanelPropsInterface) => {
   const importTabId = useRef<string>('');
   const counter = useRef<number>(0);
 
-  const databaseLabel = DriverFactory.getDriver(props.connection).features.databaseLabel.toLowerCase();
+  const features = DriverFactory.getDriver(props.connection).features;
+  const databaseLabel = features.databaseLabel.toLowerCase();
+  const foreignKeysOption = (
+    <label className="transfer-check" title={features.hints.importWithoutForeignKeys}>
+      <input type="checkbox" checked={ignoreForeignKeys} onChange={(e) => setIgnoreForeignKeys(e.target.checked)} />Disable foreign key checks
+    </label>
+  );
   /** pasted text works as file - preview, mapping and upload are the same */
   const applyPasted = (text: string, format: 'sql' | 'csv') => {
     setFinished(null);
@@ -134,9 +145,10 @@ export default (props: ImportPanelPropsInterface) => {
           kind: 'import-csv',
           gzip: isGzip,
           fileName: file.name,
+          ignoreForeignKeys,
           options: {database: props.database, table, delimiter, header, columns: mapping, nullValue, truncate},
         }
-        : {kind: 'import-sql', database: props.database, gzip: isGzip, stopOnError, fileName: file.name});
+        : {kind: 'import-sql', database: props.database, gzip: isGzip, stopOnError, fileName: file.name, ignoreForeignKeys});
       const result = await TransferApi.upload(ticket, importTabId.current, file, (sent, total) => setUploaded({sent, total}));
       setFinished(result);
       if (result.cancelled) toast('Import was cancelled');
@@ -152,7 +164,17 @@ export default (props: ImportPanelPropsInterface) => {
   };
 
   const current = finished || progress;
-  const percent = uploaded.total ? Math.round(uploaded.sent / uploaded.total * 100) : 0;
+  // first half of the bar is upload, second half import - file is uploaded faster than it is imported
+  const share = (done: number) => uploaded.total ? Math.min(1, done / uploaded.total) : 0;
+  const uploadShare = finished ? 1 : share(uploaded.sent);
+  const importShare = finished ? 1 : share(progress?.fileBytes ?? 0);
+  const percent = Math.round((uploadShare + importShare) * 50);
+  const outcome = !finished ? null : finished.cancelled ? 'cancelled' : finished.failed ? 'failed' : finished.errors.length ? 'warning' : 'success';
+  const summary = finished && [
+    isCsv ? `${finished.rows.toLocaleString()} row(s)` : `${finished.statements.toLocaleString()} statement(s)`,
+    formatBytes(uploaded.total),
+    `${(finished.durationMs / 1000).toFixed(1)} s`,
+  ].join(' · ');
   const canStart = !connection.readOnly && !!file && !running && (!isCsv || (!!table && mapping.some((column) => !!column)));
 
   return (
@@ -192,6 +214,7 @@ export default (props: ImportPanelPropsInterface) => {
         <div className="transfer-options inline">
           <span>into {databaseLabel} <b>{props.database}</b> ({databaseLabel === 'schema' ? 'SET search_path' : 'USE'} in script can change it)</span>
           <label className="transfer-check"><input type="checkbox" checked={stopOnError} onChange={(e) => setStopOnError(e.target.checked)} />Stop on first error</label>
+          {foreignKeysOption}
         </div>
       )}
 
@@ -222,6 +245,7 @@ export default (props: ImportPanelPropsInterface) => {
             </label>
             <label className="transfer-check"><input type="checkbox" checked={header} onChange={(e) => setHeader(e.target.checked)} />First row is header</label>
             <label className="transfer-check"><input type="checkbox" checked={truncate} onChange={(e) => setTruncate(e.target.checked)} />Empty table first (TRUNCATE)</label>
+            {foreignKeysOption}
           </div>
           {isGzip && <div className="transfer-hint">Preview is not available for compressed CSV - columns are mapped by position.</div>}
           {previewRows.length > 0 && table && (
@@ -266,14 +290,33 @@ export default (props: ImportPanelPropsInterface) => {
 
       {(running || finished) && (
         <div className="import-progress">
-          <div className="progress-bar"><div style={{width: `${finished ? 100 : percent}%`}} /></div>
-          <div className="progress-text">
-            {formatBytes(uploaded.sent)} / {formatBytes(uploaded.total)} sent
-            {current && ` · ${isCsv ? `${current.rows.toLocaleString()} row(s)` : `${current.statements.toLocaleString()} statement(s)`}`}
-            {finished && ` · ${(finished.durationMs / 1000).toFixed(1)} s`}
-            {finished?.cancelled && ' · cancelled'}
-            {finished?.failed && (isCsv ? ' · failed, nothing was saved' : ' · stopped on error')}
-          </div>
+          {outcome && (
+            <div className={`import-outcome ${outcome}`} role="status">
+              <Icon icon={OUTCOME_ICONS[outcome]} />
+              <div>
+                <div className="import-outcome-title">
+                  {outcome === 'success' && `Import completed into ${props.database}`}
+                  {outcome === 'warning' && `Import completed with ${finished!.errors.length} error(s)`}
+                  {outcome === 'failed' && (isCsv ? 'Import failed - nothing was saved' : 'Import stopped on error')}
+                  {outcome === 'cancelled' && 'Import was cancelled'}
+                </div>
+                <div className="import-outcome-summary">{summary}</div>
+              </div>
+            </div>
+          )}
+          {!finished && (
+            <>
+              <div className="progress-bar import-bar" title={`Upload ${Math.round(uploadShare * 100)}% · import ${Math.round(importShare * 100)}%`}>
+                <div className="import-bar-half"><div className="upload" style={{width: `${uploadShare * 100}%`}} /></div>
+                <div className="import-bar-half"><div className="import" style={{width: `${importShare * 100}%`}} /></div>
+              </div>
+              <div className="progress-text">
+                {percent}% · {uploadShare < 1 ? `uploading ${formatBytes(uploaded.sent)} / ${formatBytes(uploaded.total)}` : 'uploaded'}
+                {' · '}importing {Math.round(importShare * 100)}%
+                {progress && ` · ${isCsv ? `${progress.rows.toLocaleString()} row(s)` : `${progress.statements.toLocaleString()} statement(s)`}`}
+              </div>
+            </>
+          )}
           {current && current.errors.length > 0 && (
             <div className="import-errors">
               {current.errors.map((error, index) => (
