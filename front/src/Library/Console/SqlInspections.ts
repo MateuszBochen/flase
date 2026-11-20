@@ -1,6 +1,5 @@
-import SqlDialectType from '../Database/Driver/SqlDialectType';
 import {SqlTokenType, tokenizeSql} from './SqlTokenizer';
-import {syntaxOf} from '../Database/Driver/Syntax/SqlSyntax';
+import {SqlSyntaxInterface} from '../Database/Driver/Syntax/SqlSyntax';
 
 export type SqlProblemType = {
   /** offsets in inspected text, end is exclusive */
@@ -47,14 +46,14 @@ const mainKeyword = (tokens: SqlTokenType[]): {token: SqlTokenType, index: numbe
 };
 
 /** SELECT, INSERT, UPDATE, DELETE, REPLACE or MERGE of statement (also after WITH), null for other statements */
-export const statementKeyword = (sql: string, dialect: SqlDialectType): string | null => {
-  const main = mainKeyword(tokenizeSql(sql, dialect));
+export const statementKeyword = (sql: string, syntax: SqlSyntaxInterface): string | null => {
+  const main = mainKeyword(tokenizeSql(sql, syntax));
   return main ? upper(main.token) : null;
 };
 
 /** UPDATE or DELETE without WHERE changes every row of the table - its keyword token */
-export const unsafeChangeOf = (sql: string, dialect: SqlDialectType): SqlTokenType | null => {
-  const tokens = tokenizeSql(sql, dialect);
+export const unsafeChangeOf = (sql: string, syntax: SqlSyntaxInterface): SqlTokenType | null => {
+  const tokens = tokenizeSql(sql, syntax);
   const main = mainKeyword(tokens);
   if (!main || !/^(UPDATE|DELETE)$/.test(upper(main.token))) return null;
   let depth = 0;
@@ -161,19 +160,18 @@ const definedNames = (tokens: SqlTokenType[]): Set<string> => {
  * UPDATE / DELETE without WHERE, unknown tables of the selected database and unknown columns of alias.column / INSERT INTO t (columns).
  * Names in other databases, system catalogs and names defined in the text (CTE, CREATE TABLE) are not checked.
  */
-export const inspectSql = (text: string, statements: {sql: string, start: number}[], dialect: SqlDialectType, schema: SqlSchemaType): SqlProblemType[] => {
+export const inspectSql = (text: string, statements: {sql: string, start: number}[], syntax: SqlSyntaxInterface, schema: SqlSchemaType): SqlProblemType[] => {
   const problems: SqlProblemType[] = [];
-  const allTokens = tokenizeSql(text, dialect);
+  const allTokens = tokenizeSql(text, syntax);
   const defined = definedNames(allTokens);
   const tables = schema.tables && schema.tables.length ? schema.tables : null;
-  const syntax = syntaxOf(dialect);
   // PostgreSQL folds unquoted names to lower case, MySQL is compared without case (lower_case_table_names differs between servers)
   const key = (name: string, quoted: boolean): string => syntax.caseInsensitiveNames || !quoted ? name.toLowerCase() : name;
   const tableOf = (name: string, quoted: boolean) => tables?.find((table) => key(table.name, true) === key(name, quoted));
 
   statements.forEach((statement) => {
-    const tokens = tokenizeSql(statement.sql, dialect);
-    const unsafe = unsafeChangeOf(statement.sql, dialect);
+    const tokens = tokenizeSql(statement.sql, syntax);
+    const unsafe = unsafeChangeOf(statement.sql, syntax);
     if (unsafe) {
       problems.push({start: statement.start + unsafe.start, end: statement.start + unsafe.end, message: `${unsafe.value.toUpperCase()} without WHERE changes all rows of the table`});
     }

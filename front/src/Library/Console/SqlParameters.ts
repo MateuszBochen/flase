@@ -1,10 +1,10 @@
-import SqlDialectType from '../Database/Driver/SqlDialectType';
+import {SqlSyntaxInterface} from '../Database/Driver/Syntax/SqlSyntax';
 import {tokenizeSql} from './SqlTokenizer';
 
 /** names of :parameters in statements, each once, in order of first use */
-export const parametersOf = (statements: string[], dialect: SqlDialectType): string[] => {
+export const parametersOf = (statements: string[], syntax: SqlSyntaxInterface): string[] => {
   const names: string[] = [];
-  statements.forEach((sql) => tokenizeSql(sql, dialect).forEach((token) => {
+  statements.forEach((sql) => tokenizeSql(sql, syntax).forEach((token) => {
     if (token.type === 'param' && !names.includes(token.value)) {
       names.push(token.value);
     }
@@ -13,9 +13,9 @@ export const parametersOf = (statements: string[], dialect: SqlDialectType): str
 };
 
 /** :parameters replaced with SQL of their values (literals, already escaped) */
-export const bindParameters = (sql: string, dialect: SqlDialectType, values: {[name: string]: string}): string => {
+export const bindParameters = (sql: string, syntax: SqlSyntaxInterface, values: {[name: string]: string}): string => {
   let result = sql;
-  tokenizeSql(sql, dialect)
+  tokenizeSql(sql, syntax)
     .filter((token) => token.type === 'param' && values[token.value] !== undefined)
     .reverse()
     .forEach((token) => {

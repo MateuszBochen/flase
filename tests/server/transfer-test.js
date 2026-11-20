@@ -54,7 +54,7 @@ const directQuery = (host, sql, user = 'flase') => new Promise((resolve) => {
       await waitFor(() => messages.find((m) => m.payload?.tabId === tabId && m.message === 'EXECUTION_FINISHED'));
       const finished = messages.filter((m) => m.payload?.tabId === tabId && m.message === 'STATEMENT_FINISHED').map((m) => m.payload);
       const errors = finished.filter((f) => f.error).map((f) => f.error);
-      return {errors, rows: (i) => messages.filter((m) => m.payload?.tabId === `${tabId}:${i}` && m.message === 'SINGLE_SELECT_RECORD').map((m) => m.payload.rowDataValue)};
+      return {errors, rows: (i) => messages.filter((m) => m.payload?.tabId === `${tabId}:${i}` && m.message === 'SELECT_RECORDS').flatMap((m) => m.payload.rows)};
     };
     const ticket = async (transfer) => {
       const tabId = 'tr' + (++seq) + Math.random();

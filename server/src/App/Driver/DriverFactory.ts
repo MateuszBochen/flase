@@ -4,6 +4,15 @@ import PostgresAdapter from './Drivers/Postgres/PostgresAdapter';
 import DriverInterface from './DriverInterface';
 import {parseDsnOrThrow, ParsedDsn} from '@soluble/dsn-parser';
 import {engineOfScheme} from './Engines';
+import SqlDialectType from './Query/SqlDialectType';
+
+type DriverConstructorType = (connectionData: ConnectionRequestInterface, dsn: ParsedDsn) => DriverInterface;
+
+/** driver of each family - the only place which knows driver classes, the rest of application uses DriverInterface */
+const DRIVERS: {[dialect in SqlDialectType]: DriverConstructorType} = {
+  mysql: (connectionData, dsn) => new MysqlAdapter(connectionData, dsn),
+  postgresql: (connectionData, dsn) => new PostgresAdapter(connectionData, dsn),
+};
 
 /** stands for IPv6 address while DSN is parsed - parser does not know [::1] */
 const IPV6_PLACEHOLDER = 'flase-ipv6-host';
@@ -25,7 +34,11 @@ class DriverFactory {
     }
     // compatible engines (MariaDB, TiDB / CockroachDB, YugabyteDB) speak protocol of their family - differences are in the driver
     const dsn = {...parsedDsn, port: parsedDsn.port || engine.port};
-    return engine.dialect === 'mysql' ? new MysqlAdapter(connectionData, dsn) : new PostgresAdapter(connectionData, dsn);
+    const create = DRIVERS[engine.dialect];
+    if (!create) {
+      throw new Error(`Driver of ${engine.label} is missing`);
+    }
+    return create(connectionData, dsn);
   }
 
   /** DSN with IPv6 host ([::1]), trailing slash without database (mysql://db:3306/), port 1 - 65535 */

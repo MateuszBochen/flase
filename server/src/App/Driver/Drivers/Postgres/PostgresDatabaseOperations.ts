@@ -10,6 +10,7 @@ import PostgresCatalog, {RELATION_KINDS} from './PostgresCatalog';
 import PostgresSql from './PostgresSql';
 import PostgresDdlBuilder from './PostgresDdlBuilder';
 import SqlText from '../../Query/SqlText';
+import {POSTGRES_SYNTAX} from './PostgresSyntax';
 
 type QueryRowsType = (sql: string, params?: any[]) => Promise<any[]>;
 
@@ -193,12 +194,12 @@ class PostgresDatabaseOperations {
         return PostgresDatabaseOperations.uniqueTables(operation.tables).map((table) => `${command} ${PostgresSql.table(operation.database, table)}`);
       }
       case 'createView': {
-        const select = SqlText.singleStatement(operation.select, 'postgresql', 'SELECT of view');
+        const select = SqlText.singleStatement(operation.select, POSTGRES_SYNTAX, 'SELECT of view');
         const view = PostgresSql.table(operation.database, PostgresDatabaseOperations.requireName(operation.name, 'View name'));
         return [`CREATE ${operation.replace ? 'OR REPLACE ' : ''}VIEW ${view} AS\n${select}`];
       }
       case 'objectDdl': {
-        const sql = SqlText.createStatement(operation.sql, 'postgresql');
+        const sql = SqlText.createStatement(operation.sql, POSTGRES_SYNTAX);
         if (!operation.replace) {
           return [sql];
         }

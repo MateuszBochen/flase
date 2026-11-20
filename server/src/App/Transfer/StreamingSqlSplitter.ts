@@ -1,11 +1,10 @@
-import SqlDialectType from '../Driver/Query/SqlDialectType';
 import {
-  backslashInString, blockCommentEnd, dollarTagAt, isOnlyComments, lineCommentAt, SqlSyntaxInterface, syntaxOf,
+  backslashInString, blockCommentEnd, dollarTagAt, isOnlyComments, lineCommentAt, SqlSyntaxInterface,
 } from '../Driver/Query/SqlSyntax';
 
 /**
  * Splits SQL script into statements while it is being read (file can be bigger than memory).
- * Delimiters in strings, identifiers and comments are ignored - rules of the dialect are in SqlSyntax
+ * Delimiters in strings, identifiers and comments are ignored - rules of the database are syntax of its driver
  * (DELIMITER command of MySQL, $tag$ bodies $tag$ of PostgreSQL), the same as in SQL console of client.
  *
  * Buffer always starts at statement boundary, so it can be scanned from its start without remembered state.
@@ -17,8 +16,8 @@ class StreamingSqlSplitter {
   private delimiter = ';';
   private readonly syntax: SqlSyntaxInterface;
 
-  constructor(dialect: SqlDialectType = 'mysql') {
-    this.syntax = syntaxOf(dialect);
+  constructor(syntax: SqlSyntaxInterface) {
+    this.syntax = syntax;
   }
 
   /** returns statements completed by the chunk */

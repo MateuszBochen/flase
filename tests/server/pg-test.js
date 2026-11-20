@@ -40,13 +40,13 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     const colMsg = all.find((m) => m.message === 'SINGLE_SELECT_COLUMN')?.payload;
     return {error: r.message === 'QUERY_ERROR' ? r.payload.error : null, colMsg, columns: colMsg?.columns || [],
       total: all.find((m) => m.message === 'SELECT_TOTAL_COUNT')?.payload.totalCount,
-      rows: all.filter((m) => m.message === 'SINGLE_SELECT_RECORD').map((m) => m.payload.rowDataValue)};
+      rows: all.filter((m) => m.message === 'SELECT_RECORDS').flatMap((m) => m.payload.rows)};
   };
   const sql = async (statements, database = 'public', extra = {}) => {
     const r = await request('EXECUTE_STATEMENTS', {database, statements, stopOnError: false, ...extra}, ['EXECUTION_FINISHED']);
     const finished = forTab(r.tabId).filter((m) => m.message === 'STATEMENT_FINISHED').map((m) => m.payload);
     return {finished, errors: finished.filter((f) => f.error).map((f) => f.error),
-      rows: (i) => messages.filter((m) => m.payload?.tabId === `${r.tabId}:${i}` && m.message === 'SINGLE_SELECT_RECORD').map((m) => m.payload.rowDataValue),
+      rows: (i) => messages.filter((m) => m.payload?.tabId === `${r.tabId}:${i}` && m.message === 'SELECT_RECORDS').flatMap((m) => m.payload.rows),
       columns: (i) => messages.find((m) => m.payload?.tabId === `${r.tabId}:${i}` && m.message === 'SINGLE_SELECT_COLUMN')?.payload.columns || []};
   };
   const apply = async (changes, table = 'edit_test', dryRun = false, options = {}) => request('APPLY_ROW_CHANGES', {database: {name: 'public'}, table: {databaseName: 'public', name: table}, changes, dryRun, ...options}, ['ROW_CHANGES_PREVIEW', 'ROW_CHANGES_APPLIED']);

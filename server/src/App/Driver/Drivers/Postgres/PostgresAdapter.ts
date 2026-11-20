@@ -22,7 +22,9 @@ import ResultFieldInterface from '../../Interface/Data/ResultFieldInterface';
 import SelectAnalyser from '../../Query/SelectAnalyser';
 import SqlDialectType from '../../Query/SqlDialectType';
 import PostgresSql from './PostgresSql';
-import PostgresSession, {PgFieldInterface} from './PostgresSession';
+import PostgresSession, {PgFieldInterface, POSTGRES_FOREIGN_KEY_CHECKS_OFF} from './PostgresSession';
+import ReadOnlyGuard, {ReadOnlyRuleType} from '../../Query/ReadOnlyGuard';
+import {ForeignKeyChecksOffInterface, ForeignKeyChecksScopeType} from '../../ForeignKeyChecks';
 import PostgresCatalog, {CatalogColumnInterface} from './PostgresCatalog';
 import PostgresDdlBuilder from './PostgresDdlBuilder';
 import PostgresDumper from './PostgresDumper';
@@ -45,10 +47,16 @@ import {
 import {DatabaseObjectsInterface, ObjectRefInterface, ServerOptionsInterface} from '../../Interface/Data/DatabaseObjectsInterface';
 import {DatabaseOperationType, MaintenanceResultInterface} from '../../Interface/Data/DatabaseOperationInterface';
 import {DumpProgressCallbackType} from '../../../Transfer/DumpParts';
-import {POSTGRES_SYNTAX} from '../../Query/SqlSyntax';
+import {POSTGRES_SYNTAX} from './PostgresSyntax';
 import DriverFeaturesInterface from '../../DriverFeaturesInterface';
 import PostgresFunctions from './PostgresFunctions';
 const { Parser } = require('node-sql-parser');
+
+/** statements refused on read only connection - besides rules of read only mode common to all databases */
+const READ_ONLY_RULES: ReadOnlyRuleType[] = [
+  [/\bpg_(terminate|cancel)_backend\b/i, 'processes cannot be stopped'],
+  [/\bto\s+program\b|\blo_(export|import)\b/i, 'files cannot be written'],
+];
 
 /** types without = operator - rows are identified by text form of value */
 const NO_EQUALITY_TYPE = /^(json|xml|point|line|lseg|box|path|polygon|circle)\b/i;
@@ -404,6 +412,20 @@ class PostgresAdapter implements DriverInterface {
       });
     });
     return byTable;
+  }
+
+  foreignKeyChecksOff(scope: ForeignKeyChecksScopeType): ForeignKeyChecksOffInterface {
+    return POSTGRES_FOREIGN_KEY_CHECKS_OFF[scope];
+  }
+
+  /** SET search_path TO "schema", SET search_path = other */
+  selectedDatabaseOf(sql: string): string | null {
+    const searchPath = /^\s*set\s+(?:session\s+|local\s+)?search_path\s*(?:to|=)\s*("((?:[^"]|"")+)"|'([^']+)'|([^\s,;]+))/i.exec(sql);
+    return searchPath ? searchPath[2]?.replace(/""/g, '"') ?? searchPath[3] ?? searchPath[4].toLowerCase() : null;
+  }
+
+  refuseOnReadOnly(sql: string): string | null {
+    return ReadOnlyGuard.refuseStatement(sql, this.syntax, READ_ONLY_RULES);
   }
 
   getCountQuery(query: string): string {

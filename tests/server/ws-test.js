@@ -68,7 +68,7 @@ const waitFor = async (fn, ms = 5000) => {
         columns: msgs.filter((m) => m.message === 'SINGLE_SELECT_COLUMN').flatMap((m) => m.payload.columns.map((c) => c.name)),
         keys: msgs.filter((m) => m.message === 'SINGLE_SELECT_COLUMN').flatMap((m) => m.payload.columns.map((c) => c.key)),
         total: msgs.find((m) => m.message === 'SELECT_TOTAL_COUNT')?.payload.totalCount,
-        rows: msgs.filter((m) => m.message === 'SINGLE_SELECT_RECORD').map((m) => m.payload.rowDataValue),
+        rows: msgs.filter((m) => m.message === 'SELECT_RECORDS').flatMap((m) => m.payload.rows),
         order: [...new Set(msgs.map((m) => m.message))].join(' > '),
       };
     };
@@ -143,7 +143,7 @@ const waitFor = async (fn, ms = 5000) => {
     send('SEND_SELECT_QUERY', {query: 'SELECT * FROM categories', database: {name: 'shop'}, tabId: 'dup'});
     await waitFor(() => doneTab('dup'));
     await sleep(300);
-    const dupRows = forTab('dup').filter((m) => m.message === 'SINGLE_SELECT_RECORD').length;
+    const dupRows = forTab('dup').filter((m) => m.message === 'SELECT_RECORDS').flatMap((m) => m.payload.rows).length;
     check('duplicate command skipped', dupRows === 5, `rows=${dupRows}`);
 
     // --- user action repeated after its answer (Execute after error) is run again - client must not wait forever

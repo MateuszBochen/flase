@@ -7,7 +7,7 @@ import DatabaseManger from '../../../Library/Database/DatabaseManger';
 import DriverFactory from '../../../Library/Database/Driver/DriverFactory';
 import EventBus from '../../../Library/EventBus/EventBus';
 import DatabaseWasReceived from '../../../Library/Database/Event/DatabaseWasReceived';
-import WebsocketReceivedAMessage from '../../../Library/WebSocket/Event/WebsocketReceivedAMessage';
+import TabMessages from '../../../Library/WebSocket/TabMessages';
 import MessageInterface from '../../../Library/WebSocket/Interface/MessageInterface';
 import MessageType from '../../../Library/WebSocket/Enum/MessageType';
 import {compareSchema, migrationScript, SchemaCompareResultInterface, SchemaTableDiffInterface} from '../../../Library/Schema/SchemaCompare';
@@ -47,14 +47,12 @@ export default (props: SchemaComparePropsInterface) => {
     if (!DatabaseManger.getInstance().getListOfDatabaseForConnection(target).length) {
       DatabaseManger.getInstance().aksForDatabaseList(target);
     }
-    const eventId = EventBus.subscribe(DatabaseWasReceived.name, refresh);
+    const eventId = EventBus.subscribe(DatabaseWasReceived, refresh);
     return () => EventBus.unSub(eventId);
   }, [targetId]);
 
   useEffect(() => {
-    const eventId = EventBus.subscribe<MessageInterface<any>>(WebsocketReceivedAMessage.name, (event) => {
-      const message = event.getData();
-      if (message.payload?.tabId !== tabId) return;
+    const unsubscribe = TabMessages.subscribe<any>(tabId, (message) => {
       if (message.message === MessageType.SCHEMA_COMPARE) {
         const compared = message.payload as SchemaCompareResultInterface;
         setResult(compared);
@@ -66,7 +64,7 @@ export default (props: SchemaComparePropsInterface) => {
         setRunning(false);
       }
     });
-    return () => EventBus.unSub(eventId);
+    return unsubscribe;
   }, [tabId]);
 
   const compare = () => {

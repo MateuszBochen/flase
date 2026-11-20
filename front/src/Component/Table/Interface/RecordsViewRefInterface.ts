@@ -4,7 +4,8 @@ import ColumnInterface from '../../../Library/Table/Interface/ColumnInterface';
 import EditableResultInterface from '../../../Library/Record/Interface/EditableResultInterface';
 
 interface RecordsViewRefInterface {
-  addRow: (rowItem: SingleRowType) => void;
+  /** streamed rows (batch of message) - rendered in next animation frame */
+  appendRows: (rowItems: SingleRowType[]) => void;
   /** many rows at once, rendered at once (e.g. rows buffered before grid was shown) */
   addRows: (rowItems: SingleRowType[]) => void;
   setColumns: (columns: ColumnInterface[], editable?: EditableResultInterface | null, readOnlyReason?: string) => void;

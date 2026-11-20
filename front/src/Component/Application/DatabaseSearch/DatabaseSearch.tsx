@@ -2,8 +2,7 @@ import React, {FormEvent, useEffect, useRef, useState} from 'react';
 import ConnectionDataInterface from '../../../Library/Connection/Interface/ConnectionDataInterface';
 import Database from '../../../Library/Database/Interface/Database';
 import ApplicationInterface from '../ApplicationInterface';
-import EventBus from '../../../Library/EventBus/EventBus';
-import WebsocketReceivedAMessage from '../../../Library/WebSocket/Event/WebsocketReceivedAMessage';
+import TabMessages from '../../../Library/WebSocket/TabMessages';
 import MessageInterface from '../../../Library/WebSocket/Interface/MessageInterface';
 import MessageType from '../../../Library/WebSocket/Enum/MessageType';
 import DatabaseManger from '../../../Library/Database/DatabaseManger';
@@ -34,8 +33,8 @@ export default (props: DatabaseSearchPropsInterface) => {
   const tabId = () => `${props.tabId}:search:${searchId.current}`;
 
   useEffect(() => {
-    const eventId = EventBus.subscribe<MessageInterface<any>>(WebsocketReceivedAMessage.name, (event) => {
-      const message = event.getData();
+    // answers of previous search are ignored
+    return TabMessages.subscribeTree<any>(`${props.tabId}:search`, (message) => {
       if (message.payload?.tabId !== tabId()) {
         return;
       }
@@ -48,7 +47,6 @@ export default (props: DatabaseSearchPropsInterface) => {
         setSearching(false);
       }
     });
-    return () => EventBus.unSub(eventId);
   }, [props.tabId]);
 
   const search = (event?: FormEvent) => {

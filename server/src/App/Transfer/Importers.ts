@@ -6,7 +6,6 @@ import StreamingSqlSplitter from './StreamingSqlSplitter';
 import CsvParser from './CsvParser';
 import {CsvImportOptionsInterface, ImportFinishedInterface, ImportProgressInterface} from '../Driver/Interface/Data/TransferInterface';
 import AbstractCommandHandler from '../Websocket/CommandHandler/AbstractCommandHandler';
-import {FOREIGN_KEY_CHECKS_OFF_SESSION} from '../Driver/ForeignKeyChecks';
 
 const PROGRESS_INTERVAL_MS = 300;
 const CSV_BATCH_ROWS = 500;
@@ -67,7 +66,7 @@ async function* textChunks(input: Readable, state: ImportState): AsyncGenerator<
 
 /** foreign keys are not checked by statements of the session - fails before import when database does not allow it */
 const turnOffForeignKeys = async (driver: DriverInterface, session: DriverSessionInterface): Promise<() => Promise<void>> => {
-  const checksOff = FOREIGN_KEY_CHECKS_OFF_SESSION[driver.dialect];
+  const checksOff = driver.foreignKeyChecksOff('session');
   try {
     for (const sql of checksOff.before) await session.execute(sql, () => undefined, () => undefined, 0);
   } catch (e) {
@@ -99,7 +98,7 @@ export const importSql = async (
     session.release();
     throw e;
   }
-  const splitter = new StreamingSqlSplitter(driver.dialect);
+  const splitter = new StreamingSqlSplitter(driver.syntax);
   let failed = false;
 
   const run = async (statements: string[]): Promise<boolean> => {
@@ -199,7 +198,7 @@ export const importCsv = async (
       const [truncate] = await driver.buildStructureChangeStatements({databaseName: options.database, name: options.table}, {kind: 'truncate'});
       await session.execute(truncate, () => undefined, () => undefined, 0);
     }
-    await session.execute('START TRANSACTION', () => undefined, () => undefined, 0);
+    await session.beginTransaction();
 
     const consume = async (rows: {values: string[], quoted: boolean[]}[]) => {
       for (const row of rows) {
@@ -219,13 +218,13 @@ export const importCsv = async (
     }
     await consume(parser.end());
     await flush();
-    await session.execute('COMMIT', () => undefined, () => undefined, 0);
+    await session.commit();
   } catch (e) {
     failed = true;
     if (!state.errors.length) {
       state.addError(`CSV row ${csvRow}`, e);
     }
-    await session.execute('ROLLBACK', () => undefined, () => undefined, 0).catch(() => undefined);
+    await session.rollback().catch(() => undefined);
     // nothing was saved
     state.rows = 0;
   } finally {

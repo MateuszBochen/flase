@@ -3,7 +3,7 @@ import {SingleRowType} from '../../Component/Table/Interface/RecordsViewPropsInt
 
 export type ResultBufferEventType =
   | {type: 'columns', columns: ColumnInterface[], readOnlyReason?: string}
-  | {type: 'row', row: SingleRowType}
+  | {type: 'rows', rows: SingleRowType[]}
   | {type: 'finished', rows: number};
 
 /**
@@ -25,8 +25,8 @@ class ResultBuffer {
     if (event.type === 'columns') {
       this.columns = event.columns;
       this.readOnlyReason = event.readOnlyReason;
-    } else if (event.type === 'row') {
-      this.rows.push(event.row);
+    } else if (event.type === 'rows') {
+      this.rows.push(...event.rows);
     } else {
       this.finished = event.rows;
     }

@@ -58,7 +58,7 @@ class ConnectionManager {
     this.listOfEstablishedConnections = ConnectionSettings.getInstance().getEstablishedConnection();
 
     /** commands carry connection of login - it must have current settings (read only) */
-    EventBus.subscribe(ConnectionWasUpdated.name, (event: EventInterface<ConnectionDataInterface>) => {
+    EventBus.subscribe(ConnectionWasUpdated, (event: EventInterface<ConnectionDataInterface>) => {
       const established = this.listOfEstablishedConnections[event.getData().id];
       if (established && established.connection !== event.getData()) {
         Object.assign(established.connection, event.getData());
@@ -66,12 +66,12 @@ class ConnectionManager {
     });
 
     /** Event subscriber for handle event of connection form submit */
-    EventBus.subscribe(ConnectionFormWasSubmitted.name, (event: EventInterface<ConnectionRequestInterface>) => {
+    EventBus.subscribe(ConnectionFormWasSubmitted, (event: EventInterface<ConnectionRequestInterface>) => {
       this.connect(event.getData());
     });
 
     /** Event subscriber for handle event of connection of api was closed */
-    EventBus.subscribe<EstablishedConnectionInterface>(WebsocketConnectionWasClosed.name, (event: EventInterface<EstablishedConnectionInterface>) => {
+    EventBus.subscribe<EstablishedConnectionInterface>(WebsocketConnectionWasClosed, (event: EventInterface<EstablishedConnectionInterface>) => {
       const established = event.getData();
       this.disconnect(established);
       // session expired (e.g. server was restarted) - log in again with remembered password
@@ -83,18 +83,18 @@ class ConnectionManager {
     });
 
     /** connection to server was lost, client reconnects automatically */
-    EventBus.subscribe<EstablishedConnectionInterface>(WebsocketConnectionWasLost.name, (event) => {
+    EventBus.subscribe<EstablishedConnectionInterface>(WebsocketConnectionWasLost, (event) => {
       const connection = event.getData().connection;
       toast.loading(`Connection to server lost (${connection.displayName}), reconnecting…`, {id: `ws-${connection.id}`});
     });
 
-    EventBus.subscribe<EstablishedConnectionInterface>(WebsocketConnectionWasRestored.name, (event) => {
+    EventBus.subscribe<EstablishedConnectionInterface>(WebsocketConnectionWasRestored, (event) => {
       const connection = event.getData().connection;
       toast.success(`Reconnected to server (${connection.displayName})`, {id: `ws-${connection.id}`});
     });
 
     /** every server side error is shown to the user, tab errors are displayed also in the grid */
-    EventBus.subscribe<MessageInterface<QueryErrorInterface>>(WebsocketReceivedAMessage.name, (event) => {
+    EventBus.subscribe<MessageInterface<QueryErrorInterface>>(WebsocketReceivedAMessage, (event) => {
       const message = event.getData();
       if (message.message === MessageType.QUERY_ERROR) {
         toast.error(message.payload.error, {id: `error-${message.payload.error}`});

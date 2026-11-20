@@ -1,7 +1,6 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import toast from 'react-hot-toast';
-import EventBus from '../../Library/EventBus/EventBus';
-import WebsocketReceivedAMessage from '../../Library/WebSocket/Event/WebsocketReceivedAMessage';
+import TabMessages from '../../Library/WebSocket/TabMessages';
 import MessageInterface from '../../Library/WebSocket/Interface/MessageInterface';
 import MessageType from '../../Library/WebSocket/Enum/MessageType';
 import ConnectionDataInterface from '../../Library/Connection/Interface/ConnectionDataInterface';
@@ -57,11 +56,7 @@ const useDatabaseOperation = (
   }, [connection, tabId]);
 
   useEffect(() => {
-    const eventId = EventBus.subscribe<MessageInterface<any>>(WebsocketReceivedAMessage.name, (event) => {
-      const message = event.getData();
-      if (message.payload?.tabId !== tabId) {
-        return;
-      }
+    const unsubscribe = TabMessages.subscribe<any>(tabId, (message) => {
       switch (message.message) {
         case MessageType.DATABASE_OPERATION_PREVIEW:
           setBusy(false);
@@ -90,7 +85,7 @@ const useDatabaseOperation = (
           break;
       }
     });
-    return () => EventBus.unSub(eventId);
+    return () => unsubscribe();
   }, [tabId]);
 
   /** maintenance is executed at once, other operations show sql first */

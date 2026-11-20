@@ -86,8 +86,8 @@ export default (props: DatabaseListMenuPropsInterface) => {
         convertToVerticalSliderItem();
       } catch (e) {}
     };
-    const databaseWasReceivedSubscriber = EventBus.subscribe(DatabaseWasReceived.name, refresh);
-    const reloadedSubscriber = EventBus.subscribe(DatabaseListWasReloaded.name, refresh);
+    const databaseWasReceivedSubscriber = EventBus.subscribe(DatabaseWasReceived, refresh);
+    const reloadedSubscriber = EventBus.subscribe(DatabaseListWasReloaded, refresh);
 
     return () => {
       EventBus.unSub(databaseWasReceivedSubscriber);

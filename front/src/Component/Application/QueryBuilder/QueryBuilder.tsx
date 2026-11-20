@@ -59,7 +59,7 @@ const QueryBuilder = (props: QueryBuilderPropsInterface) => {
   const canvasRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    const eventId = EventBus.subscribe(TableInformationWasReceived.name, () => setTables(listTables()));
+    const eventId = EventBus.subscribe(TableInformationWasReceived, () => setTables(listTables()));
     tableManager.askForTableList(props.connection, {name: props.database}, false);
     return () => EventBus.unSub(eventId);
   }, [props.connection, props.database]);

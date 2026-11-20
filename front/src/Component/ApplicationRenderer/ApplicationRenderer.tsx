@@ -60,7 +60,7 @@ export default (props: ApplicationRendererPropsInterface) => {
   useEffect(() => {
 
     /** Open component in same tab */
-    const currentTabComponentWasSelectedSubscriber = EventBus.subscribe<TabInterface<any>>(CurrentTabComponentWasSelected.name, (tab: EventInterface<TabInterface<any>>) => {
+    const currentTabComponentWasSelectedSubscriber = EventBus.subscribe<TabInterface<any>>(CurrentTabComponentWasSelected, (tab: EventInterface<TabInterface<any>>) => {
       update((state) => ({
         ...state,
         tabs: state.tabs.map((tabItem, index) => index === state.currentTab ? {...tab.getData(), id: uuidv4()} : tabItem),
@@ -68,7 +68,7 @@ export default (props: ApplicationRendererPropsInterface) => {
     });
 
     /** Add new tab to tab list, no render */
-    const newTabComponentWasSelectedSubscriber = EventBus.subscribe<TabInterface<any>>(NewTabComponentWasSelected.name, (tab: EventInterface<TabInterface<any>>) => {
+    const newTabComponentWasSelectedSubscriber = EventBus.subscribe<TabInterface<any>>(NewTabComponentWasSelected, (tab: EventInterface<TabInterface<any>>) => {
       update((state) => {
         const tabs = [...state.tabs, {...tab.getData(), id: uuidv4()}];
         // tab opened by explicit action is shown at once, links opened "in new tab" stay in background
@@ -79,7 +79,7 @@ export default (props: ApplicationRendererPropsInterface) => {
     });
 
     /** current tab was changed */
-    const currentTabWasChangedSubscriber = EventBus.subscribe<number>(CurrentTabWasChanged.name, (newTabIndex: EventInterface<number>) => {
+    const currentTabWasChangedSubscriber = EventBus.subscribe<number>(CurrentTabWasChanged, (newTabIndex: EventInterface<number>) => {
       update((state) => {
         const index = newTabIndex.getData();
         if (index === state.currentTab || !Number.isInteger(index) || index < 0 || index >= state.tabs.length) {
@@ -90,7 +90,7 @@ export default (props: ApplicationRendererPropsInterface) => {
     });
 
     /** handle closing tab */
-    const tabWasClosedSubscriber = EventBus.subscribe(TabWasClosed.name, (tabToCloseEvent: EventInterface<number>) => {
+    const tabWasClosedSubscriber = EventBus.subscribe(TabWasClosed, (tabToCloseEvent: EventInterface<number>) => {
       update((state) => {
         const closed = tabToCloseEvent.getData();
         if (state.tabs.length <= 1 || closed < 0 || closed >= state.tabs.length) {
@@ -109,7 +109,7 @@ export default (props: ApplicationRendererPropsInterface) => {
     });
 
     /** tab moved to other place - current and last open tab stay the same tabs */
-    const tabWasMovedSubscriber = EventBus.subscribe(TabWasMoved.name, (event: EventInterface<TabMoveType>) => {
+    const tabWasMovedSubscriber = EventBus.subscribe(TabWasMoved, (event: EventInterface<TabMoveType>) => {
       update((state) => {
         const {from, to} = event.getData();
         const count = state.tabs.length;
@@ -124,7 +124,7 @@ export default (props: ApplicationRendererPropsInterface) => {
     });
 
     /** tabs of deleted connection are closed, at least one tab stays */
-    const connectionWasRemovedSubscriber = EventBus.subscribe(ConnectionWasRemoved.name, (event: EventInterface<ConnectionDataInterface>) => {
+    const connectionWasRemovedSubscriber = EventBus.subscribe(ConnectionWasRemoved, (event: EventInterface<ConnectionDataInterface>) => {
       const removedId = event.getData().id;
       update((state) => {
         const current = state.tabs[state.currentTab];

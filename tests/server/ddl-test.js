@@ -28,7 +28,7 @@ const col = (name, type, extra = {}) => ({
       ws.send(JSON.stringify({connectionData: {user, connection}, command, payload: {...payload, tabId}}));
       for (let i = 0; i < 200; i++) {
         const m = messages.find((x) => x.payload?.tabId === tabId && ['TABLE_STRUCTURE', 'STRUCTURE_CHANGE_PREVIEW', 'STRUCTURE_CHANGE_APPLIED', 'QUERY_ERROR', 'QUERY_FINISHED'].includes(x.message));
-        if (m) return {...m, rows: messages.filter((x) => x.payload?.tabId === tabId && x.message === 'SINGLE_SELECT_RECORD').map((x) => x.payload.rowDataValue)};
+        if (m) return {...m, rows: messages.filter((x) => x.payload?.tabId === tabId && x.message === 'SELECT_RECORDS').flatMap((x) => x.payload.rows)};
         await sleep(30);
       }
       return {};

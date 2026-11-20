@@ -1,6 +1,5 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
-import EventBus from '../EventBus/EventBus';
-import WebsocketReceivedAMessage from '../WebSocket/Event/WebsocketReceivedAMessage';
+import TabMessages from '../WebSocket/TabMessages';
 import MessageInterface from '../WebSocket/Interface/MessageInterface';
 import MessageType from '../WebSocket/Enum/MessageType';
 import CommandType from '../WebSocket/Enum/CommandType';
@@ -35,9 +34,7 @@ const useServerRequest = <T>(
   }, [connection, command, tabId]);
 
   useEffect(() => {
-    const eventId = EventBus.subscribe<MessageInterface<any>>(WebsocketReceivedAMessage.name, (event) => {
-      const message = event.getData();
-      if (message.payload?.tabId !== tabId) return;
+    const unsubscribe = TabMessages.subscribe<any>(tabId, (message) => {
       if (message.message === messageType) {
         setData(message.payload as T);
         setError(null);
@@ -51,7 +48,7 @@ const useServerRequest = <T>(
     if (options.auto !== false) {
       load();
     }
-    return () => EventBus.unSub(eventId);
+    return () => unsubscribe();
   }, [tabId, messageType]);
 
   return {data, error, loading, load};

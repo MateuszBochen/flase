@@ -32,7 +32,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         const all = messages.filter((x) => x.payload?.tabId === tabId);
         return {...m, error: m.message === 'QUERY_ERROR' ? m.payload.error : null,
           columns: all.find((x) => x.message === 'SINGLE_SELECT_COLUMN')?.payload || null,
-          rows: all.filter((x) => x.message === 'SINGLE_SELECT_RECORD').map((x) => x.payload.rowDataValue)};
+          rows: all.filter((x) => x.message === 'SELECT_RECORDS').flatMap((x) => x.payload.rows)};
       }
       await sleep(30);
     }

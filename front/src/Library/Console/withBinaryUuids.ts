@@ -20,7 +20,7 @@ const withBinaryUuids = (connection: ConnectionDataInterface, database: string |
   const driver = DriverFactory.getDriver(connection);
   if (!driver.features.binaryUuidText) return statements;
   const lookup = loadedTablesLookup(connection, database);
-  return statements.map((sql) => binaryUuidLiterals(sql, driver.dialect, lookup).sql);
+  return statements.map((sql) => binaryUuidLiterals(sql, driver.syntax, lookup).sql);
 };
 
 export default withBinaryUuids;

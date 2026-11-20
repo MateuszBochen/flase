@@ -1,8 +1,6 @@
-import {Observable} from 'rxjs';
 import {PoolClient} from 'pg';
-import DriverSessionInterface from '../../DriverSessionInterface';
+import DriverSessionInterface, {RowSinkType} from '../../DriverSessionInterface';
 import TotalCountDto from '../../../../Driver/Dto/TotalCountDto';
-import RowDto from '../../../../Driver/Dto/RowDto';
 import UpdateResultType from '../../../../Driver/Type/UpdateResultType';
 import RecordType from '../../../../Driver/Type/Data/RecordType';
 import ResultFieldInterface from '../../Interface/Data/ResultFieldInterface';
@@ -11,7 +9,16 @@ import {StatementResultType} from '../../Interface/Data/StatementInterface';
 import SelectAnalyser from '../../Query/SelectAnalyser';
 import PostgresSql from './PostgresSql';
 import {serializeValue} from '../BinaryValue';
-import {FOREIGN_KEY_CHECKS_OFF, TransactionOptionsInterface} from '../../ForeignKeyChecks';
+import {ForeignKeyChecksOffInterface, ForeignKeyChecksScopeType, TransactionOptionsInterface} from '../../ForeignKeyChecks';
+
+/**
+ * replica role skips triggers of foreign keys (and other triggers), it needs superuser or SET privilege of
+ * session_replication_role. SET LOCAL ends with transaction, role of session is reset (also when connection goes back to pool)
+ */
+export const POSTGRES_FOREIGN_KEY_CHECKS_OFF: {[scope in ForeignKeyChecksScopeType]: ForeignKeyChecksOffInterface} = {
+  transaction: {before: ["SET LOCAL session_replication_role = 'replica'"], after: []},
+  session: {before: ["SET session_replication_role = 'replica'"], after: ['RESET session_replication_role']},
+};
 import CountTimeoutError from '../../Query/CountTimeoutError';
 const Cursor = require('pg-cursor');
 
@@ -78,18 +85,14 @@ class PostgresSession implements DriverSessionInterface {
     return null;
   }
 
-  streamSelect(query: string, onFields?: (fields: ResultFieldInterface[]) => void, fullValues = false): Observable<RowDto> {
+  async streamSelect(query: string, onFields: (fields: ResultFieldInterface[]) => void, onRow: RowSinkType, fullValues = false): Promise<void> {
     console.log(`\x1b[33m Query Stream: ${query} \x1b[0m`);
 
-    return new Observable(observer => {
-      this.readCursor(query, async (fields) => {
-        const resultFields = await this.resolveFields(fields, query);
-        onFields?.(resultFields);
-        return resultFields;
-      }, (row) => observer.next(new RowDto(row)), fullValues)
-        .then(() => observer.complete())
-        .catch((error) => observer.error(error));
-    });
+    await this.readCursor(query, async (fields) => {
+      const resultFields = await this.resolveFields(fields, query);
+      onFields(resultFields);
+      return resultFields;
+    }, onRow, fullValues);
   }
 
   updateQuery(query: string): Promise<UpdateResultType> {
@@ -99,13 +102,25 @@ class PostgresSession implements DriverSessionInterface {
     }));
   }
 
+  async beginTransaction(): Promise<void> {
+    await this.client.query('BEGIN');
+  }
+
+  async commit(): Promise<void> {
+    await this.client.query('COMMIT');
+  }
+
+  async rollback(): Promise<void> {
+    await this.client.query('ROLLBACK');
+  }
+
   async executeInTransaction(statements: RowChangeStatementInterface[], options: TransactionOptionsInterface = {}): Promise<number> {
     let affectedRows = 0;
     await this.client.query('BEGIN');
 
     try {
       // SET LOCAL - role is back to origin at end of transaction (commit or rollback)
-      for (const sql of options.ignoreForeignKeys ? FOREIGN_KEY_CHECKS_OFF.postgresql.before : []) {
+      for (const sql of options.ignoreForeignKeys ? POSTGRES_FOREIGN_KEY_CHECKS_OFF.transaction.before : []) {
         try {
           await this.client.query(sql);
         } catch (e: any) {
@@ -138,7 +153,7 @@ class PostgresSession implements DriverSessionInterface {
   async execute(
     sql: string,
     onFields: (fields: ResultFieldInterface[]) => void,
-    onRow: (row: RecordType) => void,
+    onRow: RowSinkType,
     maxRows: number,
   ): Promise<StatementResultType> {
     // USE schema of MySQL users - the same as SET search_path
@@ -166,7 +181,7 @@ class PostgresSession implements DriverSessionInterface {
       }, (row) => {
         rows++;
         // rest of rows is read but not sent - result without LIMIT must not flood client
-        if (rows <= maxRows) onRow(row);
+        return rows <= maxRows ? onRow(row) : undefined;
       });
 
       if (hasFields) {
@@ -228,11 +243,12 @@ class PostgresSession implements DriverSessionInterface {
   /**
    * Reads all rows of statement by cursor - only one batch is in memory.
    * onFields is called before first row (also for statements without result), resolves with command and row count.
+   * Next batch is read after onRow has room again.
    */
   private async readCursor(
     sql: string,
     onFields: (fields: PgFieldInterface[]) => Promise<ResultFieldInterface[]>,
-    onRow: (row: RecordType) => void,
+    onRow: RowSinkType,
     fullValues = false,
   ): Promise<{command: string, rowCount: number | null}> {
     const cursor = this.client.query(new Cursor(sql, [], {types: PostgresSql.types, rowMode: 'array'}));
@@ -247,11 +263,15 @@ class PostgresSession implements DriverSessionInterface {
         if (!resultFields) {
           resultFields = await onFields(result.fields || []);
         }
-        rows.forEach((values) => {
+        let wait: void | Promise<void> = undefined;
+        for (const values of rows) {
           const row: RecordType = {};
-          resultFields!.forEach((field, index) => row[field.key] = serializeValue(values[index], fullValues));
-          onRow(row);
-        });
+          resultFields.forEach((field, index) => row[field.key] = serializeValue(values[index], fullValues));
+          wait = onRow(row) || wait;
+        }
+        if (wait) {
+          await wait;
+        }
         if (rows.length < BATCH_ROWS) {
           return {command: result.command, rowCount: result.rowCount};
         }

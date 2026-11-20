@@ -1,6 +1,5 @@
-import SqlDialectType from '../Database/Driver/SqlDialectType';
 import {
-  backslashInString, blockCommentEnd, delimiterCommandAt, dollarTagAt, isOnlyComments, lineCommentAt, skipQuoted, syntaxOf,
+  backslashInString, blockCommentEnd, delimiterCommandAt, dollarTagAt, isOnlyComments, lineCommentAt, skipQuoted, SqlSyntaxInterface,
 } from '../Database/Driver/Syntax/SqlSyntax';
 
 export type SqlStatementType = {
@@ -12,10 +11,9 @@ export type SqlStatementType = {
 
 /**
  * Splits SQL script into statements. Delimiters inside strings, identifiers and comments are ignored.
- * Rules of the dialect are in SqlSyntax - DELIMITER command (MySQL procedures, triggers), $tag$ bodies $tag$ (PostgreSQL).
+ * Rules of the database are syntax of its driver - DELIMITER command (MySQL procedures, triggers), $tag$ bodies $tag$ (PostgreSQL).
  */
-export const splitSql = (text: string, dialect: SqlDialectType = 'mysql'): SqlStatementType[] => {
-  const syntax = syntaxOf(dialect);
+export const splitSql = (text: string, syntax: SqlSyntaxInterface): SqlStatementType[] => {
   const statements: SqlStatementType[] = [];
   let delimiter = ';';
   let start = 0;
@@ -77,8 +75,8 @@ export const splitSql = (text: string, dialect: SqlDialectType = 'mysql'): SqlSt
 };
 
 /** statement under cursor - cursor after delimiter on the same line still belongs to previous statement */
-export const statementAt = (text: string, offset: number, dialect: SqlDialectType = 'mysql'): SqlStatementType | null => {
-  const statements = splitSql(text, dialect);
+export const statementAt = (text: string, offset: number, syntax: SqlSyntaxInterface): SqlStatementType | null => {
+  const statements = splitSql(text, syntax);
   if (!statements.length) return null;
   const inside = statements.find((statement) => offset >= statement.start && offset <= statement.end);
   if (inside) return inside;

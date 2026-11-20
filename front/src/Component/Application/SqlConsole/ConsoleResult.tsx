@@ -45,8 +45,8 @@ export default (props: ConsoleResultPropsInterface) => {
     return buffer.subscribe((event) => {
       if (event.type === 'columns') {
         view.setColumns(event.columns, null, event.readOnlyReason);
-      } else if (event.type === 'row') {
-        view.addRow(event.row);
+      } else if (event.type === 'rows') {
+        view.appendRows(event.rows);
       } else {
         finish(event.rows);
       }

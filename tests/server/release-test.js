@@ -26,7 +26,7 @@ const openAndQuery = async (user) => {
     payload: {query: 'SELECT COUNT(*) AS n FROM customers', database: {name: 'shop'}, tabId: 'r' + Date.now()}}));
   for (let i = 0; i < 100 && !messages.some((m) => m.message === 'QUERY_FINISHED' || m.message === 'QUERY_ERROR'); i++) await sleep(50);
   const done = messages.find((m) => m.message === 'QUERY_FINISHED' || m.message === 'QUERY_ERROR');
-  return {ws, done, row: messages.find((m) => m.message === 'SINGLE_SELECT_RECORD')?.payload.rowDataValue};
+  return {ws, done, row: messages.find((m) => m.message === 'SELECT_RECORDS')?.payload.rows[0]};
 };
 
 (async () => {

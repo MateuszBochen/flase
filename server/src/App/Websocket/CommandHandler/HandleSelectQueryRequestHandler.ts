@@ -4,8 +4,7 @@ import WsMessage from '../Dto/WsMessage';
 import MessageType from '../Enum/MessageType';
 import QueryRequestDataInterface from '../../Connection/Interface/QueryRequestDataInterface';
 import TotalCountInterface from '../../Driver/Interface/Data/TotalCountInterface';
-import RowDto from '../../../Driver/Dto/RowDto';
-import SingleSelectRecordInterface from '../../Driver/Interface/Data/SingleSelectRecordInterface';
+import SelectRecordsInterface from '../../Driver/Interface/Data/SelectRecordsInterface';
 import SingleSelectColumnInterface from '../../Driver/Interface/Data/SingleSelectColumnInterface';
 import DriverSessionInterface from '../../Driver/DriverSessionInterface';
 import QueryFinishedInterface from '../../Driver/Interface/Data/QueryFinishedInterface';
@@ -14,6 +13,8 @@ import ResultColumnsBuilder, {ResultColumnsType} from '../Result/ResultColumnsBu
 import QueryStopwatch from '../Result/QueryStopwatch';
 import CountCache, {CountedRowsInterface} from '../Result/CountCache';
 import CountTimeoutError from '../../Driver/Query/CountTimeoutError';
+import RowBatcher from '../Result/RowBatcher';
+import RecordType from '../../../Driver/Type/Data/RecordType';
 
 /** longer COUNT is stopped and rows are estimated - billions of rows are counted for minutes */
 export const COUNT_TIMEOUT_MS = 3000;
@@ -117,34 +118,27 @@ class HandleSelectQueryRequestHandler extends AbstractCommandHandler<QueryReques
     ));
   }
 
-  /** resolves with number of sent rows */
-  private streamQueries = (session: DriverSessionInterface, data: QueryRequestDataInterface, columnsBuilder: ResultColumnsBuilder, stopwatch: QueryStopwatch): Promise<number> => {
+  /** resolves with number of sent rows - all of them are sent before it resolves (also when query fails) */
+  private streamQueries = async (session: DriverSessionInterface, data: QueryRequestDataInterface, columnsBuilder: ResultColumnsBuilder, stopwatch: QueryStopwatch): Promise<number> => {
     let rows = 0;
 
     // columns are sent when the result description arrives, so they match the result exactly
     const onFields = (fields: ResultFieldInterface[]) => this.sendColumns(data, columnsBuilder.build(fields));
+    const batcher = new RowBatcher(this.clientWebsocket, (batch: RecordType[]) => this.clientWebsocket.send<SelectRecordsInterface>(
+      new WsMessage<SelectRecordsInterface>(this.command.connectionData.connection, MessageType.SELECT_RECORDS, {tabId: data.tabId, rows: batch}),
+    ));
 
-    return new Promise((resolve, reject) => {
-      session.streamSelect(data.query, onFields, !!data.fullValues).subscribe({
-        next: (rowItem: RowDto) => {
-          if (rows === 0) stopwatch.mark('firstRow');
-          rows++;
-          this.clientWebsocket.send<SingleSelectRecordInterface>(new WsMessage<SingleSelectRecordInterface>(
-            this.command.connectionData.connection,
-            MessageType.SINGLE_SELECT_RECORD,
-            {
-              tabId: data.tabId,
-              rowDataValue: rowItem.row,
-            },
-          ));
-        },
-        error: reject,
-        complete: () => {
-          stopwatch.mark('lastRow');
-          resolve(rows);
-        },
-      });
-    });
+    try {
+      await session.streamSelect(data.query, onFields, (row) => {
+        if (rows === 0) stopwatch.mark('firstRow');
+        rows++;
+        return batcher.add(row);
+      }, !!data.fullValues);
+      stopwatch.mark('lastRow');
+    } finally {
+      batcher.flush();
+    }
+    return rows;
   }
 
   private sendColumns(data: QueryRequestDataInterface, result: ResultColumnsType): void {

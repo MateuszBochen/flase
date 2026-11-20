@@ -1,7 +1,6 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import toast from 'react-hot-toast';
-import EventBus from '../../../../Library/EventBus/EventBus';
-import WebsocketReceivedAMessage from '../../../../Library/WebSocket/Event/WebsocketReceivedAMessage';
+import TabMessages from '../../../../Library/WebSocket/TabMessages';
 import MessageInterface from '../../../../Library/WebSocket/Interface/MessageInterface';
 import MessageType from '../../../../Library/WebSocket/Enum/MessageType';
 import TableManager from '../../../../Library/Table/TableManager';
@@ -36,11 +35,7 @@ const useStructureChange = (
   }, [connection, table, tabId]);
 
   useEffect(() => {
-    const eventId = EventBus.subscribe<MessageInterface<any>>(WebsocketReceivedAMessage.name, (event) => {
-      const message = event.getData();
-      if (message.payload?.tabId !== tabId) {
-        return;
-      }
+    const unsubscribe = TabMessages.subscribe<any>(tabId, (message) => {
       switch (message.message) {
         case MessageType.STRUCTURE_CHANGE_PREVIEW:
           setBusy(false);
@@ -64,7 +59,7 @@ const useStructureChange = (
           break;
       }
     });
-    return () => EventBus.unSub(eventId);
+    return () => unsubscribe();
   }, [tabId]);
 
   return {

@@ -8,7 +8,7 @@ import EventInterface from '../EventBus/EventInterface';
 const useConnectionSettings = (connection: ConnectionDataInterface): ConnectionDataInterface => {
   const [, setVersion] = useState<number>(0);
   useEffect(() => {
-    const eventId = EventBus.subscribe(ConnectionWasUpdated.name, (event: EventInterface<ConnectionDataInterface>) => {
+    const eventId = EventBus.subscribe(ConnectionWasUpdated, (event: EventInterface<ConnectionDataInterface>) => {
       if (event.getData().id === connection.id) {
         setVersion((version) => version + 1);
       }

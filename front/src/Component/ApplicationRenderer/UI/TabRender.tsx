@@ -15,7 +15,7 @@ export default () => {
 
   // color of connection changed
   useEffect(() => {
-    const eventId = EventBus.subscribe(ConnectionWasUpdated.name, () => setVersion((version) => version + 1));
+    const eventId = EventBus.subscribe(ConnectionWasUpdated, () => setVersion((version) => version + 1));
     return () => EventBus.unSub(eventId);
   }, []);
 

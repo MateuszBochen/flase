@@ -35,7 +35,7 @@ class TableManager {
     this.connectionManager = ConnectionManager.getInstance();
 
     /** enable subscriber for websocket messages */
-    EventBus.subscribe<MessageInterface<TableInformationInterface>>(WebsocketReceivedAMessage.name, (messageEvent) => {
+    EventBus.subscribe<MessageInterface<TableInformationInterface>>(WebsocketReceivedAMessage, (messageEvent) => {
       const message = messageEvent.getData();
       // filter messages
       if (message.message === MessageType.TABLE_BASE_ITEM) {

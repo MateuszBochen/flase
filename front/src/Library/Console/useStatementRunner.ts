@@ -1,6 +1,5 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
-import EventBus from '../EventBus/EventBus';
-import WebsocketReceivedAMessage from '../WebSocket/Event/WebsocketReceivedAMessage';
+import TabMessages from '../WebSocket/TabMessages';
 import MessageInterface from '../WebSocket/Interface/MessageInterface';
 import MessageType from '../WebSocket/Enum/MessageType';
 import ConnectionDataInterface from '../Connection/Interface/ConnectionDataInterface';
@@ -51,8 +50,8 @@ const useStatementRunner = (
   };
 
   useEffect(() => {
-    const eventId = EventBus.subscribe<MessageInterface<any>>(WebsocketReceivedAMessage.name, (event) => {
-      const message = event.getData();
+    // runs are `${baseTabId}:run:N` - only messages of the current run
+    return TabMessages.subscribeTree<any>(`${baseTabId}:run`, (message) => {
       const tabId: string | undefined = message.payload?.tabId;
       if (!tabId || !runTabId.current || !(tabId === runTabId.current || tabId.startsWith(`${runTabId.current}:`))) {
         return;
@@ -64,8 +63,8 @@ const useStatementRunner = (
         if (message.message === MessageType.SINGLE_SELECT_COLUMN) {
           bufferOf(index).push({type: 'columns', columns: message.payload.columns, readOnlyReason: message.payload.readOnlyReason});
           setResultIndexes((previous) => previous.includes(index) ? previous : [...previous, index]);
-        } else if (message.message === MessageType.SINGLE_SELECT_RECORD) {
-          bufferOf(index).push({type: 'row', row: message.payload.rowDataValue});
+        } else if (message.message === MessageType.SELECT_RECORDS) {
+          bufferOf(index).push({type: 'rows', rows: message.payload.rows});
         } else if (message.message === MessageType.QUERY_FINISHED) {
           bufferOf(index).push({type: 'finished', rows: message.payload.rows});
         }
@@ -111,8 +110,7 @@ const useStatementRunner = (
           break;
       }
     });
-    return () => EventBus.unSub(eventId);
-  }, []);
+  }, [baseTabId]);
 
   const run = useCallback((typed: string[], database: string | null, maxRows: number = 1000) => {
     if (!typed.length) return;

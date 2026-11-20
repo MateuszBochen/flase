@@ -2,8 +2,7 @@ import React, {useEffect, useRef, useState} from 'react';
 import toast from 'react-hot-toast';
 import Popup from '../../../UI/Popup/Popup';
 import Button from '../../../UI/Button/Button';
-import EventBus from '../../../Library/EventBus/EventBus';
-import WebsocketReceivedAMessage from '../../../Library/WebSocket/Event/WebsocketReceivedAMessage';
+import TabMessages from '../../../Library/WebSocket/TabMessages';
 import MessageInterface from '../../../Library/WebSocket/Interface/MessageInterface';
 import MessageType from '../../../Library/WebSocket/Enum/MessageType';
 import CommandType from '../../../Library/WebSocket/Enum/CommandType';
@@ -11,6 +10,7 @@ import ConnectionDataInterface from '../../../Library/Connection/Interface/Conne
 import {sendServerCommand} from '../../../Library/Server/useServerRequest';
 import {ServerVariableInterface, ServerVariablesInterface, SetVariableResultInterface} from '../../../Library/Server/ServerInterface';
 import '../TableRecords/Structure/style.css';
+import DriverFactory from '../../../Library/Database/Driver/DriverFactory';
 
 interface SetVariablePopupPropsInterface {
   connection: ConnectionDataInterface;
@@ -26,6 +26,7 @@ type RequestType = {value: string | null, persist: boolean};
 /** SetVariablePopup - new value of server variable, sql is previewed before execution */
 export default (props: SetVariablePopupPropsInterface) => {
   const variable = props.variable;
+  const features = DriverFactory.getDriver(props.connection).features;
   const [value, setValue] = useState<string>(variable.display ?? variable.value);
   const [persist, setPersist] = useState<boolean>(false);
   const [busy, setBusy] = useState<boolean>(false);
@@ -43,9 +44,7 @@ export default (props: SetVariablePopupPropsInterface) => {
   };
 
   useEffect(() => {
-    const eventId = EventBus.subscribe<MessageInterface<any>>(WebsocketReceivedAMessage.name, (event) => {
-      const message = event.getData();
-      if (message.payload?.tabId !== props.tabId) return;
+    const unsubscribe = TabMessages.subscribe<any>(props.tabId, (message) => {
       switch (message.message) {
         case MessageType.SERVER_VARIABLE_PREVIEW:
           setBusy(false);
@@ -63,7 +62,7 @@ export default (props: SetVariablePopupPropsInterface) => {
           break;
       }
     });
-    return () => EventBus.unSub(eventId);
+    return () => unsubscribe();
   }, [props.tabId]);
 
   const options = variable.options;
@@ -101,15 +100,11 @@ export default (props: SetVariablePopupPropsInterface) => {
           {props.variables.supportsPersist && (
             <label className="checkbox">
               <input type="checkbox" checked={persist} onChange={(event) => setPersist(event.target.checked)} />
-              Keep after restart (SET PERSIST)
+              {features.labels.persistVariable}
             </label>
           )}
           <div className="hint">
-            {props.variables.persistentChanges
-              ? 'ALTER SYSTEM writes postgresql.auto.conf - the value is kept after restart, configuration is reloaded.'
-              : props.variables.supportsPersist
-                ? 'SET GLOBAL changes the running server only; with SET PERSIST the value is kept after restart.'
-                : 'SET GLOBAL changes the running server only - change the configuration file to keep the value after restart.'}
+            {features.hints.serverVariable(!!props.variables.supportsPersist)}
             {variable.needsRestart && ' This setting is used after restart of the server.'}
             {variable.editable === null && ' Some variables cannot be changed while server runs - the server reports it.'}
           </div>

@@ -1,4 +1,4 @@
-import SqlDialectType from '../Database/Driver/SqlDialectType';
+import {SqlSyntaxInterface} from '../Database/Driver/Syntax/SqlSyntax';
 import {hexOfUuidInput} from '../Record/Uuid';
 import {SqlTokenType, tokenizeSql} from './SqlTokenizer';
 import {tableReferences} from './SqlInspections';
@@ -118,10 +118,10 @@ const insertedColumns = (tokens: SqlTokenType[], lookup: UuidTableLookupType): M
  * statement with UUID strings compared with / written to BINARY(16) columns as X'hex';
  * columns - names of converted columns (empty when nothing changed)
  */
-export const binaryUuidLiterals = (sql: string, dialect: SqlDialectType, lookup: UuidTableLookupType): {sql: string, columns: string[]} => {
+export const binaryUuidLiterals = (sql: string, syntax: SqlSyntaxInterface, lookup: UuidTableLookupType): {sql: string, columns: string[]} => {
   // only BINARY(16) / VARBINARY(16) columns of MySQL / MariaDB are converted (driver feature binaryUuidText)
   if (!/[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}/i.test(sql)) return {sql, columns: []};
-  const tokens = tokenizeSql(sql, dialect);
+  const tokens = tokenizeSql(sql, syntax);
   /** alias or table name -> its columns */
   const sources = new Map<string, UuidColumnType[]>();
   tableReferences(tokens).forEach((reference) => {

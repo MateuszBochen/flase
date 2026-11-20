@@ -9,6 +9,7 @@ import TableManager from '../../../Library/Table/TableManager';
 import EventBus from '../../../Library/EventBus/EventBus';
 import DatabaseWasReceived from '../../../Library/Database/Event/DatabaseWasReceived';
 import TableInformationWasReceived from '../../../Library/Table/Event/TableInformationWasReceived';
+import DriverFactory from '../../../Library/Database/Driver/DriverFactory';
 
 interface GrantFormPropsInterface {
   connection: ConnectionDataInterface;
@@ -45,7 +46,7 @@ export default (props: GrantFormPropsInterface) => {
       }
     };
     refresh();
-    const eventId = EventBus.subscribe(DatabaseWasReceived.name, refresh);
+    const eventId = EventBus.subscribe(DatabaseWasReceived, refresh);
     return () => EventBus.unSub(eventId);
   }, [props.connection]);
 
@@ -56,7 +57,7 @@ export default (props: GrantFormPropsInterface) => {
     const refresh = () => setTables(TableManager.getInstance().getTablesListForDatabase(props.connection, {name: database}).map((item) => item.tableName).sort());
     refresh();
     TableManager.getInstance().askForTableList(props.connection, {name: database}, false);
-    const eventId = EventBus.subscribe(TableInformationWasReceived.name, refresh);
+    const eventId = EventBus.subscribe(TableInformationWasReceived, refresh);
     return () => EventBus.unSub(eventId);
   }, [database, levelName]);
 
@@ -98,7 +99,7 @@ export default (props: GrantFormPropsInterface) => {
           </select>
         </label>
         {level?.needsDatabase && (
-          <label>{/postgres/i.test(props.connection.dsn) ? 'Schema' : 'Database'}
+          <label>{DriverFactory.getDriver(props.connection).features.databaseLabel}
             <select value={database} onChange={(e) => setDatabase(e.target.value)}>
               <option value="">— select —</option>
               {databases.map((name) => <option key={name} value={name}>{name}</option>)}

@@ -2,8 +2,7 @@ import React, {useEffect, useRef, useState} from 'react';
 import Popup from '../../UI/Popup/Popup';
 import Button from '../../UI/Button/Button';
 import Editor from '../../UI/Editor/Editor';
-import EventBus from '../../Library/EventBus/EventBus';
-import WebsocketReceivedAMessage from '../../Library/WebSocket/Event/WebsocketReceivedAMessage';
+import TabMessages from '../../Library/WebSocket/TabMessages';
 import MessageInterface from '../../Library/WebSocket/Interface/MessageInterface';
 import MessageType from '../../Library/WebSocket/Enum/MessageType';
 import ConnectionDataInterface from '../../Library/Connection/Interface/ConnectionDataInterface';
@@ -41,18 +40,16 @@ export default (props: ObjectEditorPopupPropsInterface) => {
   // definition of edited object
   useEffect(() => {
     if (!props.object) return;
-    const eventId = EventBus.subscribe<MessageInterface<any>>(WebsocketReceivedAMessage.name, (event) => {
-      const message = event.getData();
-      if (message.payload?.tabId !== ddlTabId) return;
+    const unsubscribe = TabMessages.subscribe<any>(ddlTabId, (message) => {
       if (message.message === MessageType.OBJECT_DDL) {
         // view of MySQL / MariaDB comes in one line
-        setText(formatViewDdl((message.payload as ObjectDdlInterface).ddl, driver.dialect));
+        setText(formatViewDdl((message.payload as ObjectDdlInterface).ddl, driver.syntax));
       } else if (message.message === MessageType.QUERY_ERROR) {
         setError(message.payload.error);
       }
     });
     DatabaseOperations.objectDdl(props.connection, props.database, props.object, ddlTabId);
-    return () => EventBus.unSub(eventId);
+    return () => unsubscribe();
   }, [props.object, props.database, ddlTabId]);
 
   const preview = () => {

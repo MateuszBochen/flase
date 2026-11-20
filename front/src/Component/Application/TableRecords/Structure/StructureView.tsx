@@ -5,7 +5,7 @@ import {darcula, prism} from 'react-syntax-highlighter/dist/esm/styles/prism';
 import {useTheme} from '../../../../Library/Theme/ThemeManager';
 import toast from 'react-hot-toast';
 import EventBus from '../../../../Library/EventBus/EventBus';
-import WebsocketReceivedAMessage from '../../../../Library/WebSocket/Event/WebsocketReceivedAMessage';
+import TabMessages from '../../../../Library/WebSocket/TabMessages';
 import MessageInterface from '../../../../Library/WebSocket/Interface/MessageInterface';
 import MessageType from '../../../../Library/WebSocket/Enum/MessageType';
 import TableManager from '../../../../Library/Table/TableManager';
@@ -131,11 +131,7 @@ export default forwardRef<StructureViewRefInterface, StructureViewPropsInterface
   const sendChange = (changeData: StructureChangeType) => change.requestPreview(changeData);
 
   useEffect(() => {
-    const eventId = EventBus.subscribe<MessageInterface<any>>(WebsocketReceivedAMessage.name, (event) => {
-      const message = event.getData();
-      if (message.payload?.tabId !== props.structureTabId) {
-        return;
-      }
+    const unsubscribe = TabMessages.subscribe<any>(props.structureTabId, (message) => {
       if (message.message === MessageType.TABLE_STRUCTURE) {
         setStructure(message.payload as TableStructureInterface);
         setLoading(false);
@@ -145,11 +141,11 @@ export default forwardRef<StructureViewRefInterface, StructureViewPropsInterface
         setLoading(false);
       }
     });
-    return () => EventBus.unSub(eventId);
+    return () => unsubscribe();
   }, [props.structureTabId, change.busy]);
 
   /** view of MySQL / MariaDB comes in one line */
-  const ddl = structure ? formatViewDdl(structure.ddl, DriverFactory.getDriver(props.connection).dialect) : '';
+  const ddl = structure ? formatViewDdl(structure.ddl, DriverFactory.getDriver(props.connection).syntax) : '';
 
   const copyDdl = () => {
     if (!structure) return;

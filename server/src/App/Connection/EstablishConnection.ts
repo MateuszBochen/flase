@@ -55,9 +55,6 @@ class EstablishConnection {
     if (error?.code === 'ETIMEDOUT' || /connection timeout|timeout expired/i.test(message)) {
       return `Database server did not respond in ${seconds} s - check host, port and firewall (${message})`;
     }
-    if (error?.code === 'PROTOCOL_SEQUENCE_TIMEOUT' || /^Handshake inactivity timeout/.test(message)) {
-      return `Server did not answer as MySQL / MariaDB in ${seconds} s - check port and driver of DSN (${message})`;
-    }
     if (error?.code === 'ECONNREFUSED') {
       return `Connection refused - database server does not listen on this host and port (${message})`;
     }

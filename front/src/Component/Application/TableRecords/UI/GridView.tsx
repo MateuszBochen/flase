@@ -4,12 +4,11 @@ import RecordsView from '../../../Table/RecordsView';
 import GridViewPropsInterface from '../Interface/GridViewPropsInterface';
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import EventBus from '../../../../Library/EventBus/EventBus';
-import WebsocketReceivedAMessage from '../../../../Library/WebSocket/Event/WebsocketReceivedAMessage';
 import MessageInterface from '../../../../Library/WebSocket/Interface/MessageInterface';
 import TotalCountInterface from '../../../../Library/Record/Interface/TotalCountInterface';
 import MessageType from '../../../../Library/WebSocket/Enum/MessageType';
 import SingleSelectColumnInterface from '../../../../Library/Record/Interface/SingleSelectColumnInterface';
-import SingleSelectRecordInterface from '../../../../Library/Record/Interface/SingleSelectRecordInterface';
+import SelectRecordsInterface from '../../../../Library/Record/Interface/SelectRecordsInterface';
 import QueryWasChanged from '../Event/QueryWasChanged';
 import QueryRequestDataInterface from '../../../../Library/Record/Interface/QueryRequestDataInterface';
 import RecordsViewRefInterface from '../../../Table/Interface/RecordsViewRefInterface';
@@ -35,6 +34,7 @@ import FilterWasRequested from '../Event/FilterWasRequested';
 import DriverFactory from '../../../../Library/Database/Driver/DriverFactory';
 import openTableTab from '../openTableTab';
 import ConsoleApi from '../../../../Library/Console/ConsoleApi';
+import TabMessages from '../../../../Library/WebSocket/TabMessages';
 import {SingleRowType} from '../../../Table/Interface/RecordsViewPropsInterface';
 import useConnectionSettings from '../../../../Library/Connection/useConnectionSettings';
 import useReloadAfterLogin from '../../../../Library/Connection/useReloadAfterLogin';
@@ -71,9 +71,27 @@ export default (props: GridViewPropsInterface) => {
     if (props.queryRef?.current) setSortOrder(props.queryRef.current.getOrder());
   }, []);
 
+  /**
+   * tab shows other table / was closed - query (or count) still running for this tab is stopped.
+   * Cancel is checked a tick later: react strict mode unmounts and mounts again at once,
+   * the first query must not be killed then. Server ignores cancel when nothing runs.
+   */
+  const mounted = useRef<boolean>(false);
+  useEffect(() => {
+    mounted.current = true;
+    const connectionData = props.connection;
+    const tabId = props.tabId;
+    return () => {
+      mounted.current = false;
+      setTimeout(() => {
+        if (!mounted.current) ConsoleApi.getInstance().cancel(connectionData, tabId);
+      }, 0);
+    };
+  }, [props.connection, props.tabId]);
+
   /** handle query change */
   useEffect(() => {
-    const eventId = EventBus.subscribe<QueryRequestDataInterface>(QueryWasChanged.name, (event) => {
+    const eventId = EventBus.subscribe<QueryRequestDataInterface>(QueryWasChanged, (event) => {
       const eventData = event.getData();
       if (eventData.tabId === props.tabId) {
         const queryModel = event.getData().query;
@@ -102,121 +120,62 @@ export default (props: GridViewPropsInterface) => {
 
   }, [recordsRef]);
 
-  /** handle total count */
-  useEffect(() => {
-    const eventId = EventBus.subscribe<MessageInterface<TotalCountInterface>>(WebsocketReceivedAMessage.name, (event) => {
-      const eventData = event.getData();
-      if (eventData.payload.tabId === props.tabId && eventData.message === MessageType.SELECT_TOTAL_COUNT) {
-        const {totalCount, ...count} = eventData.payload;
-        if (count.error) toast.error(`Rows were not counted: ${count.error}`);
-        recordsRef.current!.setTotal(totalCount, count);
-      }
-    });
-
-    return () => {
-      EventBus.unSub(eventId);
-    };
-
-  }, [props.tabId]);
-
-  /** handle columns change */
-  useEffect(() => {
-    const eventId = EventBus.subscribe<MessageInterface<SingleSelectColumnInterface>>(WebsocketReceivedAMessage.name, (event) => {
-      const eventData = event.getData();
-
-      if (eventData.payload.tabId === props.tabId && eventData.message === MessageType.SINGLE_SELECT_COLUMN) {
-        recordsRef.current!.setColumns(eventData.payload.columns, eventData.payload.editable, eventData.payload.readOnlyReason);
-      }
-    });
-
-    return () => {
-      EventBus.unSub(eventId);
-    }
-  }, []);
-
-  /** handle new record */
-  useEffect(() => {
-    const eventId = EventBus.subscribe<MessageInterface<SingleSelectRecordInterface>>(WebsocketReceivedAMessage.name, (event) => {
-      const eventData = event.getData();
-      if (eventData.payload.tabId === props.tabId && eventData.message === MessageType.SINGLE_SELECT_RECORD) {
-        recordsRef.current!.addRow(eventData.payload.rowDataValue);
-      }
-    });
-
-    return () => {
-      EventBus.unSub(eventId);
-    }
-
-  }, [recordsRef]);
-
-  /** handle end of query - all records were received */
-  useEffect(() => {
-    const eventId = EventBus.subscribe<MessageInterface<QueryFinishedInterface>>(WebsocketReceivedAMessage.name, (event) => {
-      const eventData = event.getData();
-      if (eventData.payload?.tabId === props.tabId && eventData.message === MessageType.QUERY_FINISHED) {
-        recordsRef.current!.setFinished(eventData.payload.rows);
-      }
-    });
-
-    return () => {
-      EventBus.unSub(eventId);
-    }
-  }, [props.tabId]);
-
   /** not logged in (server restarted) - query runs again after login */
   const reloadAfterLogin = useReloadAfterLogin(props.connection, () => EventBus.emit<string>(new QueryRefreshWasRequested(props.tabId)));
 
-  /** handle query error */
-  useEffect(() => {
-    const eventId = EventBus.subscribe<MessageInterface<QueryErrorInterface>>(WebsocketReceivedAMessage.name, (event) => {
-      const eventData = event.getData();
-      if (eventData.payload?.tabId === props.tabId && eventData.message === MessageType.QUERY_ERROR) {
-        if (eventData.payload.command === CommandType.APPLY_ROW_CHANGES) {
+  /**
+   * messages of the tab: columns -> rows -> finished -> total count (or error at any point),
+   * answers of row changes
+   */
+  useEffect(() => TabMessages.subscribe<any>(props.tabId, (message) => {
+    const records = recordsRef.current;
+    if (!records) return;
+    switch (message.message) {
+      case MessageType.SINGLE_SELECT_COLUMN: {
+        const payload = message.payload as SingleSelectColumnInterface;
+        records.setColumns(payload.columns, payload.editable, payload.readOnlyReason);
+        break;
+      }
+      case MessageType.SELECT_RECORDS:
+        records.appendRows((message.payload as SelectRecordsInterface).rows);
+        break;
+      case MessageType.QUERY_FINISHED:
+        records.setFinished((message.payload as QueryFinishedInterface).rows);
+        break;
+      case MessageType.SELECT_TOTAL_COUNT: {
+        const {totalCount, ...count} = message.payload as TotalCountInterface;
+        if (count.error) toast.error(`Rows were not counted: ${count.error}`);
+        records.setTotal(totalCount, count);
+        break;
+      }
+      case MessageType.QUERY_ERROR: {
+        const payload = message.payload as QueryErrorInterface;
+        if (payload.command === CommandType.APPLY_ROW_CHANGES) {
           // keep grid and pending changes, error itself is shown as toast
           setSubmitting(false);
           return;
         }
-        if (eventData.payload.disconnected) reloadAfterLogin();
-        recordsRef.current!.setError(eventData.payload.error);
+        if (payload.disconnected) reloadAfterLogin();
+        records.setError(payload.error);
+        break;
       }
-    });
-
-    return () => {
-      EventBus.unSub(eventId);
-    }
-  }, [props.tabId]);
-
-  /** handle answers for row changes */
-  useEffect(() => {
-    const eventId = EventBus.subscribe<MessageInterface<RowChangesResultInterface>>(WebsocketReceivedAMessage.name, (event) => {
-      const eventData = event.getData();
-      if (eventData.payload?.tabId !== props.tabId) {
-        return;
-      }
-
-      if (eventData.message === MessageType.ROW_CHANGES_PREVIEW) {
+      case MessageType.ROW_CHANGES_PREVIEW:
         setSubmitting(false);
-        setSqlPreview({statements: eventData.payload.statements});
-      }
-
-      if (eventData.message === MessageType.ROW_CHANGES_APPLIED) {
+        setSqlPreview({statements: (message.payload as RowChangesResultInterface).statements});
+        break;
+      case MessageType.ROW_CHANGES_APPLIED:
         setSubmitting(false);
         setSqlPreview(null);
         pendingSubmit.current = null;
-        toast.success(`Saved, ${eventData.payload.affectedRows} row(s) affected`);
-
+        toast.success(`Saved, ${(message.payload as RowChangesResultInterface).affectedRows} row(s) affected`);
         // updated / deleted rows are changed in place, grid stays where it is
-        if (recordsRef.current!.commitChanges()) {
+        if (records.commitChanges()) {
           keepScrollOnReload.current = true;
           EventBus.emit<string>(new QueryRefreshWasRequested(props.tabId));
         }
-      }
-    });
-
-    return () => {
-      EventBus.unSub(eventId);
+        break;
     }
-  }, [props.tabId]);
+  }), [props.tabId]);
 
   const sendRowChanges = useCallback((editable: EditableResultInterface, changes: RowChangeInterface[], options: RowChangesOptionsType, dryRun: boolean) => {
     setSubmitting(true);
@@ -292,24 +251,22 @@ export default (props: GridViewPropsInterface) => {
     // window must be opened by the click - after loading of rows browser would block it
     const printWindow = format === 'pdf' ? window.open('', '_blank') : null;
     printWindow?.document.write('<p style="font-family: sans-serif">Loading rows…</p>');
-    const eventId = EventBus.subscribe<MessageInterface<any>>(WebsocketReceivedAMessage.name, (event) => {
-      const message = event.getData();
-      if (message.payload?.tabId !== exportTabId) {
-        return;
-      }
+    const unsubscribe = TabMessages.subscribe<any>(exportTabId, (message) => {
       switch (message.message) {
         case MessageType.SINGLE_SELECT_COLUMN:
           columns = message.payload.columns;
           table = message.payload.editable?.table.name;
           break;
-        case MessageType.SINGLE_SELECT_RECORD:
-          rows.push(message.payload.rowDataValue);
-          if (rows.length % 5000 === 0) {
+        case MessageType.SELECT_RECORDS: {
+          const before = rows.length;
+          rows.push(...message.payload.rows);
+          if (Math.floor(rows.length / 5000) > Math.floor(before / 5000)) {
             toast.loading(`Exporting… ${rows.length.toLocaleString()} rows`, {id: toastId});
           }
           break;
+        }
         case MessageType.QUERY_FINISHED: {
-          EventBus.unSub(eventId);
+          unsubscribe();
           if (exportRows(format, columns, rows, fileName, table, DriverFactory.getDriver(props.connection).sql, printWindow)) {
             toast.success(format === 'pdf' ? 'Print dialog opened - choose "Save as PDF"' : `Exported ${rows.length.toLocaleString()} row(s)`, {id: toastId});
           } else {
@@ -318,7 +275,7 @@ export default (props: GridViewPropsInterface) => {
           break;
         }
         case MessageType.QUERY_ERROR:
-          EventBus.unSub(eventId);
+          unsubscribe();
           toast.error(`Export failed: ${message.payload.error}`, {id: toastId});
           printWindow?.close();
           break;

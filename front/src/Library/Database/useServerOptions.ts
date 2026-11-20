@@ -1,6 +1,5 @@
 import {useEffect, useState} from 'react';
-import EventBus from '../EventBus/EventBus';
-import WebsocketReceivedAMessage from '../WebSocket/Event/WebsocketReceivedAMessage';
+import TabMessages from '../WebSocket/TabMessages';
 import MessageInterface from '../WebSocket/Interface/MessageInterface';
 import MessageType from '../WebSocket/Enum/MessageType';
 import ConnectionDataInterface from '../Connection/Interface/ConnectionDataInterface';
@@ -20,9 +19,7 @@ const useServerOptions = (connection: ConnectionDataInterface): ServerOptionsInt
       return;
     }
     const tabId = `server-options:${connection.id}`;
-    const eventId = EventBus.subscribe<MessageInterface<ServerOptionsInterface>>(WebsocketReceivedAMessage.name, (event) => {
-      const message = event.getData();
-      if (message.payload?.tabId !== tabId) return;
+    const unsubscribe = TabMessages.subscribe<ServerOptionsInterface>(tabId, (message) => {
       if (message.message === MessageType.SERVER_OPTIONS) {
         cache.set(connection.id, message.payload);
         setOptions(message.payload);
@@ -32,7 +29,7 @@ const useServerOptions = (connection: ConnectionDataInterface): ServerOptionsInt
       }
     });
     DatabaseOperations.serverOptions(connection, tabId);
-    return () => EventBus.unSub(eventId);
+    return () => unsubscribe();
   }, [connection.id]);
 
   return options;

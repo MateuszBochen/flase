@@ -25,7 +25,7 @@ const value = async ({user, connection}, sql) => {
   ws.send(JSON.stringify({connectionData: {user, connection}, command: 'EXECUTE_STATEMENTS', payload: {tabId, database: null, statements: [sql]}}));
   for (let i = 0; i < 300 && !messages.find((m) => m.payload?.tabId === tabId && m.message === 'EXECUTION_FINISHED'); i++) await sleep(30);
   ws.close();
-  const row = messages.find((m) => m.payload?.tabId === `${tabId}:0` && m.message === 'SINGLE_SELECT_RECORD')?.payload?.rowDataValue;
+  const row = messages.find((m) => m.payload?.tabId === `${tabId}:0` && m.message === 'SELECT_RECORDS')?.payload?.rows[0];
   return row ? Object.values(row).pop() : undefined;
 };
 

@@ -1,12 +1,16 @@
-import {Observable} from 'rxjs';
 import TotalCountDto from '../../Driver/Dto/TotalCountDto';
-import RowDto from '../../Driver/Dto/RowDto';
 import UpdateResultType from '../../Driver/Type/UpdateResultType';
 import ResultFieldInterface from './Interface/Data/ResultFieldInterface';
 import RowChangeStatementInterface from './Interface/Data/RowChangeStatementInterface';
 import {StatementResultType} from './Interface/Data/StatementInterface';
 import RecordType from '../../Driver/Type/Data/RecordType';
 import {TransactionOptionsInterface} from './ForeignKeyChecks';
+
+/**
+ * receiver of result rows - returned promise means it is full (websocket buffer of slow client),
+ * reading of rows from database waits until it resolves
+ */
+export type RowSinkType = (row: RecordType) => void | Promise<void>;
 
 /**
  * Dedicated database connection with a selected database.
@@ -25,17 +29,24 @@ interface DriverSessionInterface {
   estimateRecords(query: string): Promise<number | null>;
 
   /**
-   * Stream rows of given select query. Observable completes when all rows were sent.
+   * Stream rows of given select query to onRow, resolves when all rows were read.
    * onFields is called once with description of result columns, before first row.
    * Long texts are sent as preview, fullValues = whole.
    */
-  streamSelect(query: string, onFields?: (fields: ResultFieldInterface[]) => void, fullValues?: boolean): Observable<RowDto>;
+  streamSelect(query: string, onFields: (fields: ResultFieldInterface[]) => void, onRow: RowSinkType, fullValues?: boolean): Promise<void>;
 
   /**
    * Execute statements in one transaction, resolves with sum of affected rows.
    * Rolls back when any statement fails or does not match expected row.
    */
   executeInTransaction(statements: RowChangeStatementInterface[], options?: TransactionOptionsInterface): Promise<number>;
+
+  /** transaction of statements executed one by one (import of CSV) - commit or rollback ends it */
+  beginTransaction(): Promise<void>;
+
+  commit(): Promise<void>;
+
+  rollback(): Promise<void>;
 
   /**
    * Function execute update query.
@@ -49,7 +60,7 @@ interface DriverSessionInterface {
   execute(
     sql: string,
     onFields: (fields: ResultFieldInterface[]) => void,
-    onRow: (row: RecordType) => void,
+    onRow: RowSinkType,
     maxRows: number,
   ): Promise<StatementResultType>;
 

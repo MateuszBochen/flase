@@ -1,5 +1,4 @@
-import SqlDialectType from './SqlDialectType';
-import {syntaxOf} from './SqlSyntax';
+import {SqlSyntaxInterface} from './SqlSyntax';
 
 /**
  * Checks of SQL written by user (SELECT of view, CREATE of routine) before it is used in built statements.
@@ -7,8 +6,7 @@ import {syntaxOf} from './SqlSyntax';
  */
 class SqlText {
   /** strings, quoted names and comments replaced by spaces - rest can be searched for ; and keywords */
-  static code(sql: string, dialect: SqlDialectType): string {
-    const syntax = syntaxOf(dialect);
+  static code(sql: string, syntax: SqlSyntaxInterface): string {
     const blank = (text: string) => text.replace(/[^\n]/g, ' ');
     let result = sql
       .replace(/\/\*[\s\S]*?\*\//g, blank)
@@ -35,21 +33,21 @@ class SqlText {
   }
 
   /** one statement - SELECT of view must not end the statement and start other one */
-  static singleStatement(sql: string, dialect: SqlDialectType, label: string): string {
+  static singleStatement(sql: string, syntax: SqlSyntaxInterface, label: string): string {
     const text = SqlText.trim(sql);
     if (!text) {
       throw new Error(`${label} is required`);
     }
-    if (SqlText.code(text, dialect).includes(';')) {
+    if (SqlText.code(text, syntax).includes(';')) {
       throw new Error(`${label} must be one statement`);
     }
     return text;
   }
 
   /** CREATE statement of routine / trigger / event / view */
-  static createStatement(sql: string, dialect: SqlDialectType): string {
+  static createStatement(sql: string, syntax: SqlSyntaxInterface): string {
     const text = SqlText.trim(sql);
-    if (syntaxOf(dialect).delimiterCommand && /^\s*DELIMITER\b/im.test(SqlText.code(text, dialect))) {
+    if (syntax.delimiterCommand && /^\s*DELIMITER\b/im.test(SqlText.code(text, syntax))) {
       throw new Error('DELIMITER is a command of mysql client - write the CREATE statement without it');
     }
     if (!/^CREATE\b/i.test(text)) {

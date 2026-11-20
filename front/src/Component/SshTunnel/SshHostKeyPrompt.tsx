@@ -18,7 +18,7 @@ export default () => {
   const [rejection, setRejection] = useState<SshHostKeyRejectionType | null>(null);
 
   useEffect(() => {
-    const id = EventBus.subscribe(SshHostKeyWasRejected.name, (event: EventInterface<SshHostKeyRejectionType>) => setRejection(event.getData()));
+    const id = EventBus.subscribe(SshHostKeyWasRejected, (event: EventInterface<SshHostKeyRejectionType>) => setRejection(event.getData()));
     return () => EventBus.unSub(id);
   }, []);
 

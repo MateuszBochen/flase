@@ -3,7 +3,8 @@ import {SingleRowType} from './RecordsViewPropsInterface';
 
 interface DataGridRefInterface {
   setColumns: (columns: ColumnInterface[]) => void;
-  addRow: (record: SingleRowType) => void;
+  /** streamed rows - rendered in next animation frame */
+  appendRows: (records: SingleRowType[]) => void;
   /** many rows at once, rendered at once (e.g. rows buffered before grid was shown) */
   addRows: (records: SingleRowType[]) => void;
   /** keepScroll - rows are loaded again at the same position, e.g. refresh after save */

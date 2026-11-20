@@ -4,7 +4,7 @@ import ConnectionDataInterface from '../../../Library/Connection/Interface/Conne
 import TableManager from '../../../Library/Table/TableManager';
 import EventBus from '../../../Library/EventBus/EventBus';
 import TableInformationWasReceived from '../../../Library/Table/Event/TableInformationWasReceived';
-import WebsocketReceivedAMessage from '../../../Library/WebSocket/Event/WebsocketReceivedAMessage';
+import TabMessages from '../../../Library/WebSocket/TabMessages';
 import MessageInterface from '../../../Library/WebSocket/Interface/MessageInterface';
 import MessageType from '../../../Library/WebSocket/Enum/MessageType';
 import TransferApi from '../../../Library/Transfer/TransferApi';
@@ -73,7 +73,7 @@ export default (props: ExportPanelPropsInterface) => {
   // table list may be loaded after the tab was opened
   useEffect(() => {
     tableManager.askForTableList(props.connection, {name: props.database}, false);
-    const eventId = EventBus.subscribe(TableInformationWasReceived.name, () => {
+    const eventId = EventBus.subscribe(TableInformationWasReceived, () => {
       const list = listTables();
       setTables(list);
       // whole database is selected until user changes the selection
@@ -85,9 +85,7 @@ export default (props: ExportPanelPropsInterface) => {
   }, [props.connection, props.database]);
 
   useEffect(() => {
-    const eventId = EventBus.subscribe<MessageInterface<DumpFinishedInterface>>(WebsocketReceivedAMessage.name, (event) => {
-      const message = event.getData();
-      if (message.payload?.tabId !== exportTabId) return;
+    const unsubscribe = TabMessages.subscribe<DumpFinishedInterface>(exportTabId, (message) => {
       if (message.message === MessageType.DUMP_PROGRESS) {
         setProgress(message.payload as unknown as DumpProgressInterface);
         return;
@@ -116,7 +114,7 @@ export default (props: ExportPanelPropsInterface) => {
           : toast.success(`Dump finished: ${message.payload.tables} table(s), ${message.payload.rows.toLocaleString()} row(s)`);
       }
     });
-    return () => EventBus.unSub(eventId);
+    return unsubscribe;
   }, [exportTabId]);
 
   const toggle = (name: string) => setSelected((previous) => {
