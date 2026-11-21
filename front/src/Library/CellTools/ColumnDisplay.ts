@@ -64,7 +64,7 @@ const tableId = (connectionId: string, table: TableInterface) => `${connectionId
 const LABEL_NAME = /^(name|title|label|display_?name|full_?name|username|login|email|code|slug|subject|caption)$/i;
 
 const ColumnDisplay = {
-  eventName: ColumnDisplayWasChanged.name,
+  eventClass: ColumnDisplayWasChanged,
 
   transformOf: (connectionId: string, column: ColumnInterface): TransformType => {
     const id = columnId(connectionId, column);

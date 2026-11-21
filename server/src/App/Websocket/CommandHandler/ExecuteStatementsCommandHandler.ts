@@ -11,8 +11,8 @@ import {
 } from '../../Driver/Interface/Data/StatementInterface';
 import ResultColumnsBuilder from '../Result/ResultColumnsBuilder';
 import SingleSelectColumnInterface from '../../Driver/Interface/Data/SingleSelectColumnInterface';
-import SingleSelectRecordInterface from '../../Driver/Interface/Data/SingleSelectRecordInterface';
-import {selectedDatabaseOf} from '../../Driver/Query/DatabaseSwitch';
+import SelectRecordsInterface from '../../Driver/Interface/Data/SelectRecordsInterface';
+import RowBatcher from '../Result/RowBatcher';
 import QueryFinishedInterface from '../../Driver/Interface/Data/QueryFinishedInterface';
 import QueryStopwatch from '../Result/QueryStopwatch';
 
@@ -69,18 +69,25 @@ class ExecuteStatementsCommandHandler extends AbstractCommandHandler<ExecuteStat
           stopwatch.mark('metadata');
 
           let firstRow = true;
-          const result = await session.execute(
-            sql,
-            (fields) => this.send<SingleSelectColumnInterface>(MessageType.SINGLE_SELECT_COLUMN, {tabId: resultTabId, ...columnsBuilder.build(fields, false)}),
-            (row) => {
-              if (firstRow) {
-                firstRow = false;
-                stopwatch.mark('firstRow');
-              }
-              this.send<SingleSelectRecordInterface>(MessageType.SINGLE_SELECT_RECORD, {tabId: resultTabId, rowDataValue: row as any});
-            },
-            maxRows,
-          );
+          const batcher = new RowBatcher(this.clientWebsocket, (rows) => this.send<SelectRecordsInterface>(MessageType.SELECT_RECORDS, {tabId: resultTabId, rows}));
+          let result;
+          try {
+            result = await session.execute(
+              sql,
+              (fields) => this.send<SingleSelectColumnInterface>(MessageType.SINGLE_SELECT_COLUMN, {tabId: resultTabId, ...columnsBuilder.build(fields, false)}),
+              (row) => {
+                if (firstRow) {
+                  firstRow = false;
+                  stopwatch.mark('firstRow');
+                }
+                return batcher.add(row);
+              },
+              maxRows,
+            );
+          } finally {
+            // rows of the statement go before its end (finished or error)
+            batcher.flush();
+          }
           stopwatch.mark('lastRow');
           executed++;
 
@@ -88,7 +95,7 @@ class ExecuteStatementsCommandHandler extends AbstractCommandHandler<ExecuteStat
             this.send<QueryFinishedInterface>(MessageType.QUERY_FINISHED, {tabId: resultTabId, rows: Math.min(result.rows, maxRows), timing: stopwatch.timing()});
           }
           // following statements use database selected by USE (schema by SET search_path)
-          database = selectedDatabaseOf(sql) ?? database;
+          database = this.driver.selectedDatabaseOf(sql) ?? database;
 
           this.send<StatementFinishedInterface>(MessageType.STATEMENT_FINISHED, {
             tabId: data.tabId, index, sql, durationMs: Date.now() - started, result,

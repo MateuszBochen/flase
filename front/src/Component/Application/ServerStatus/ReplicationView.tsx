@@ -6,8 +6,7 @@ import ConnectionDataInterface from '../../../Library/Connection/Interface/Conne
 import useServerRequest, {sendServerCommand} from '../../../Library/Server/useServerRequest';
 import CommandType from '../../../Library/WebSocket/Enum/CommandType';
 import MessageType from '../../../Library/WebSocket/Enum/MessageType';
-import EventBus from '../../../Library/EventBus/EventBus';
-import WebsocketReceivedAMessage from '../../../Library/WebSocket/Event/WebsocketReceivedAMessage';
+import TabMessages from '../../../Library/WebSocket/TabMessages';
 import MessageInterface from '../../../Library/WebSocket/Interface/MessageInterface';
 import {LogEventsInterface, ReplicationActionType, ReplicationInterface} from '../../../Library/Server/ServerInterface';
 import Popup from '../../../UI/Popup/Popup';
@@ -46,8 +45,8 @@ export default (props: ReplicationViewPropsInterface) => {
   const actionTabId = `${props.tabId}:replication-action`;
 
   useEffect(() => {
-    const eventId = EventBus.subscribe<MessageInterface<any>>(WebsocketReceivedAMessage.name, (event) => {
-      const message = event.getData();
+    // tabs of log events and of actions are below the tab
+    return TabMessages.subscribeTree<any>(props.tabId, (message) => {
       if (message.payload?.tabId === eventsTabId) {
         if (message.message === MessageType.LOG_EVENTS) {
           const page = message.payload as LogEventsInterface;
@@ -76,8 +75,7 @@ export default (props: ReplicationViewPropsInterface) => {
         }
       }
     });
-    return () => EventBus.unSub(eventId);
-  }, [eventsTabId, actionTabId]);
+  }, [props.tabId, eventsTabId, actionTabId]);
 
   const action = (value: ReplicationActionType, dryRun: boolean) => {
     pending.current = value;

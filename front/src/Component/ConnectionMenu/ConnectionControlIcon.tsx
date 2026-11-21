@@ -37,7 +37,7 @@ export default (props: ConnectionControlIconPropsInterface) => {
 
   // green while messages of this connection come (rows of big result keep it on)
   useEffect(() => {
-    const eventId = EventBus.subscribe<MessageInterface<any>>(WebsocketReceivedAMessage.name, (event) => {
+    const eventId = EventBus.subscribe<MessageInterface<any>>(WebsocketReceivedAMessage, (event) => {
       if (event.getData().connection?.id !== props.connectionData.id) return;
       setActivity(true);
       clearTimeout(activityTimer.current);
@@ -55,8 +55,8 @@ export default (props: ConnectionControlIconPropsInterface) => {
     const onWebsocket = (event: {getData: () => EstablishedConnectionInterface}) => {
       if (event.getData().connection.id === props.connectionData.id) update();
     };
-    const events = [WebsocketConnectionWasLost.name, WebsocketConnectionWasRestored.name, WebsocketConnectionWasClosed.name]
-      .map((name) => EventBus.subscribe<EstablishedConnectionInterface>(name, onWebsocket));
+    const events = [WebsocketConnectionWasLost, WebsocketConnectionWasRestored, WebsocketConnectionWasClosed]
+      .map((eventClass) => EventBus.subscribe<EstablishedConnectionInterface>(eventClass, onWebsocket));
     const interValId = setInterval(update, 1000);
     update();
 
@@ -75,7 +75,7 @@ export default (props: ConnectionControlIconPropsInterface) => {
 
   useEffect(() => {
     /** Close connection popup if connection was established */
-    const connectionWasEstablished = EventBus.subscribe(ConnectionWasEstablished.name, () => {
+    const connectionWasEstablished = EventBus.subscribe(ConnectionWasEstablished, () => {
       handleCloseConnectionDialog();
     });
 
@@ -97,12 +97,12 @@ export default (props: ConnectionControlIconPropsInterface) => {
         connectPopup.current?.open();
         return;
       }
-      const rejected = EventBus.subscribe(ConnectionRequestWasRejected.name, () => {
+      const rejected = EventBus.subscribe(ConnectionRequestWasRejected, () => {
         EventBus.unSub(rejected);
         EventBus.unSub(established);
         connectPopup.current?.open();
       });
-      const established = EventBus.subscribe(ConnectionWasEstablished.name, () => {
+      const established = EventBus.subscribe(ConnectionWasEstablished, () => {
         EventBus.unSub(rejected);
         EventBus.unSub(established);
       });

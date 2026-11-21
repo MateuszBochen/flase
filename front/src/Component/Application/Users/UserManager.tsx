@@ -2,8 +2,7 @@ import React, {useCallback, useEffect, useRef, useState} from 'react';
 import toast from 'react-hot-toast';
 import ApplicationInterface from '../ApplicationInterface';
 import ConnectionDataInterface from '../../../Library/Connection/Interface/ConnectionDataInterface';
-import EventBus from '../../../Library/EventBus/EventBus';
-import WebsocketReceivedAMessage from '../../../Library/WebSocket/Event/WebsocketReceivedAMessage';
+import TabMessages from '../../../Library/WebSocket/TabMessages';
 import MessageInterface from '../../../Library/WebSocket/Interface/MessageInterface';
 import MessageType from '../../../Library/WebSocket/Enum/MessageType';
 import UsersApi from '../../../Library/Users/UsersApi';
@@ -13,6 +12,7 @@ import Popup from '../../../UI/Popup/Popup';
 import Button from '../../../UI/Button/Button';
 import GrantForm from './GrantForm';
 import './style.css';
+import DriverFactory from '../../../Library/Database/Driver/DriverFactory';
 
 export interface UserManagerPropsInterface extends ApplicationInterface {
   connection: ConnectionDataInterface;
@@ -28,7 +28,7 @@ const accountName = (user: UserRefType) => user.host === null ? user.name : `${u
 export default (props: UserManagerPropsInterface) => {
   const connection = useConnectionSettings(props.connection);
   const tabId = `${props.tabId}:users`;
-  const isPostgres = /^(postgres|postgresql|pgsql):/i.test(connection.dsn);
+  const features = DriverFactory.getDriver(props.connection).features;
   const [users, setUsers] = useState<DbUserInterface[]>([]);
   const [levels, setLevels] = useState<PrivilegeLevelInterface[]>([]);
   const [selected, setSelected] = useState<UserRefType | null>(null);
@@ -46,9 +46,7 @@ export default (props: UserManagerPropsInterface) => {
   const reload = useCallback(() => UsersApi.loadUsers(connection, tabId), [connection, tabId]);
 
   useEffect(() => {
-    const eventId = EventBus.subscribe<MessageInterface<any>>(WebsocketReceivedAMessage.name, (event) => {
-      const message = event.getData();
-      if (message.payload?.tabId !== tabId) return;
+    const unsubscribe = TabMessages.subscribe<any>(tabId, (message) => {
       switch (message.message) {
         case MessageType.USERS:
           setUsers(message.payload.users);
@@ -76,7 +74,7 @@ export default (props: UserManagerPropsInterface) => {
             setSelected(null);
             setGrants(null);
           } else if (applied?.change.kind === 'create') {
-            setSelected({name: applied.change.name.trim(), host: isPostgres ? null : (applied.change.host?.trim() || '%')});
+            setSelected({name: applied.change.name.trim(), host: features.accountHost ? (applied.change.host?.trim() || '%') : null});
           } else if (selectedRef.current) {
             UsersApi.loadGrants(connection, tabId, selectedRef.current);
           }
@@ -93,7 +91,7 @@ export default (props: UserManagerPropsInterface) => {
       }
     });
     reload();
-    return () => EventBus.unSub(eventId);
+    return () => unsubscribe();
   }, [tabId]);
 
   useEffect(() => {
@@ -119,7 +117,7 @@ export default (props: UserManagerPropsInterface) => {
   const destructive = preview?.change.kind === 'drop' || preview?.change.kind === 'revoke';
   const selectedUser = users.find((user) => sameUser(user, selected));
   const shown = users.filter((user) => !filter || accountName(user).toLowerCase().includes(filter.toLowerCase()));
-  const label = isPostgres ? 'role' : 'user';
+  const label = features.labels.account;
 
   return (
     <div className="cmp-user-manager">
@@ -176,8 +174,8 @@ export default (props: UserManagerPropsInterface) => {
       </div>
 
       {form?.type === 'create' && (
-        <CreateUserForm isPostgres={isPostgres} busy={busy} onCancel={() => setForm(null)}
-          onPreview={(name, host, password) => requestPreview({kind: 'create', name, host: isPostgres ? null : host, password}, null)} />
+        <CreateUserForm label={label} withHost={features.accountHost} hint={features.hints.newAccount} busy={busy} onCancel={() => setForm(null)}
+          onPreview={(name, host, password) => requestPreview({kind: 'create', name, host: features.accountHost ? host : null, password}, null)} />
       )}
       {form?.type === 'password' && selected && (
         <PasswordForm title={`Password of ${accountName(selected)}`} busy={busy} onCancel={() => setForm(null)}
@@ -205,7 +203,7 @@ export default (props: UserManagerPropsInterface) => {
   );
 }
 
-const CreateUserForm = (props: {isPostgres: boolean, busy: boolean, onCancel: () => void, onPreview: (name: string, host: string, password: string) => void}) => {
+const CreateUserForm = (props: {label: string, withHost: boolean, hint: string | null, busy: boolean, onCancel: () => void, onPreview: (name: string, host: string, password: string) => void}) => {
   const [name, setName] = useState<string>('');
   const [host, setHost] = useState<string>('%');
   const [password, setPassword] = useState<string>('');
@@ -213,7 +211,7 @@ const CreateUserForm = (props: {isPostgres: boolean, busy: boolean, onCancel: ()
   return (
     <Popup
       openOnMount
-      label={props.isPostgres ? 'New role' : 'New user'}
+      label={`New ${props.label}`}
       onClickOk={preview}
       onClose={props.onCancel}
       buttons={[
@@ -223,9 +221,9 @@ const CreateUserForm = (props: {isPostgres: boolean, busy: boolean, onCancel: ()
     >
       <div className="cmp-structure-form">
         <label>Name<input value={name} onChange={(e) => setName(e.target.value)} autoFocus /></label>
-        {!props.isPostgres && <label>Host<input value={host} onChange={(e) => setHost(e.target.value)} placeholder="% = any host" /></label>}
+        {props.withHost && <label>Host<input value={host} onChange={(e) => setHost(e.target.value)} placeholder="% = any host" /></label>}
         <label>Password<input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" /></label>
-        {props.isPostgres && <div className="hint">Role is created with LOGIN.</div>}
+        {props.hint && <div className="hint">{props.hint}</div>}
       </div>
     </Popup>
   );

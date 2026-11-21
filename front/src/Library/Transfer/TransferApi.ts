@@ -2,8 +2,7 @@ import ConnectionManager from '../Connection/ConnectionManager';
 import ConnectionDataInterface from '../Connection/Interface/ConnectionDataInterface';
 import CommandType from '../WebSocket/Enum/CommandType';
 import MessageType from '../WebSocket/Enum/MessageType';
-import EventBus from '../EventBus/EventBus';
-import WebsocketReceivedAMessage from '../WebSocket/Event/WebsocketReceivedAMessage';
+import TabMessages from '../WebSocket/TabMessages';
 import MessageInterface from '../WebSocket/Interface/MessageInterface';
 import BaseRequest from '../API/Request/BaseRequest';
 import {ImportFinishedInterface, TransferRequestType} from './TransferInterface';
@@ -16,14 +15,12 @@ class TransferApi {
   /** one time ticket valid for one minute */
   static requestTicket(connection: ConnectionDataInterface, tabId: string, transfer: TransferRequestType): Promise<string> {
     return new Promise((resolve, reject) => {
-      const eventId = EventBus.subscribe<MessageInterface<any>>(WebsocketReceivedAMessage.name, (event) => {
-        const message = event.getData();
-        if (message.payload?.tabId !== tabId) return;
+      const unsubscribe = TabMessages.subscribe<any>(tabId, (message) => {
         if (message.message === MessageType.TRANSFER_TICKET) {
-          EventBus.unSub(eventId);
+          unsubscribe();
           resolve(message.payload.ticket);
         } else if (message.message === MessageType.QUERY_ERROR) {
-          EventBus.unSub(eventId);
+          unsubscribe();
           reject(new Error(message.payload.error));
         }
       });
@@ -37,7 +34,7 @@ class TransferApi {
           payload: {tabId, transfer},
         });
       } catch (e) {
-        EventBus.unSub(eventId);
+        unsubscribe();
         reject(e);
       }
     });
@@ -88,14 +85,13 @@ class TransferApi {
   static upload(ticket: string, tabId: string, file: Blob, onUpload: (sent: number, total: number) => void): Promise<ImportFinishedInterface> {
     return new Promise((resolve, reject) => {
       // subscribed before upload - short import can finish before the answer arrives
-      const eventId = EventBus.subscribe<MessageInterface<any>>(WebsocketReceivedAMessage.name, (event) => {
-        const message = event.getData();
-        if (message.payload?.tabId === tabId && message.message === MessageType.IMPORT_FINISHED) {
+      const unsubscribe = TabMessages.subscribe<any>(tabId, (message) => {
+        if (message.message === MessageType.IMPORT_FINISHED) {
           done();
           resolve(message.payload);
         }
       });
-      const done = () => EventBus.unSub(eventId);
+      const done = () => unsubscribe();
 
       const request = new XMLHttpRequest();
       request.open('POST', `${BaseRequest.API_URL}/api/transfer/${ticket}`);

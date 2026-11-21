@@ -118,7 +118,7 @@ export default (props: SqlConsolePropsInterface) => {
         DatabaseManger.getInstance().aksForDatabaseList(established);
       }
     } catch (e) {}
-    const eventId = EventBus.subscribe(DatabaseWasReceived.name, refresh);
+    const eventId = EventBus.subscribe(DatabaseWasReceived, refresh);
     return () => EventBus.unSub(eventId);
   }, [props.connection]);
 
@@ -139,9 +139,9 @@ export default (props: SqlConsolePropsInterface) => {
     const selection = editor.getSelection();
     const selected = selection && !selection.isEmpty() ? model.getValueInRange(selection) : '';
     if (selected.trim()) {
-      return splitSql(selected, driver.dialect).map((statement) => statement.sql);
+      return splitSql(selected, driver.syntax).map((statement) => statement.sql);
     }
-    const statement = statementAt(model.getValue(), model.getOffsetAt(editor.getPosition()), driver.dialect);
+    const statement = statementAt(model.getValue(), model.getOffsetAt(editor.getPosition()), driver.syntax);
     return statement ? [statement.sql] : [];
   };
 
@@ -152,7 +152,7 @@ export default (props: SqlConsolePropsInterface) => {
 
   /** UPDATE / DELETE without WHERE is executed after confirmation */
   const confirmAndExecute = (statements: string[]) => {
-    const unsafe = statements.filter((sql) => unsafeChangeOf(sql, driver.dialect));
+    const unsafe = statements.filter((sql) => unsafeChangeOf(sql, driver.syntax));
     if (unsafe.length) {
       setPendingRun({kind: 'unsafe', statements, unsafe});
     } else {
@@ -162,7 +162,7 @@ export default (props: SqlConsolePropsInterface) => {
 
   /** :parameters get values first */
   const withParameters = (statements: string[], then: (statements: string[]) => void) => {
-    const names = parametersOf(statements, driver.dialect);
+    const names = parametersOf(statements, driver.syntax);
     if (names.length) {
       setPendingRun({kind: 'parameters', statements, names, then});
     } else {
@@ -182,11 +182,11 @@ export default (props: SqlConsolePropsInterface) => {
     // values are offered again next time (also after reload)
     TabState.update(props.tabId, {parameters: {...(TabState.get(props.tabId).parameters || {}), ...values}});
     const literals = Object.fromEntries(Object.entries(values).map(([name, value]) => [name, value.sql ? value.value.trim() || 'NULL' : driver.sql.value(value.value)]));
-    return statements.map((sql) => bindParameters(sql, driver.dialect, literals));
+    return statements.map((sql) => bindParameters(sql, driver.syntax, literals));
   };
 
   const runCurrent = () => start(currentStatements());
-  const runAll = () => start(splitSql(editorText(), driver.dialect).map((statement) => statement.sql));
+  const runAll = () => start(splitSql(editorText(), driver.syntax).map((statement) => statement.sql));
   const explain = () => {
     const [statement] = currentStatements();
     if (!statement) {
@@ -289,7 +289,7 @@ export default (props: SqlConsolePropsInterface) => {
     if (!model || !monaco) return;
     const text = model.getValue();
     const tables = database ? TableManager.getInstance().getTablesListForDatabase(props.connection, {name: database}) : [];
-    const problems = inspectSql(text, splitSql(text, driver.dialect), driver.dialect, {
+    const problems = inspectSql(text, splitSql(text, driver.syntax), driver.syntax, {
       database,
       tables: tables.length ? tables.map((table) => ({name: table.tableName, columns: table.columns.map((column) => column.name)})) : null,
     });
@@ -315,7 +315,7 @@ export default (props: SqlConsolePropsInterface) => {
   // other database or its tables loaded
   useEffect(() => {
     scheduleInspection();
-    const eventId = EventBus.subscribe(TableInformationWasReceived.name, scheduleInspection);
+    const eventId = EventBus.subscribe(TableInformationWasReceived, scheduleInspection);
     return () => {
       EventBus.unSub(eventId);
       if (inspectionTimer.current) clearTimeout(inspectionTimer.current);
@@ -393,7 +393,7 @@ export default (props: SqlConsolePropsInterface) => {
             onEditorMount={onEditorMount}
           />
         </div>
-        <QueryLibrary connection={props.connection} onInsert={insertText} onRun={(sql) => start(splitSql(sql, driver.dialect).map((statement) => statement.sql))} />
+        <QueryLibrary connection={props.connection} onInsert={insertText} onRun={(sql) => start(splitSql(sql, driver.syntax).map((statement) => statement.sql))} />
       </div>
       <div className="console-resize" onMouseDown={startResize} title="Drag to resize" />
 

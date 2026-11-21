@@ -1,12 +1,13 @@
 import {parseConnectionDsn} from './Dsn';
 import EventBus from '../EventBus/EventBus';
 import EventInterface from '../EventBus/EventInterface';
-import WebsocketReceivedAMessage from '../WebSocket/Event/WebsocketReceivedAMessage';
+import TabMessages from '../WebSocket/TabMessages';
 import MessageInterface from '../WebSocket/Interface/MessageInterface';
 import MessageType from '../WebSocket/Enum/MessageType';
 import CommandType from '../WebSocket/Enum/CommandType';
 import {sendServerCommand} from '../Server/useServerRequest';
 import ConnectionDataInterface from './Interface/ConnectionDataInterface';
+import {engineOfScheme} from './Engines';
 
 /** database of PostgreSQL server */
 export interface CatalogInterface {
@@ -34,13 +35,13 @@ const lists: {[connectionId: string]: CatalogInterface[]} = {};
  * database is opened as own connection with login of the parent connection.
  */
 const Catalogs = {
-  eventName: CatalogsWereReceived.name,
+  eventClass: CatalogsWereReceived,
 
   /** connection shows databases above schemas */
   hasCatalogs: (connection: ConnectionDataInterface): boolean => {
     if (connection.parentId) return false;
     const parsed = parseConnectionDsn(connection.dsn);
-    return parsed.success && /^(postgresql|postgres|pgsql)$/i.test(parsed.value.driver) && !parsed.value.db;
+    return parsed.success && !!engineOfScheme(parsed.value.driver)?.catalogs && !parsed.value.db;
   },
 
   /** connection of database - the same address, login and settings, own id */
@@ -56,10 +57,8 @@ const Catalogs = {
 
   load: (connection: ConnectionDataInterface) => {
     const tabId = `catalogs:${connection.id}`;
-    const eventId = EventBus.subscribe<MessageInterface<any>>(WebsocketReceivedAMessage.name, (event) => {
-      const message = event.getData();
-      if (message.payload?.tabId !== tabId) return;
-      EventBus.unSub(eventId);
+    const unsubscribe = TabMessages.subscribe<any>(tabId, (message) => {
+      unsubscribe();
       if (message.message === MessageType.CATALOGS) {
         lists[connection.id] = message.payload.catalogs;
         EventBus.emit(new CatalogsWereReceived(connection.id));

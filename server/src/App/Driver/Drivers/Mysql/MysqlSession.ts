@@ -1,8 +1,6 @@
-import {Observable} from 'rxjs';
 import {FieldInfo, MysqlError, PoolConnection} from 'mysql';
-import DriverSessionInterface from '../../DriverSessionInterface';
+import DriverSessionInterface, {RowSinkType} from '../../DriverSessionInterface';
 import TotalCountDto from '../../../../Driver/Dto/TotalCountDto';
-import RowDto from '../../../../Driver/Dto/RowDto';
 import UpdateResultType from '../../../../Driver/Type/UpdateResultType';
 import RecordType from '../../../../Driver/Type/Data/RecordType';
 import ResultFieldInterface from '../../Interface/Data/ResultFieldInterface';
@@ -10,7 +8,10 @@ import RowChangeStatementInterface from '../../Interface/Data/RowChangeStatement
 import {StatementResultType} from '../../Interface/Data/StatementInterface';
 import SelectAnalyser from '../../Query/SelectAnalyser';
 import {serializeValue} from '../BinaryValue';
-import {FOREIGN_KEY_CHECKS_OFF, TransactionOptionsInterface} from '../../ForeignKeyChecks';
+import {ForeignKeyChecksOffInterface, TransactionOptionsInterface} from '../../ForeignKeyChecks';
+
+/** session variable - the same for transaction and session, set back after transaction also when it failed */
+export const MYSQL_FOREIGN_KEY_CHECKS_OFF: ForeignKeyChecksOffInterface = {before: ['SET FOREIGN_KEY_CHECKS = 0'], after: ['SET FOREIGN_KEY_CHECKS = 1']};
 import CountTimeoutError from '../../Query/CountTimeoutError';
 
 /** select stopped by time limit - MySQL ER_QUERY_TIMEOUT, MariaDB ER_STATEMENT_TIMEOUT, interrupted query (TiDB) */
@@ -85,27 +86,42 @@ class MysqlSession implements DriverSessionInterface {
     }
   }
 
-  streamSelect(query: string, onFields?: (fields: ResultFieldInterface[]) => void, fullValues = false): Observable<RowDto> {
+  streamSelect(query: string, onFields: (fields: ResultFieldInterface[]) => void, onRow: RowSinkType, fullValues = false): Promise<void> {
     console.log(`\x1b[33m Query Stream: ${query} \x1b[0m`);
 
-    return new Observable(observer => {
+    return new Promise((resolve, reject) => {
       let resultFields: ResultFieldInterface[] = [];
+      let failed = false;
 
       // values are nested by table alias, so same column names of joined tables do not overwrite each other
       this.connection.query({sql: query, nestTables: true})
-        .on('error', (error: MysqlError) => observer.error(error))
+        .on('error', (error: MysqlError) => {
+          failed = true;
+          reject(error);
+        })
         .on('fields', (fields: FieldInfo[]) => {
           resultFields = MysqlSession.toResultFields(fields || []);
-          onFields?.(resultFields);
+          onFields(resultFields);
         })
         .on('result', (row: {[table: string]: RecordType}) => {
           const flatRow: RecordType = {};
           resultFields.forEach((field) => flatRow[field.key] = serializeValue(row[field.table]?.[field.name], fullValues));
-          observer.next(new RowDto(flatRow));
+          this.pauseUntil(onRow(flatRow));
         })
-        // 'end' is emitted also after error - complete is then ignored by rxjs
-        .on('end', () => observer.complete());
+        // 'end' is emitted also after error
+        .on('end', () => {
+          if (!failed) resolve();
+        });
     });
+  }
+
+  /** receiver of rows is full - rows are not read from server until it has room again */
+  private pauseUntil(wait: void | Promise<void>): void {
+    if (!wait) {
+      return;
+    }
+    this.connection.pause();
+    wait.finally(() => this.connection.resume());
   }
 
   updateQuery(query: string): Promise<UpdateResultType> {
@@ -124,8 +140,20 @@ class MysqlSession implements DriverSessionInterface {
     });
   }
 
+  async beginTransaction(): Promise<void> {
+    await this.query('START TRANSACTION');
+  }
+
+  async commit(): Promise<void> {
+    await this.query('COMMIT');
+  }
+
+  async rollback(): Promise<void> {
+    await this.query('ROLLBACK');
+  }
+
   async executeInTransaction(statements: RowChangeStatementInterface[], options: TransactionOptionsInterface = {}): Promise<number> {
-    const checksOff = FOREIGN_KEY_CHECKS_OFF.mysql;
+    const checksOff = MYSQL_FOREIGN_KEY_CHECKS_OFF;
     if (options.ignoreForeignKeys) {
       for (const sql of checksOff.before) await this.query(sql);
     }
@@ -167,7 +195,7 @@ class MysqlSession implements DriverSessionInterface {
   execute(
     sql: string,
     onFields: (fields: ResultFieldInterface[]) => void,
-    onRow: (row: RecordType) => void,
+    onRow: RowSinkType,
     maxRows: number,
   ): Promise<StatementResultType> {
     return new Promise((resolve, reject) => {
@@ -201,7 +229,7 @@ class MysqlSession implements DriverSessionInterface {
           if (rows <= maxRows) {
             const flatRow: RecordType = {};
             resultFields.forEach((field) => flatRow[field.key] = serializeValue(row[field.table]?.[field.name]));
-            onRow(flatRow);
+            this.pauseUntil(onRow(flatRow));
           }
         })
         .on('end', () => {

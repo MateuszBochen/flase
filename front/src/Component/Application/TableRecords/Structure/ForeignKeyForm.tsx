@@ -46,7 +46,7 @@ export default (props: ForeignKeyFormPropsInterface) => {
 
   useEffect(() => {
     tableManager.askForTableList(props.connection, database, false);
-    const eventId = EventBus.subscribe(TableInformationWasReceived.name, () => setTables(listTables()));
+    const eventId = EventBus.subscribe(TableInformationWasReceived, () => setTables(listTables()));
     return () => EventBus.unSub(eventId);
   }, [props.connection, props.table.databaseName]);
 

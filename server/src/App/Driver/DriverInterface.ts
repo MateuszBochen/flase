@@ -26,6 +26,7 @@ import {
 import {DumpProgressCallbackType} from '../Transfer/DumpParts';
 import {SqlSyntaxInterface} from './Query/SqlSyntax';
 import DriverFeaturesInterface from './DriverFeaturesInterface';
+import {ForeignKeyChecksOffInterface, ForeignKeyChecksScopeType} from './ForeignKeyChecks';
 
 interface DriverInterface {
   /** syntax family of SQL - the same family has the same syntax and features */
@@ -125,6 +126,15 @@ interface DriverInterface {
 
   /** COUNT(*) query of select (without LIMIT and ORDER BY) - the same for every page and sort, key of counted rows */
   getCountQuery(query: string): string;
+
+  /** statements turning checks of foreign keys off and on again - sessions use them, preview of changes shows them */
+  foreignKeyChecksOff(scope: ForeignKeyChecksScopeType): ForeignKeyChecksOffInterface;
+
+  /** database (schema) selected by statement (USE, SET search_path), null when statement does not change it */
+  selectedDatabaseOf(sql: string): string | null;
+
+  /** reason why statement is refused on read only connection (it would switch read only off or work outside of it), null when allowed */
+  refuseOnReadOnly(sql: string): string | null;
 
   /**
    * Build escaped sql statements for row changes of given table

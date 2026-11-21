@@ -39,7 +39,7 @@ let tabSeq = 0;
       return {
         done, colMsg,
         columns: colMsg?.columns || [],
-        rows: forTab(tabId).filter((m) => m.message === 'SINGLE_SELECT_RECORD').map((m) => m.payload.rowDataValue),
+        rows: forTab(tabId).filter((m) => m.message === 'SELECT_RECORDS').flatMap((m) => m.payload.rows),
       };
     };
     const apply = async (changes, dryRun, table = 'edit_test', options = {}) => {

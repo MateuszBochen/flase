@@ -1,9 +1,7 @@
-import SqlDialectType from './SqlDialectType';
-
 /**
  * Lexical rules of SQL of a database family - strings, names, comments and statement delimiters.
- * Splitter of import and checks of SQL text ask these rules instead of checking the dialect;
- * the same rules are in client (front/src/Library/Database/Driver/Syntax/SqlSyntax.ts).
+ * Splitter of import and checks of SQL text ask these rules instead of checking the dialect - each driver has its rules
+ * (driver.syntax); * the same rules are in client (front/src/Library/Database/Driver/Syntax/SqlSyntax.ts).
  * @author Mateusz Bochen
  */
 export interface SqlSyntaxInterface {
@@ -29,43 +27,6 @@ export interface SqlSyntaxInterface {
   readonly parserDatabase: string;
   quoteIdentifier(name: string): string;
 }
-
-export const MYSQL_SYNTAX: SqlSyntaxInterface = {
-  stringQuotes: ["'", '"'],
-  identifierQuotes: ['`'],
-  backslashEscapes: 'all',
-  hashComments: true,
-  dashCommentNeedsSpace: true,
-  nestedBlockComments: false,
-  executableComments: true,
-  dollarQuotes: false,
-  delimiterCommand: true,
-  parserDatabase: 'mysql',
-  quoteIdentifier: (name) => `\`${name.replace(/`/g, '``')}\``,
-};
-
-export const POSTGRES_SYNTAX: SqlSyntaxInterface = {
-  stringQuotes: ["'"],
-  identifierQuotes: ['"'],
-  backslashEscapes: 'escape-strings',
-  hashComments: false,
-  dashCommentNeedsSpace: false,
-  nestedBlockComments: true,
-  executableComments: false,
-  dollarQuotes: true,
-  delimiterCommand: false,
-  parserDatabase: 'postgresql',
-  quoteIdentifier: (name) => `"${name.replace(/"/g, '""')}"`,
-};
-
-const SYNTAX: {[dialect in SqlDialectType]: SqlSyntaxInterface} = {
-  mysql: MYSQL_SYNTAX,
-  postgresql: POSTGRES_SYNTAX,
-};
-
-/** rules of the dialect - drivers expose them as driver.syntax */
-// other than mysql is PostgreSQL family - as before the rules were moved here (e.g. 'postgres' of older callers)
-export const syntaxOf = (dialect: SqlDialectType = 'mysql'): SqlSyntaxInterface => SYNTAX[dialect] ?? POSTGRES_SYNTAX;
 
 /** -- or # comment starts at index */
 export const lineCommentAt = (text: string, index: number, syntax: SqlSyntaxInterface): boolean => {

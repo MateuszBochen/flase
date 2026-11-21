@@ -34,7 +34,7 @@ export default ({tabId}: {tabId?: string}) => {
   useEffect(() => {
     if (!tabId) return undefined;
     setTiming(QueryTiming.last(tabId));
-    const eventId = EventBus.subscribe<{tabId: string, timing: QueryTimingInterface}>(QueryTimingWasMeasured.name, (event) => {
+    const eventId = EventBus.subscribe<{tabId: string, timing: QueryTimingInterface}>(QueryTimingWasMeasured, (event) => {
       if (event.getData().tabId === tabId) setTiming(event.getData().timing);
     });
     return () => EventBus.unSub(eventId);

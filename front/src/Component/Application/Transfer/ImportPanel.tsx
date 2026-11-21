@@ -4,7 +4,7 @@ import ConnectionDataInterface from '../../../Library/Connection/Interface/Conne
 import TableManager from '../../../Library/Table/TableManager';
 import EventBus from '../../../Library/EventBus/EventBus';
 import TableInformationWasReceived from '../../../Library/Table/Event/TableInformationWasReceived';
-import WebsocketReceivedAMessage from '../../../Library/WebSocket/Event/WebsocketReceivedAMessage';
+import TabMessages from '../../../Library/WebSocket/TabMessages';
 import MessageInterface from '../../../Library/WebSocket/Interface/MessageInterface';
 import MessageType from '../../../Library/WebSocket/Enum/MessageType';
 import TransferApi from '../../../Library/Transfer/TransferApi';
@@ -81,7 +81,7 @@ export default (props: ImportPanelPropsInterface) => {
   const isCsv = !!file && /\.(csv|tsv|txt)(\.gz)?$/i.test(file.name);
 
   useEffect(() => {
-    const eventId = EventBus.subscribe(TableInformationWasReceived.name, () => {
+    const eventId = EventBus.subscribe(TableInformationWasReceived, () => {
       setTables(tableManager.getTablesListForDatabase(props.connection, {name: props.database}));
     });
     tableManager.askForTableList(props.connection, {name: props.database}, false);
@@ -89,15 +89,14 @@ export default (props: ImportPanelPropsInterface) => {
   }, [props.connection, props.database]);
 
   useEffect(() => {
-    const eventId = EventBus.subscribe<MessageInterface<any>>(WebsocketReceivedAMessage.name, (event) => {
-      const message = event.getData();
+    // tab of import changes with each import - only messages of the running one
+    return TabMessages.subscribeTree<any>(`${props.tabId}:import`, (message) => {
       if (!importTabId.current || message.payload?.tabId !== importTabId.current) return;
       if (message.message === MessageType.IMPORT_PROGRESS) {
         setProgress(message.payload);
       }
     });
-    return () => EventBus.unSub(eventId);
-  }, []);
+  }, [props.tabId]);
 
   /** beginning of CSV file for preview and column mapping */
   useEffect(() => {
@@ -212,7 +211,7 @@ export default (props: ImportPanelPropsInterface) => {
 
       {file && !isCsv && (
         <div className="transfer-options inline">
-          <span>into {databaseLabel} <b>{props.database}</b> ({databaseLabel === 'schema' ? 'SET search_path' : 'USE'} in script can change it)</span>
+          <span>into {databaseLabel} <b>{props.database}</b> ({features.hints.importDatabaseSwitch} in script can change it)</span>
           <label className="transfer-check"><input type="checkbox" checked={stopOnError} onChange={(e) => setStopOnError(e.target.checked)} />Stop on first error</label>
           {foreignKeysOption}
         </div>

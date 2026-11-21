@@ -1,8 +1,11 @@
 
 import StreamingSqlSplitter from '../../server/src/App/Transfer/StreamingSqlSplitter';
+import {MYSQL_SYNTAX} from '../../server/src/App/Driver/Drivers/Mysql/MysqlSyntax';
+import {POSTGRES_SYNTAX} from '../../server/src/App/Driver/Drivers/Postgres/PostgresSyntax';
+const SYNTAX: any = {mysql: MYSQL_SYNTAX, postgresql: POSTGRES_SYNTAX};
 let failures = 0;
 const check = (name: string, ok: boolean, info: any = '') => { if (!ok) failures++; console.log((ok ? 'PASS ' : 'FAIL ') + name + (ok ? '' : ' -- ' + JSON.stringify(info))); };
-const split = (text: string, size: number, dialect: any = 'mysql') => { const s = new StreamingSqlSplitter(dialect); const out: string[] = []; for (let i = 0; i < text.length; i += size) out.push(...s.push(text.slice(i, i + size))); out.push(...s.end()); return out; };
+const split = (text: string, size: number, dialect: any = 'mysql') => { const s = new StreamingSqlSplitter(SYNTAX[dialect]); const out: string[] = []; for (let i = 0; i < text.length; i += size) out.push(...s.push(text.slice(i, i + size))); out.push(...s.end()); return out; };
 const script = [
   "SET NAMES utf8mb4;",
   "-- comment; here",

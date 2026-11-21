@@ -9,11 +9,13 @@ import SqlLiteral from './SqlLiteral';
 import SqlDialectType from '../../SqlDialectType';
 import DriverFeaturesInterface from '../../DriverFeaturesInterface';
 import defaultMysqlKeyWords from './DefaultAutocompleteKeywords';
-import {MYSQL_SYNTAX} from '../../Syntax/SqlSyntax';
+import {MYSQL_SYNTAX} from './MysqlSyntax';
 import {DatabaseRoutineInterface, ObjectRefInterface} from '../../../Interface/DatabaseObjectsInterface';
 import {RoutineValueType} from '../../RoutineCallInterface';
 import {MYSQL_MAINTENANCE, mysqlObjectTemplate, mysqlPlanStatements, mysqlRoutineStatements} from './MysqlStatements';
 import {SearchModeType} from '../../../Interface/DatabaseSearchInterface';
+import {parseMysqlPlan} from './MysqlPlan';
+import {PlanType} from '../../../../Console/ExplainPlan';
 
 class MysqlAdapter implements DriverInterface {
   readonly dialect: SqlDialectType = 'mysql';
@@ -48,7 +50,10 @@ class MysqlAdapter implements DriverInterface {
       characterSet: 'Character set',
       hitRatio: 'Buffer pool hit ratio',
       rates: 'Statements per second',
+      account: 'user',
+      persistVariable: 'Keep after restart (SET PERSIST)',
     },
+    accountHost: true,
     hints: {
       regexReplace: 'REGEXP_REPLACE - all matches; groups in replacement: $1 (MySQL), \\1 (MariaDB).',
       objectEditor: 'Write one CREATE statement without DELIMITER - semicolons inside BEGIN … END are fine.',
@@ -56,6 +61,11 @@ class MysqlAdapter implements DriverInterface {
       autoIncrement: 'Auto increment is the next value; InnoDB does not allow value lower than the current maximum.',
       autoIncrementPlaceholder: '',
       ignoreForeignKeys: () => 'Disable foreign key checks (FOREIGN_KEY_CHECKS = 0)',
+      importDatabaseSwitch: 'USE',
+      newAccount: null,
+      serverVariable: (persist) => persist
+        ? 'SET GLOBAL changes the running server only; with SET PERSIST the value is kept after restart.'
+        : 'SET GLOBAL changes the running server only - change the configuration file to keep the value after restart.',
       importWithoutForeignKeys: 'SET FOREIGN_KEY_CHECKS = 0 for the import - rows may reference rows imported later (tables in any order). Rows referencing missing rows are not found afterwards.',
       renameDatabase: 'MySQL has no RENAME DATABASE - tables are moved to new database and the old one is dropped. Privileges granted on the old name are not moved.',
       renameDatabaseForm: 'Tables are moved to a new database. Databases with views, routines, triggers or events cannot be renamed this way.',
@@ -71,6 +81,14 @@ class MysqlAdapter implements DriverInterface {
 
   planStatements(query: string, analyze: boolean): string[] {
     return mysqlPlanStatements(query, analyze);
+  }
+
+  parsePlan(output: unknown): PlanType | null {
+    return parseMysqlPlan(output);
+  }
+
+  explainStatement(query: string): string {
+    return `EXPLAIN ${query}`;
   }
 
   routineStatements(database: string, routine: DatabaseRoutineInterface, values: RoutineValueType[]): string[] {

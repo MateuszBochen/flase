@@ -8,6 +8,7 @@ import {
 import {DatabaseOperationType, MaintenanceActionType} from '../../Interface/Data/DatabaseOperationInterface';
 import MysqlDdlBuilder from './MysqlDdlBuilder';
 import SqlText from '../../Query/SqlText';
+import {MYSQL_SYNTAX} from './MysqlSyntax';
 const mysql = require('mysql');
 
 type QueryRowsType = (sql: string, params?: any[]) => Promise<any[]>;
@@ -214,12 +215,12 @@ class MysqlDatabaseOperations {
         return [`${command} ${MysqlDatabaseOperations.tableList(operation.database, operation.tables)}`];
       }
       case 'createView': {
-        const select = SqlText.singleStatement(operation.select, 'mysql', 'SELECT of view');
+        const select = SqlText.singleStatement(operation.select, MYSQL_SYNTAX, 'SELECT of view');
         const view = MysqlDdlBuilder.tableName({databaseName: operation.database, name: operation.name});
         return [`CREATE ${operation.replace ? 'OR REPLACE ' : ''}VIEW ${view} AS\n${select}`];
       }
       case 'objectDdl': {
-        const sql = SqlText.createStatement(operation.sql, 'mysql');
+        const sql = SqlText.createStatement(operation.sql, MYSQL_SYNTAX);
         if (!operation.replace) {
           return [sql];
         }

@@ -156,7 +156,7 @@ export default (props: ErDiagramPropsInterface) => {
   pendingDrop.current = (name: string) => change.requestPreview({kind: 'alter', operations: [{op: 'dropForeignKey', name}]});
 
   useEffect(() => {
-    const eventId = EventBus.subscribe(TableInformationWasReceived.name, () => setTables(listTables()));
+    const eventId = EventBus.subscribe(TableInformationWasReceived, () => setTables(listTables()));
     tableManager.askForTableList(props.connection, {name: props.database}, false);
     return () => EventBus.unSub(eventId);
   }, [props.connection, props.database]);

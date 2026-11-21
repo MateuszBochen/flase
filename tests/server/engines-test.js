@@ -34,7 +34,7 @@ const connect = async (connection) => {
       if (m) {
         await sleep(30);
         return {...m, tabId, error: m.message === 'QUERY_ERROR' ? m.payload.error : null,
-          rows: messages.filter((x) => x.payload?.tabId === tabId && x.message === 'SINGLE_SELECT_RECORD').map((x) => x.payload.rowDataValue)};
+          rows: messages.filter((x) => x.payload?.tabId === tabId && x.message === 'SELECT_RECORDS').flatMap((x) => x.payload.rows)};
       }
       await sleep(30);
     }
@@ -43,7 +43,7 @@ const connect = async (connection) => {
   const sql = async (statements, database) => {
     const r = await request('EXECUTE_STATEMENTS', {database, statements, stopOnError: false}, ['EXECUTION_FINISHED']);
     const finished = messages.filter((m) => m.payload?.tabId === r.tabId && m.message === 'STATEMENT_FINISHED').map((m) => m.payload);
-    return {errors: finished.filter((f) => f.error).map((f) => f.error), rows: (i) => messages.filter((m) => m.payload?.tabId === `${r.tabId}:${i}` && m.message === 'SINGLE_SELECT_RECORD').map((m) => m.payload.rowDataValue)};
+    return {errors: finished.filter((f) => f.error).map((f) => f.error), rows: (i) => messages.filter((m) => m.payload?.tabId === `${r.tabId}:${i}` && m.message === 'SELECT_RECORDS').flatMap((m) => m.payload.rows)};
   };
   return {user, ws, messages, send, request, sql};
 };

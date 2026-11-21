@@ -100,7 +100,7 @@ export default (props: ConnectionMenuPropsInterface) => {
       }
     };
     restore();
-    const eventId = EventBus.subscribe(ConnectionWasEstablished.name, restore);
+    const eventId = EventBus.subscribe(ConnectionWasEstablished, restore);
     return () => EventBus.unSub(eventId);
   }, [props.connectionData.id]);
 

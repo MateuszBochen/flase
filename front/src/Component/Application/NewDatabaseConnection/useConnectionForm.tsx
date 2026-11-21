@@ -19,7 +19,7 @@ type EngineType = string;
 type ModeType = 'host' | 'dsn';
 export type TestStateType = {status: 'idle' | 'testing' | 'ok' | 'error', message?: string, hostKey?: SshHostKeyInterface};
 
-const ENGINE_OPTIONS = ENGINES.map((engine) => ({value: engine.schemes[0], label: engine.label, port: engine.port, hint: engine.hint, dialect: engine.dialect}));
+const ENGINE_OPTIONS = ENGINES.map((engine) => ({value: engine.schemes[0], label: engine.label, port: engine.port, hint: engine.hint, database: engine.database}));
 const optionOf = (engine: EngineType) => ENGINE_OPTIONS.find((item) => item.value === engine) || ENGINE_OPTIONS[0];
 
 const SSH_AUTHS: {value: SshAuthType, label: string, hint: string}[] = [
@@ -322,9 +322,9 @@ export default (options: ConnectionFormOptionsInterface = {}) => {
                 <input value={port} inputMode="numeric" onChange={(e) => { setPort(e.target.value.replace(/\D/g, '')); setTest({status: 'idle'}); }} />
               </label>
               <label className="field grow">
-                <span>Database <em>{optionOf(engine).dialect === 'postgresql' ? 'default postgres' : 'optional'}</em></span>
+                <span>Database <em>{optionOf(engine).database.note}</em></span>
                 <input value={database} onChange={(e) => { setDatabase(e.target.value); setTest({status: 'idle'}); }}
-                  placeholder={optionOf(engine).dialect === 'postgresql' ? 'postgres' : 'all databases'} />
+                  placeholder={optionOf(engine).database.placeholder} />
               </label>
             </div>
           ) : (

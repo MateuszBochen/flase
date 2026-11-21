@@ -26,7 +26,7 @@ const connect = async (connection) => {
       if (m) {
         await sleep(20);
         return {...m, error: m.message === 'QUERY_ERROR' ? m.payload.error : null,
-          rows: messages.filter((x) => x.payload?.tabId === tabId && x.message === 'SINGLE_SELECT_RECORD').map((x) => x.payload.rowDataValue)};
+          rows: messages.filter((x) => x.payload?.tabId === tabId && x.message === 'SELECT_RECORDS').flatMap((x) => x.payload.rows)};
       }
       await sleep(30);
     }

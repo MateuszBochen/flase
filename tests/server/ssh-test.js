@@ -33,7 +33,7 @@ const value = async ({user, connection}, sql, ws_base = WS) => {
   ws.close();
   const error = messages.find((m) => m.message === 'QUERY_ERROR');
   if (error) return `ERROR ${error.payload.error}`;
-  const row = messages.find((m) => m.payload?.tabId === `${tabId}:0` && m.message === 'SINGLE_SELECT_RECORD')?.payload?.rowDataValue;
+  const row = messages.find((m) => m.payload?.tabId === `${tabId}:0` && m.message === 'SELECT_RECORDS')?.payload?.rows[0];
   return row ? Object.values(row).pop() : undefined;
 };
 

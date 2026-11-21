@@ -2,8 +2,7 @@ import React, {useCallback, useEffect, useRef, useState} from 'react';
 import toast from 'react-hot-toast';
 import ApplicationInterface from '../ApplicationInterface';
 import ConnectionDataInterface from '../../../Library/Connection/Interface/ConnectionDataInterface';
-import EventBus from '../../../Library/EventBus/EventBus';
-import WebsocketReceivedAMessage from '../../../Library/WebSocket/Event/WebsocketReceivedAMessage';
+import TabMessages from '../../../Library/WebSocket/TabMessages';
 import MessageInterface from '../../../Library/WebSocket/Interface/MessageInterface';
 import MessageType from '../../../Library/WebSocket/Enum/MessageType';
 import ConsoleApi from '../../../Library/Console/ConsoleApi';
@@ -37,9 +36,7 @@ export default (props: ProcessListPropsInterface) => {
   }, [props.connection, tabId]);
 
   useEffect(() => {
-    const eventId = EventBus.subscribe<MessageInterface<any>>(WebsocketReceivedAMessage.name, (event) => {
-      const message = event.getData();
-      if (message.payload?.tabId !== tabId) return;
+    const unsubscribe = TabMessages.subscribe<any>(tabId, (message) => {
       if (message.message === MessageType.PROCESSLIST) {
         waiting.current = false;
         setProcesses(message.payload.processes);
@@ -53,7 +50,7 @@ export default (props: ProcessListPropsInterface) => {
       }
     });
     load();
-    return () => EventBus.unSub(eventId);
+    return () => unsubscribe();
   }, [tabId, load]);
 
   useEffect(() => {

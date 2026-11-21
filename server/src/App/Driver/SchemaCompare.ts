@@ -117,7 +117,7 @@ export const compareSchemas = async (
   targetDatabase: string,
 ): Promise<SchemaCompareResultInterface> => {
   if (source.dialect !== target.dialect) {
-    throw new Error('Only databases of the same kind can be compared (MySQL / MariaDB with MySQL / MariaDB, PostgreSQL with PostgreSQL)');
+    throw new Error('Only databases of the same family can be compared - DDL of one engine cannot be applied to the other');
   }
   const [from, to] = await Promise.all([loadSchema(source, sourceDatabase), loadSchema(target, targetDatabase)]);
   const targetByName = new Map(to.tables.map((table) => [table.table.name, table]));

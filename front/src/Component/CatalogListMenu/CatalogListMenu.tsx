@@ -57,12 +57,12 @@ const CatalogItem = (props: {parent: ConnectionDataInterface, catalog: CatalogIn
   useEffect(() => {
     connect();
     // session of database expired (server restart) - opened again while parent is connected
-    const closedId = EventBus.subscribe(WebsocketConnectionWasClosed.name, (event: EventInterface<EstablishedConnectionInterface>) => {
+    const closedId = EventBus.subscribe(WebsocketConnectionWasClosed, (event: EventInterface<EstablishedConnectionInterface>) => {
       if (event.getData().connection.id === child.id) {
         setTimeout(() => manager.checkIfConnectionIsActive(props.parent) ? connect() : setStatus({error: `${props.parent.displayName} is not connected`}), 300);
       }
     });
-    const establishedId = EventBus.subscribe(ConnectionWasEstablished.name, () => {
+    const establishedId = EventBus.subscribe(ConnectionWasEstablished, () => {
       if (!manager.checkIfConnectionIsActive(child) && manager.checkIfConnectionIsActive(props.parent)) connect();
     });
     return () => {
@@ -110,7 +110,7 @@ export default (props: {connection: ConnectionDataInterface, collapseSignal?: nu
 
   useEffect(() => {
     setList(Catalogs.listOf(props.connection));
-    const eventId = EventBus.subscribe(Catalogs.eventName, (event: EventInterface<string>) => {
+    const eventId = EventBus.subscribe(Catalogs.eventClass, (event: EventInterface<string>) => {
       if (event.getData() === props.connection.id) setList(Catalogs.listOf(props.connection));
     });
     return () => EventBus.unSub(eventId);

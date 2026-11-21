@@ -117,7 +117,7 @@ class WebsocketRequest {
   }
 
   private resolveCommand(command: CommandInterface, rawCommand: string) : void {
-    const refused = ReadOnlyGuard.refuseCommand(command);
+    const refused = ReadOnlyGuard.refuseCommand(command, this.databaseDriver);
     if (refused) {
       throw new Error(refused);
     }

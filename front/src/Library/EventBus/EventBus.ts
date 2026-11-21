@@ -1,11 +1,10 @@
 import EventInterface from './EventInterface';
 import {v4 as uuidv4} from 'uuid';
-type typeHandler = (event: EventInterface<any>) => void;
 
-type TypeSubscriptionItem = {
-  hash: string,
-  handler: typeHandler,
-}
+type HandlerType = (event: EventInterface<any>) => void;
+
+/** class of event - handlers are found by the class itself, its name is shortened in production build */
+export type EventClassType<T = any> = abstract new (...args: any[]) => EventInterface<T>;
 
 class EventBus {
 
@@ -20,53 +19,46 @@ class EventBus {
     return EventBus.instance;
   }
 
-  events : {[key:string]: TypeSubscriptionItem[] } = {};
+  private readonly handlers = new Map<Function, Map<string, HandlerType>>();
+  /** event class of subscription - unSub does not search all events */
+  private readonly subscriptions = new Map<string, Function>();
 
   /** block constructor */
   private constructor() {
   }
 
   emit = <T>(event: EventInterface<T>) => {
-    const handlers = this.events[event.constructor.name];
-
-    if (!handlers || !handlers.length) {
+    const handlers = this.handlers.get(event.constructor);
+    if (!handlers || !handlers.size) {
       return;
     }
-
-    handlers.forEach((handler) => handler.handler(event));
+    // copy - handler may unsubscribe (one answer) or subscribe while it runs
+    Array.from(handlers.values()).forEach((handler) => handler(event));
   }
 
-  subscribe = <T>(name:string, handler: (event: EventInterface<T>) => void): string => {
-    if (!this.events[name]) {
-      this.events[name] = [];
+  /** returns id for unSub */
+  subscribe = <T>(eventClass: EventClassType, handler: (event: EventInterface<T>) => void): string => {
+    let handlers = this.handlers.get(eventClass);
+    if (!handlers) {
+      handlers = new Map();
+      this.handlers.set(eventClass, handlers);
     }
-
     const hash = uuidv4();
-
-    const filtered = this.events[name].filter((handlerItem) => {
-      return handlerItem.hash === hash
-    });
-
-    if (filtered.length) {
-      filtered.forEach((handlerItem) => {
-        handlerItem.handler = handler;
-      });
-    } else {
-      this.events[name].push({
-        handler,
-        hash,
-      });
-    }
-
+    handlers.set(hash, handler);
+    this.subscriptions.set(hash, eventClass);
     return hash;
   }
 
   unSub(hash: string): void {
-    for (const [key, value] of Object.entries(this.events)) {
-      const handlers = this.events[key];
-      this.events[key] = handlers.filter((handlerItem) => {
-        return handlerItem.hash !== hash
-      });
+    const eventClass = this.subscriptions.get(hash);
+    if (!eventClass) {
+      return;
+    }
+    this.subscriptions.delete(hash);
+    const handlers = this.handlers.get(eventClass);
+    handlers?.delete(hash);
+    if (handlers && !handlers.size) {
+      this.handlers.delete(eventClass);
     }
   }
 }

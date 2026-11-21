@@ -251,9 +251,10 @@ const check = (name, ok, info = '') => {
   await page.keyboard.type('SELECT o.*, BENCHMARK(20000000, MD5(o.id)) AS b FROM orders o', {delay: 2});
   await page.keyboard.press('Escape');
   await page.keyboard.press('Enter');
-  await page.waitForTimeout(800);
   const gridCancel = grid().getByRole('button', {name: 'Cancel'});
-  check('grid shows cancel while loading', await gridCancel.count() === 1);
+  // fixed wait was too short on busy machine (whole suite) - the query runs for minutes, Cancel must come
+  await gridCancel.waitFor({timeout: 5000}).catch(() => undefined);
+  check('grid shows cancel while loading', await gridCancel.count() === 1, await grid().locator('.cmp-table-footer, footer').first().innerText().catch(() => ''));
   await gridCancel.click();
   await page.waitForTimeout(1000);
   check('grid query cancelled', /interrupted/i.test(await grid().locator('.cmp-records-view-message-error').innerText().catch(() => '')));

@@ -1,4 +1,4 @@
-import SqlDialectType from '../Database/Driver/SqlDialectType';
+import {SqlSyntaxInterface} from '../Database/Driver/Syntax/SqlSyntax';
 import {SqlTokenType, tokenizeSql} from './SqlTokenizer';
 
 /**
@@ -33,8 +33,8 @@ type LevelType = {
   clause: string;
 };
 
-export const formatSql = (sql: string, dialect: SqlDialectType): string => {
-  const tokens = tokenizeSql(sql, dialect);
+export const formatSql = (sql: string, syntax: SqlSyntaxInterface): string => {
+  const tokens = tokenizeSql(sql, syntax);
   if (!tokens.length) return sql;
   const levels: LevelType[] = [{query: true, tables: false, indent: 0, outer: 0, conditions: false, clause: ''}];
   /** indentation of the current line */
@@ -119,7 +119,7 @@ export const formatSql = (sql: string, dialect: SqlDialectType): string => {
 };
 
 /** CREATE VIEW in one line is formatted, other DDL is returned as it is */
-export const formatViewDdl = (ddl: string, dialect: SqlDialectType): string => {
+export const formatViewDdl = (ddl: string, syntax: SqlSyntaxInterface): string => {
   if (/\n/.test(ddl.trim()) || !/^\s*CREATE\b[\s\S]*?\bVIEW\b/i.test(ddl)) return ddl;
-  return formatSql(ddl, dialect);
+  return formatSql(ddl, syntax);
 };

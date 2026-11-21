@@ -2,8 +2,7 @@ import React, {useEffect, useRef, useState} from 'react';
 import toast from 'react-hot-toast';
 import Popup from '../../../../UI/Popup/Popup';
 import Button from '../../../../UI/Button/Button';
-import EventBus from '../../../../Library/EventBus/EventBus';
-import WebsocketReceivedAMessage from '../../../../Library/WebSocket/Event/WebsocketReceivedAMessage';
+import TabMessages from '../../../../Library/WebSocket/TabMessages';
 import MessageInterface from '../../../../Library/WebSocket/Interface/MessageInterface';
 import MessageType from '../../../../Library/WebSocket/Enum/MessageType';
 import CommandType from '../../../../Library/WebSocket/Enum/CommandType';
@@ -58,9 +57,7 @@ export default (props: FindReplacePopupPropsInterface) => {
   onAppliedRef.current = props.onApplied;
 
   useEffect(() => {
-    const eventId = EventBus.subscribe<MessageInterface<any>>(WebsocketReceivedAMessage.name, (event) => {
-      const message = event.getData();
-      if (message.payload?.tabId !== props.tabId) return;
+    const unsubscribe = TabMessages.subscribe<any>(props.tabId, (message) => {
       switch (message.message) {
         case MessageType.FIND_REPLACE_PREVIEW:
           setBusy(false);
@@ -77,7 +74,7 @@ export default (props: FindReplacePopupPropsInterface) => {
           break;
       }
     });
-    return () => EventBus.unSub(eventId);
+    return () => unsubscribe();
   }, [props.tabId]);
 
   const send = (dryRun: boolean) => {

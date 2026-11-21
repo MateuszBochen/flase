@@ -52,7 +52,7 @@ const ENGINES = [
       return {tabId, error: of(tabId, 'QUERY_ERROR')?.payload.error, finished, count: total?.payload,
         rowsMs: finished ? finished.at - started : null, totalMs: total ? total.at - started : null,
         totalAfterRows: !!(finished && total && messages.indexOf(total) > messages.indexOf(finished)),
-        rows: messages.filter((m) => m.payload?.tabId === tabId && m.message === 'SINGLE_SELECT_RECORD').length};
+        rows: messages.filter((m) => m.payload?.tabId === tabId && m.message === 'SELECT_RECORDS').flatMap((m) => m.payload.rows).length};
     };
 
     // exact count, then remembered for paging and sorting

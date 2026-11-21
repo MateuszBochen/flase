@@ -36,7 +36,7 @@ class DatabaseManger {
     this.connectionManager = ConnectionManager.getInstance();
 
     /** enable subscriber for websocket messages */
-    EventBus.subscribe<MessageInterface<Database>>(WebsocketReceivedAMessage.name, (messageEvent) => {
+    EventBus.subscribe<MessageInterface<Database>>(WebsocketReceivedAMessage, (messageEvent) => {
       // filter only messages of database
       const message = messageEvent.getData();
       if (message.message === MessageType.DATABASE_BASE_ITEM) {

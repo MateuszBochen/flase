@@ -3,6 +3,30 @@
 All notable changes of Flase are documented here. Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versions follow [Semantic Versioning](https://semver.org/). A `v*` tag publishes the Docker image of the version.
 
+## [0.12.0] - 2026-11-20
+
+### Changed
+- **Drivers are isolated** - code shared by all databases does not know MySQL or PostgreSQL. SQL of a database
+  (foreign key checks, transactions, `USE` / `search_path`, rules of read only connection, EXPLAIN and its plan,
+  lexical rules of SQL) is in its driver, server and client choose driver from one registry, client asks driver
+  features instead of testing DSN (users, grants, server variables, import). A new engine is added by its driver only
+- **Rows of result in batches** - server sends rows in messages of up to 200 rows (`SELECT_RECORDS` with `rows`
+  instead of `SINGLE_SELECT_RECORD` per row) - less JSON, websocket frames and work of browser for big results
+  (console up to 100 000 rows, export of all rows)
+- **Slow client does not fill memory of server** - when more than 4 MB wait in websocket buffer, reading of rows from
+  database pauses (MySQL / MariaDB pause of connection, PostgreSQL next batch of cursor) until it drops below 1 MB
+- **Messages are delivered by tab** - views get only messages of their tab, cost of message does not grow with count
+  of open tabs; grid has one subscription instead of seven
+- **Events are found by their class** - not by class name, which is shortened in production build
+
+### Fixed
+- **Users of CockroachDB and YugabyteDB** - accounts were shown as MySQL users with host (`user@%`) and grants asked
+  for database instead of schema - now roles as in PostgreSQL
+- **Query of table stopped when tab changes** - opening other table in the same tab (or closing the tab) while its
+  query or count of rows was running left it running on server - now it is cancelled
+- **Button of "Always select opened table" shows its state** - on and off looked almost the same in dark theme,
+  now it is in accent color with background when on
+
 ## [0.11.0] - 2026-11-06
 
 ### Added
@@ -447,6 +471,7 @@ First public version - web database manager for MySQL, MariaDB and PostgreSQL, a
 - Production Docker image (`docker/production/Dockerfile`): application, API and websocket on one port
 - GitHub Actions workflow publishing the image to Docker Hub on a `v*` tag
 
+[0.12.0]: https://github.com/MateuszBochen/flase/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/MateuszBochen/flase/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/MateuszBochen/flase/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/MateuszBochen/flase/compare/v0.8.1...v0.9.0

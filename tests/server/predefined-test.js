@@ -58,7 +58,7 @@ const login = (connection, password = 'flase') => fetch(`${BASE}/api/login`, {me
   tabId = 'ro3-' + Math.random();
   send('EXECUTE_STATEMENTS', {tabId, database: 'shop', statements: ['SELECT note FROM edit_test WHERE id = 1']});
   await waitFor(() => messages.find((m) => m.payload?.tabId === tabId && m.message === 'EXECUTION_FINISHED'));
-  const row = messages.find((m) => m.payload?.tabId === `${tabId}:0` && m.message === 'SINGLE_SELECT_RECORD')?.payload?.rowDataValue;
+  const row = messages.find((m) => m.payload?.tabId === `${tabId}:0` && m.message === 'SELECT_RECORDS')?.payload?.rows[0];
   check('reading works, data unchanged', row && row.note !== 'hacked', JSON.stringify(row));
   ws.close();
 

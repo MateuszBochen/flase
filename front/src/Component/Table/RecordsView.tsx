@@ -174,9 +174,9 @@ export default forwardRef<RecordsViewRefInterface|null, RecordsViewPropsInterfac
   }, []);
 
   useImperativeHandle(ref, () => ({
-    addRow: (rowItem: SingleRowType) => {
-      dataGridViewRef.current!.addRow(rowItem);
-      totalRows.current = totalRows.current += 1;
+    appendRows: (rowItems: SingleRowType[]) => {
+      dataGridViewRef.current!.appendRows(rowItems);
+      totalRows.current += rowItems.length;
       footerRef.current!.setLength(totalRows.current);
     },
     addRows: (rowItems: SingleRowType[]) => {

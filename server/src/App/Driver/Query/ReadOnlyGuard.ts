@@ -1,10 +1,21 @@
 import CommandInterface from '../../Websocket/Interface/CommandInterface';
 import CommandType from '../../Websocket/Enum/CommandType';
+import DriverInterface from '../DriverInterface';
+import {SqlSyntaxInterface} from './SqlSyntax';
+
+/** rule of statement refused on read only connection - pattern and reason */
+export type ReadOnlyRuleType = [RegExp, string];
+
+/** rules of every database - read only mode itself and settings of session */
+const COMMON_RULES: ReadOnlyRuleType[] = [
+  [/\bread\s+write\b|\b(default_)?transaction_read_only\b|\btx_read_only\b|\bsession\s+characteristics\b/i, 'read only mode cannot be changed'],
+  [/^\s*(reset|discard)\b/i, 'session settings cannot be reset'],
+];
 
 /**
  * Read only connection (e.g. production) - protection against mistakes, not against the user himself.
  * Changes are refused here, sessions of console and data grid are also read only in database
- * (statements missed here fail there).
+ * (statements missed here fail there). Rules of statements are in drivers (driver.refuseOnReadOnly).
  * @author Mateusz Bochen
  */
 class ReadOnlyGuard {
@@ -13,7 +24,7 @@ class ReadOnlyGuard {
   }
 
   /** reason why command is refused on read only connection, null when it is allowed */
-  static refuseCommand(command: CommandInterface): string | null {
+  static refuseCommand(command: CommandInterface, driver: DriverInterface): string | null {
     if (!ReadOnlyGuard.isReadOnly(command)) {
       return null;
     }
@@ -35,31 +46,27 @@ class ReadOnlyGuard {
       case CommandType.EXECUTE_STATEMENTS: {
         const statements: string[] = Array.isArray(payload.statements) ? payload.statements : [];
         for (const sql of statements) {
-          const reason = ReadOnlyGuard.refuseStatement(sql);
+          const reason = driver.refuseOnReadOnly(sql);
           if (reason) return reason;
         }
         return null;
       }
       case CommandType.SEND_SELECT_QUERY:
-        return ReadOnlyGuard.refuseStatement(String(payload.query || ''));
+        return driver.refuseOnReadOnly(String(payload.query || ''));
       default:
         return null;
     }
   }
 
-  /** statements which would switch read only mode off or work outside of transaction */
-  static refuseStatement(sql: string): string | null {
-    // executable comments of MySQL / MariaDB (/*!50000 ... */, /*M! ... */) are executed - they are checked as statement
-    const text = sql.replace(/\/\*(?!!|M!)[\s\S]*?\*\//g, ' ').replace(/(--|#)[^\n]*/g, ' ');
-    const rules: [RegExp, string][] = [
-      // text of statement built at run time cannot be checked (PREPARE FROM 'text' is checked as text)
-      [/\bprepare\b[\s\S]*?\bfrom\s+@|\bexecute\s+immediate\b/i, 'statement built at run time cannot be executed'],
-      [/\bread\s+write\b|\b(default_)?transaction_read_only\b|\btx_read_only\b|\bsession\s+characteristics\b/i, 'read only mode cannot be changed'],
-      [/^\s*(reset|discard)\b/i, 'session settings cannot be reset'],
-      [/^\s*kill\b|\bpg_(terminate|cancel)_backend\b/i, 'processes cannot be stopped'],
-      [/\binto\s+(outfile|dumpfile)\b|\bto\s+program\b|\blo_(export|import)\b/i, 'files cannot be written'],
-    ];
-    const rule = rules.find(([pattern]) => pattern.test(text));
+  /**
+   * statement matching a rule of the database or a common rule - comments are left out by rules of syntax,
+   * executable comments (/*! ... *\/ of MySQL) are executed, so they are checked as statement
+   */
+  static refuseStatement(sql: string, syntax: SqlSyntaxInterface, rules: ReadOnlyRuleType[]): string | null {
+    const text = sql
+      .replace(syntax.executableComments ? /\/\*(?!!|M!)[\s\S]*?\*\//g : /\/\*[\s\S]*?\*\//g, ' ')
+      .replace(syntax.hashComments ? /(--|#)[^\n]*/g : /--[^\n]*/g, ' ');
+    const rule = [...rules, ...COMMON_RULES].find(([pattern]) => pattern.test(text));
     return rule ? `Connection is read only - ${rule[1]}: ${sql.trim().slice(0, 100)}` : null;
   }
 }

@@ -39,9 +39,9 @@ export default () => {
   // name, color and read only of connection changed - items are built again
   useEffect(() => {
     const rebuild = () => setState(connectionSettings.getConnections().map(toItem));
-    const updatedId = EventBus.subscribe(ConnectionWasUpdated.name, rebuild);
-    const removedId = EventBus.subscribe(ConnectionWasRemoved.name, rebuild);
-    const listId = EventBus.subscribe(ConnectionListWasChanged.name, rebuild);
+    const updatedId = EventBus.subscribe(ConnectionWasUpdated, rebuild);
+    const removedId = EventBus.subscribe(ConnectionWasRemoved, rebuild);
+    const listId = EventBus.subscribe(ConnectionListWasChanged, rebuild);
     // configuration of server could be loaded before this subscription
     rebuild();
     return () => {
@@ -52,7 +52,7 @@ export default () => {
   }, []);
 
   useEffect(() => {
-    const newConnectionWasAddedSubscriber = EventBus.subscribe(NewConnectionWasAdded.name, (newItemEvent: EventInterface<ConnectionDataInterface>) => {
+    const newConnectionWasAddedSubscriber = EventBus.subscribe(NewConnectionWasAdded, (newItemEvent: EventInterface<ConnectionDataInterface>) => {
       const newState = [...state];
       newState.push(toItem(newItemEvent.getData()));
       setState(newState);

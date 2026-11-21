@@ -11,7 +11,9 @@ import TableInformationInterface from '../../Interface/Data/TableInformationInte
 import ConnectionRequestInterface from '../../../Connection/Interface/ConnectionRequestInterface';
 import {ParsedDsn} from '@soluble/dsn-parser';
 import DriverSessionInterface from '../../DriverSessionInterface';
-import MysqlSession from './MysqlSession';
+import MysqlSession, {MYSQL_FOREIGN_KEY_CHECKS_OFF} from './MysqlSession';
+import ReadOnlyGuard, {ReadOnlyRuleType} from '../../Query/ReadOnlyGuard';
+import {ForeignKeyChecksOffInterface} from '../../ForeignKeyChecks';
 import MysqlDdlBuilder from './MysqlDdlBuilder';
 import ProcessInterface from '../../Interface/Data/ProcessInterface';
 import MysqlDumper from './MysqlDumper';
@@ -51,9 +53,17 @@ import {
 import {DatabaseObjectsInterface, ObjectRefInterface, ServerOptionsInterface} from '../../Interface/Data/DatabaseObjectsInterface';
 import {DatabaseOperationType, MaintenanceResultInterface} from '../../Interface/Data/DatabaseOperationInterface';
 import {DumpProgressCallbackType} from '../../../Transfer/DumpParts';
-import {MYSQL_SYNTAX} from '../../Query/SqlSyntax';
+import {MYSQL_SYNTAX} from './MysqlSyntax';
 import DriverFeaturesInterface from '../../DriverFeaturesInterface';
 const mysql = require('mysql');
+
+/** statements refused on read only connection - besides rules of read only mode common to all databases */
+const READ_ONLY_RULES: ReadOnlyRuleType[] = [
+  // text of statement built at run time cannot be checked (PREPARE FROM 'text' is checked as text)
+  [/\bprepare\b[\s\S]*?\bfrom\s+@|\bexecute\s+immediate\b/i, 'statement built at run time cannot be executed'],
+  [/^\s*kill\b/i, 'processes cannot be stopped'],
+  [/\binto\s+(outfile|dumpfile)\b/i, 'files cannot be written'],
+];
 const { Parser } = require('node-sql-parser');
 
 class MysqlAdapter implements DriverInterface {
@@ -104,6 +114,10 @@ class MysqlAdapter implements DriverInterface {
         if (err) {
           this.log(err);
           pool.end();
+          // other server (e.g. PostgreSQL) on the port accepts connection but never sends MySQL handshake
+          if (err.code === 'PROTOCOL_SEQUENCE_TIMEOUT' || /^Handshake inactivity timeout/.test(err.message)) {
+            err.message = `Server did not answer as MySQL / MariaDB in ${Math.round(Settings.getConnectTimeoutMs() / 1000)} s - check port and driver of DSN (${err.message})`;
+          }
           reject(err);
           return;
         }
@@ -378,6 +392,20 @@ class MysqlAdapter implements DriverInterface {
         }).catch(reject);
       });
     });
+  }
+
+  foreignKeyChecksOff(): ForeignKeyChecksOffInterface {
+    return MYSQL_FOREIGN_KEY_CHECKS_OFF;
+  }
+
+  /** USE db, USE `db` */
+  selectedDatabaseOf(sql: string): string | null {
+    const use = /^\s*use\s+(`([^`]+)`|"([^"]+)"|([^`";\s]+))/i.exec(sql);
+    return use ? use[2] ?? use[3] ?? use[4] : null;
+  }
+
+  refuseOnReadOnly(sql: string): string | null {
+    return ReadOnlyGuard.refuseStatement(sql, this.syntax, READ_ONLY_RULES);
   }
 
   getCountQuery(query: string): string {

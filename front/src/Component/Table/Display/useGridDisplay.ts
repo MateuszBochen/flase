@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import EventBus from '../../../Library/EventBus/EventBus';
-import WebsocketReceivedAMessage from '../../../Library/WebSocket/Event/WebsocketReceivedAMessage';
+import TabMessages from '../../../Library/WebSocket/TabMessages';
 import MessageInterface from '../../../Library/WebSocket/Interface/MessageInterface';
 import MessageType from '../../../Library/WebSocket/Enum/MessageType';
 import CommandType from '../../../Library/WebSocket/Enum/CommandType';
@@ -27,16 +27,14 @@ let requestCounter = 0;
 const selectRows = (connection: ConnectionDataInterface, query: string, database: string): Promise<any[]> => new Promise((resolve, reject) => {
   const tabId = `grid-display:${++requestCounter}`;
   const rows: any[] = [];
-  const eventId = EventBus.subscribe<MessageInterface<any>>(WebsocketReceivedAMessage.name, (event) => {
-    const message = event.getData();
-    if (message.payload?.tabId !== tabId) return;
-    if (message.message === MessageType.SINGLE_SELECT_RECORD) {
-      rows.push(message.payload.rowDataValue);
+  const unsubscribe = TabMessages.subscribe<any>(tabId, (message) => {
+    if (message.message === MessageType.SELECT_RECORDS) {
+      rows.push(...message.payload.rows);
     } else if (message.message === MessageType.QUERY_FINISHED) {
-      EventBus.unSub(eventId);
+      unsubscribe();
       resolve(rows);
     } else if (message.message === MessageType.QUERY_ERROR) {
-      EventBus.unSub(eventId);
+      unsubscribe();
       reject(new Error(message.payload.error));
     }
   });
@@ -70,8 +68,8 @@ const useGridDisplay = (
       clearTimeout(timer);
       timer = setTimeout(() => setVersion((previous) => previous + 1), 200);
     };
-    const settingsId = EventBus.subscribe(ColumnDisplay.eventName, bump);
-    const tablesId = EventBus.subscribe(TableInformationWasReceived.name, bump);
+    const settingsId = EventBus.subscribe(ColumnDisplay.eventClass, bump);
+    const tablesId = EventBus.subscribe(TableInformationWasReceived, bump);
     return () => {
       clearTimeout(timer);
       EventBus.unSub(settingsId);
@@ -163,10 +161,8 @@ const useGridDisplay = (
     /** whole value of cell as bytes - server sends texts as UTF-8 too */
     const requestValue = (column: ColumnInterface, where: {[name: string]: any}): Promise<{bytes: Uint8Array, mimeType: string | null}> => new Promise((resolve, reject) => {
       const tabId = `binary-value:${++requestCounter}`;
-      const eventId = EventBus.subscribe<MessageInterface<any>>(WebsocketReceivedAMessage.name, (event) => {
-        const message = event.getData();
-        if (message.payload?.tabId !== tabId) return;
-        EventBus.unSub(eventId);
+      const unsubscribe = TabMessages.subscribe<any>(tabId, (message) => {
+        unsubscribe();
         if (message.message === MessageType.BINARY_VALUE) {
           const result = message.payload as BinaryValueResultInterface;
           resolve({bytes: Uint8Array.from(atob(result.base64), (char) => char.charCodeAt(0)), mimeType: result.mimeType});

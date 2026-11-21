@@ -69,8 +69,9 @@ export default forwardRef<DataGridRefInterface|null, DataGridPropsInterface>((pr
   }, []);
 
   useImperativeHandle(ref, () => ({
-    addRow: (rowItem: SingleRowType) => {
-      pendingRows.current.push(rowItem);
+    appendRows: (rowItems: SingleRowType[]) => {
+      // rows of more messages in one frame are rendered together
+      pendingRows.current.push(...rowItems);
       if (flushFrame.current === null) {
         flushFrame.current = requestAnimationFrame(() => {
           flushFrame.current = null;

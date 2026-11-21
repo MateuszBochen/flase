@@ -13,8 +13,7 @@ import QueryInterface from '../../../../Library/Database/Interface/QueryInterfac
 import TableManager from '../../../../Library/Table/TableManager';
 import PageWasChanged from '../Event/PageWasChanged';
 import MessageInterface from '../../../../Library/WebSocket/Interface/MessageInterface';
-import SingleSelectRecordInterface from '../../../../Library/Record/Interface/SingleSelectRecordInterface';
-import WebsocketReceivedAMessage from '../../../../Library/WebSocket/Event/WebsocketReceivedAMessage';
+import TabMessages from '../../../../Library/WebSocket/TabMessages';
 import MessageType from '../../../../Library/WebSocket/Enum/MessageType';
 import PaginationDataInterface from '../Interface/PaginationDataInterface';
 import SortDirectionDataInterface from '../Interface/SortDirectionDataInterface';
@@ -50,17 +49,16 @@ export default (props: QueryPlacePropsInterface) => {
     if (editorReady) return undefined;
     const ready = () => setEditorReady(true);
     const timer = setTimeout(ready, 1500);
-    const timingId = EventBus.subscribe<{tabId: string}>(QueryTimingWasMeasured.name, (event) => {
+    const timingId = EventBus.subscribe<{tabId: string}>(QueryTimingWasMeasured, (event) => {
       if (event.getData().tabId === props.tabId) ready();
     });
-    const errorId = EventBus.subscribe<MessageInterface<any>>(WebsocketReceivedAMessage.name, (event) => {
-      const message = event.getData();
-      if (message.payload?.tabId === props.tabId && message.message === MessageType.QUERY_ERROR) ready();
+    const unsubscribeError = TabMessages.subscribe<any>(props.tabId, (message) => {
+      if (message.message === MessageType.QUERY_ERROR) ready();
     });
     return () => {
       clearTimeout(timer);
       EventBus.unSub(timingId);
-      EventBus.unSub(errorId);
+      unsubscribeError();
     };
   }, [editorReady, props.tabId]);
 
@@ -69,7 +67,7 @@ export default (props: QueryPlacePropsInterface) => {
 
 
     /** handle event of page change */
-    const eventPaginationEventId = EventBus.subscribe<PaginationDataInterface>(PageWasChanged.name, (event) => {
+    const eventPaginationEventId = EventBus.subscribe<PaginationDataInterface>(PageWasChanged, (event) => {
       const eventData = event.getData();
       if (eventData.tabId === props.tabId) {
         setCurrentQuery((previousQuery) => {
@@ -81,7 +79,7 @@ export default (props: QueryPlacePropsInterface) => {
     });
 
     /** handle event of order change */
-    const eventOrderId = EventBus.subscribe<SortDirectionDataInterface>(OrderDirectionWasChanged.name, (event) => {
+    const eventOrderId = EventBus.subscribe<SortDirectionDataInterface>(OrderDirectionWasChanged, (event) => {
       const eventData = event.getData();
       if (eventData.tabId === props.tabId) {
         setCurrentQuery((previousQuery) => {
@@ -93,7 +91,7 @@ export default (props: QueryPlacePropsInterface) => {
     });
 
     /** run current query again, e.g. after rows were saved */
-    const eventRefreshId = EventBus.subscribe<string>(QueryRefreshWasRequested.name, (event) => {
+    const eventRefreshId = EventBus.subscribe<string>(QueryRefreshWasRequested, (event) => {
       if (event.getData() === props.tabId) {
         setCurrentQuery((previousQuery) => {
           changeQueryHandler(previousQuery);
@@ -103,7 +101,7 @@ export default (props: QueryPlacePropsInterface) => {
     });
 
     /** quick filter from grid - condition is added with AND */
-    const eventFilterId = EventBus.subscribe<FilterRequestType>(FilterWasRequested.name, (event) => {
+    const eventFilterId = EventBus.subscribe<FilterRequestType>(FilterWasRequested, (event) => {
       const data = event.getData();
       if (data.tabId !== props.tabId) {
         return;

@@ -1,5 +1,4 @@
-import SqlDialectType from '../Database/Driver/SqlDialectType';
-import {backslashInString, blockCommentEnd, dollarTagAt, lineCommentAt, skipQuoted, syntaxOf} from '../Database/Driver/Syntax/SqlSyntax';
+import {backslashInString, blockCommentEnd, dollarTagAt, lineCommentAt, skipQuoted, SqlSyntaxInterface} from '../Database/Driver/Syntax/SqlSyntax';
 
 export type SqlTokenType = {
   /** word: keyword or name, quoted: `name` / "name", param: :name */
@@ -13,10 +12,9 @@ export type SqlTokenType = {
 
 /**
  * Tokens of SQL without whitespace and comments - the same rules of strings and comments as splitSql
- * (rules of the dialect are in SqlSyntax): quoted names, line and block comments, $tag$ bodies $tag$ as one string, E'strings'.
+ * (rules of the database are syntax of its driver): quoted names, line and block comments, $tag$ bodies $tag$ as one string, E'strings'.
  */
-export const tokenizeSql = (text: string, dialect: SqlDialectType = 'mysql'): SqlTokenType[] => {
-  const syntax = syntaxOf(dialect);
+export const tokenizeSql = (text: string, syntax: SqlSyntaxInterface): SqlTokenType[] => {
   const tokens: SqlTokenType[] = [];
   let index = 0;
   const push = (type: SqlTokenType['type'], start: number, end: number, value: string = text.slice(start, end)) => {
@@ -52,7 +50,7 @@ export const tokenizeSql = (text: string, dialect: SqlDialectType = 'mysql'): Sq
       push('string', start, end);
       continue;
     }
-    // names of the other dialect ("name" in MySQL with ANSI_QUOTES is a string above) are names too
+    // names of the other family ("name" in MySQL with ANSI_QUOTES is a string above) are names too
     if (char === '`' || char === '"') {
       const end = skipQuoted(text, index, char, false);
       const closed = text[end - 1] === char && end - 1 > index;

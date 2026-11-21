@@ -5,7 +5,6 @@ import ApplyRowChangesRequestInterface from '../../Driver/Interface/Data/ApplyRo
 import RowChangesResultInterface from '../../Driver/Interface/Data/RowChangesResultInterface';
 import RowChangeStatementInterface from '../../Driver/Interface/Data/RowChangeStatementInterface';
 import DriverSessionInterface from '../../Driver/DriverSessionInterface';
-import {FOREIGN_KEY_CHECKS_OFF} from '../../Driver/ForeignKeyChecks';
 
 /**
  * Builds sql for edited / inserted / deleted rows.
@@ -59,7 +58,7 @@ class ApplyRowChangesCommandHandler extends AbstractCommandHandler<ApplyRowChang
         tabId: data.tabId,
         // statements turning foreign key checks off are executed by session, preview shows them too
         statements: data.ignoreForeignKeys
-          ? [...FOREIGN_KEY_CHECKS_OFF[this.driver.dialect].before, ...statements.map((statement) => statement.sql), ...FOREIGN_KEY_CHECKS_OFF[this.driver.dialect].after]
+          ? [...this.driver.foreignKeyChecksOff('transaction').before, ...statements.map((statement) => statement.sql), ...this.driver.foreignKeyChecksOff('transaction').after]
           : statements.map((statement) => statement.sql),
         affectedRows,
       },

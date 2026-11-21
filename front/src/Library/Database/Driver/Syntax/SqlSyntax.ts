@@ -1,8 +1,7 @@
-import SqlDialectType from '../SqlDialectType';
-
 /**
  * Lexical rules of SQL of a database family - strings, names, comments and statement delimiters.
- * Tokenizer, splitter and inspections of SQL ask these rules instead of checking the dialect.
+ * Tokenizer, splitter and inspections of SQL ask these rules instead of checking the dialect - each driver has its rules
+ * (driver.syntax).
  * Pure module (no imports of application) - the same rules are in server (StreamingSqlSplitter, SqlText).
  */
 export interface SqlSyntaxInterface {
@@ -29,43 +28,6 @@ export interface SqlSyntaxInterface {
   /** built-in table which needs no definition - dual, pg_catalog tables */
   isSystemTable(name: string): boolean;
 }
-
-export const MYSQL_SYNTAX: SqlSyntaxInterface = {
-  stringQuotes: ["'", '"'],
-  identifierQuotes: ['`'],
-  backslashEscapes: 'all',
-  hashComments: true,
-  dashCommentNeedsSpace: true,
-  nestedBlockComments: false,
-  executableComments: true,
-  dollarQuotes: false,
-  delimiterCommand: true,
-  caseInsensitiveNames: true,
-  isSystemTable: (name) => /^dual$/i.test(name),
-};
-
-export const POSTGRES_SYNTAX: SqlSyntaxInterface = {
-  stringQuotes: ["'"],
-  identifierQuotes: ['"'],
-  backslashEscapes: 'escape-strings',
-  hashComments: false,
-  dashCommentNeedsSpace: false,
-  nestedBlockComments: true,
-  executableComments: false,
-  dollarQuotes: true,
-  delimiterCommand: false,
-  caseInsensitiveNames: false,
-  isSystemTable: (name) => /^pg_/i.test(name),
-};
-
-const SYNTAX: {[dialect in SqlDialectType]: SqlSyntaxInterface} = {
-  mysql: MYSQL_SYNTAX,
-  postgresql: POSTGRES_SYNTAX,
-};
-
-/** rules of the dialect - drivers expose them as driver.syntax */
-// other than mysql is PostgreSQL family - as before the rules were moved here (e.g. 'postgres' of older callers)
-export const syntaxOf = (dialect: SqlDialectType = 'mysql'): SqlSyntaxInterface => SYNTAX[dialect] ?? POSTGRES_SYNTAX;
 
 /** -- or # comment starts at index */
 export const lineCommentAt = (text: string, index: number, syntax: SqlSyntaxInterface): boolean => {

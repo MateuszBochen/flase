@@ -9,6 +9,7 @@ import DriverFeaturesInterface from './DriverFeaturesInterface';
 import {SqlSyntaxInterface} from './Syntax/SqlSyntax';
 import {DatabaseRoutineInterface, ObjectRefInterface} from '../Interface/DatabaseObjectsInterface';
 import {RoutineValueType} from './RoutineCallInterface';
+import {PlanType} from '../../Console/ExplainPlan';
 
 
 interface DriverInterface {
@@ -27,6 +28,12 @@ interface DriverInterface {
 
   /** EXPLAIN of query as JSON (ANALYZE executes it) - next statement is tried when the previous one fails */
   planStatements(query: string, analyze: boolean): string[];
+
+  /** plan of output of planStatements (value of its single cell), null when format is not known - shown as table then */
+  parsePlan(output: unknown): PlanType | null;
+
+  /** classic EXPLAIN of query shown as table */
+  explainStatement(query: string): string;
 
   /** SELECT of function / CALL of procedure with values typed by user */
   routineStatements(database: string, routine: DatabaseRoutineInterface, values: RoutineValueType[]): string[];

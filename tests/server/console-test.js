@@ -24,7 +24,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       send('EXECUTE_STATEMENTS', {tabId, database: null, statements, ...extra});
       const done = await waitFor(() => messages.find((m) => m.payload?.tabId === tabId && m.message === 'EXECUTION_FINISHED'));
       const finished = messages.filter((m) => m.payload?.tabId === tabId && m.message === 'STATEMENT_FINISHED').map((m) => m.payload);
-      const rowsOf = (i) => messages.filter((m) => m.payload?.tabId === `${tabId}:${i}` && m.message === 'SINGLE_SELECT_RECORD').map((m) => m.payload.rowDataValue);
+      const rowsOf = (i) => messages.filter((m) => m.payload?.tabId === `${tabId}:${i}` && m.message === 'SELECT_RECORDS').flatMap((m) => m.payload.rows);
       const columnsOf = (i) => messages.find((m) => m.payload?.tabId === `${tabId}:${i}` && m.message === 'SINGLE_SELECT_COLUMN')?.payload;
       return {tabId, done: done?.payload, finished, rowsOf, columnsOf};
     };
@@ -57,6 +57,16 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     r = await execute(['SELECT * FROM shop.orders'], {maxRows: 10});
     check('max rows: 10 sent, 500 read, truncated', r.rowsOf(0).length === 10 && r.finished[0].result.rows === 500 && r.finished[0].result.truncated === true, JSON.stringify(r.finished[0].result));
     check('columns with metadata (FK)', r.columnsOf(0)?.columns.find((c) => c.name === 'customer_id')?.reference?.table.name === 'customers');
+
+    // --- rows come in batches, all of them and in order
+    r = await execute(['SELECT a.id * 1000 + b.id AS n FROM shop.orders a CROSS JOIN shop.orders b ORDER BY a.id, b.id LIMIT 5000'], {maxRows: 5000});
+    const batches = messages.filter((m) => m.payload?.tabId === `${r.tabId}:0` && m.message === 'SELECT_RECORDS').map((m) => m.payload.rows.length);
+    const numbers = r.rowsOf(0).map((x) => Number(x.n));
+    check('rows in batches', numbers.length === 5000 && batches.length > 1 && batches.every((size) => size > 0 && size <= 200), `${numbers.length} rows, batches ${batches.join(',')}`);
+    check('batched rows in order', numbers.every((n, i) => i === 0 || n > numbers[i - 1]));
+    const rowsBeforeFinished = messages.findIndex((m) => m.payload?.tabId === `${r.tabId}:0` && m.message === 'QUERY_FINISHED')
+      > messages.findLastIndex((m) => m.payload?.tabId === `${r.tabId}:0` && m.message === 'SELECT_RECORDS');
+    check('all rows before QUERY_FINISHED', rowsBeforeFinished);
 
     // --- errors
     r = await execute(['SELECT 1 AS a', 'SELEC 2', 'SELECT 3 AS c']);

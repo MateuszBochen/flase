@@ -39,7 +39,7 @@ const DB2 = 'ui_db_test2';
     ws.onopen = () => ws.send(JSON.stringify({connectionData: {user, connection}, command: 'EXECUTE_STATEMENTS', payload: {tabId: 'setup', database, statements, stopOnError: false}}));
     ws.onmessage = (event) => {
       const message = JSON.parse(event.data);
-      if (message.message === 'SINGLE_SELECT_RECORD') rows.push(message.payload.rowDataValue);
+      if (message.message === 'SELECT_RECORDS') rows.push(...message.payload.rows);
       if (message.message === 'STATEMENT_FINISHED' && message.payload.error) error = message.payload.error;
       if (message.message === 'EXECUTION_FINISHED' || message.message === 'QUERY_ERROR') {
         ws.close();

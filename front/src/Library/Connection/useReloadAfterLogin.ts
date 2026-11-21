@@ -14,7 +14,7 @@ const useReloadAfterLogin = (connection: ConnectionDataInterface, reload: () => 
   reloadRef.current = reload;
 
   useEffect(() => {
-    const eventId = EventBus.subscribe(ConnectionWasEstablished.name, () => {
+    const eventId = EventBus.subscribe(ConnectionWasEstablished, () => {
       if (waiting.current && ConnectionManager.getInstance().checkIfConnectionIsActive(connection)) {
         waiting.current = false;
         reloadRef.current();

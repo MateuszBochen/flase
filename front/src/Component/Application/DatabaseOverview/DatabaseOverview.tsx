@@ -18,7 +18,7 @@ import ApplicationInterface from '../ApplicationInterface';
 import ConnectionDataInterface from '../../../Library/Connection/Interface/ConnectionDataInterface';
 import useConnectionSettings from '../../../Library/Connection/useConnectionSettings';
 import EventBus from '../../../Library/EventBus/EventBus';
-import WebsocketReceivedAMessage from '../../../Library/WebSocket/Event/WebsocketReceivedAMessage';
+import TabMessages from '../../../Library/WebSocket/TabMessages';
 import MessageInterface from '../../../Library/WebSocket/Interface/MessageInterface';
 import MessageType from '../../../Library/WebSocket/Enum/MessageType';
 import DriverFactory from '../../../Library/Database/Driver/DriverFactory';
@@ -109,9 +109,7 @@ const DatabaseOverview = (props: DatabaseOverviewPropsInterface) => {
   }, [props.connection, props.database, objectsTabId]);
 
   useEffect(() => {
-    const eventId = EventBus.subscribe<MessageInterface<any>>(WebsocketReceivedAMessage.name, (event) => {
-      const message = event.getData();
-      if (message.payload?.tabId !== objectsTabId) return;
+    const unsubscribe = TabMessages.subscribe<any>(objectsTabId, (message) => {
       if (message.message === MessageType.DATABASE_OBJECTS) {
         const received = message.payload as DatabaseObjectsInterface;
         setObjects(received);
@@ -124,7 +122,7 @@ const DatabaseOverview = (props: DatabaseOverviewPropsInterface) => {
       }
     });
     load();
-    return () => EventBus.unSub(eventId);
+    return () => unsubscribe();
   }, [objectsTabId, load]);
 
   const reloadTables = () => TableManager.getInstance().askForTableList(props.connection, {name: props.database}, true);

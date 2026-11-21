@@ -5,7 +5,6 @@ import ConnectionDataInterface from '../../../../Library/Connection/Interface/Co
 import useStatementRunner from '../../../../Library/Console/useStatementRunner';
 import ConsoleResult from '../../SqlConsole/ConsoleResult';
 import DriverFactory from '../../../../Library/Database/Driver/DriverFactory';
-import {parsePlan} from '../../../../Library/Console/ExplainPlan';
 import {statementKeyword} from '../../../../Library/Console/SqlInspections';
 import PlanTree from './PlanTree';
 import '../style/style.css';
@@ -28,7 +27,7 @@ export default (props: ExplainPopupPropsInterface) => {
   const driver = DriverFactory.getDriver(props.connection);
   const query = withoutExplain(props.query);
   /** ANALYZE executes statement - only SELECT */
-  const canAnalyze = statementKeyword(query, driver.dialect) === 'SELECT';
+  const canAnalyze = statementKeyword(query, driver.syntax) === 'SELECT';
   const [analyze, setAnalyze] = useState<boolean>(false);
   const [view, setView] = useState<'plan' | 'table'>('plan');
   /** index of statement of planStatements which is tried */
@@ -44,7 +43,7 @@ export default (props: ExplainPopupPropsInterface) => {
 
   useEffect(() => {
     if (view === 'table' && !table.logs.length) {
-      table.run([`EXPLAIN ${query}`], props.database, 1000);
+      table.run([driver.explainStatement(query)], props.database, 1000);
     }
   }, [view]);
 
@@ -59,7 +58,7 @@ export default (props: ExplainPopupPropsInterface) => {
     const rows = plan.buffer(0).rows;
     const value = rows.length ? Object.values(rows[0])[0] : null;
     // MySQL text tree comes in one cell, other outputs as JSON
-    return parsePlan(rows.length > 1 ? rows.map((row) => Object.values(row)[0]).join('\n') : value);
+    return driver.parsePlan(rows.length > 1 ? rows.map((row) => Object.values(row)[0]).join('\n') : value);
   }, [log?.status, plan.resultIndexes]);
   const failed = log?.status === 'error' && attempt >= statements.length - 1;
 

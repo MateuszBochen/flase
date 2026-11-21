@@ -10,10 +10,12 @@ import SqlDialectType from '../../SqlDialectType';
 import DriverFeaturesInterface from '../../DriverFeaturesInterface';
 import PostgresSqlLiteral from './PostgresSqlLiteral';
 import postgresKeywords from './PostgresKeywords';
-import {POSTGRES_SYNTAX} from '../../Syntax/SqlSyntax';
+import {POSTGRES_SYNTAX} from './PostgresSyntax';
 import {DatabaseRoutineInterface, ObjectRefInterface} from '../../../Interface/DatabaseObjectsInterface';
 import {RoutineValueType} from '../../RoutineCallInterface';
 import {POSTGRES_MAINTENANCE, postgresObjectTemplate, postgresPlanStatements, postgresRoutineStatements} from './PostgresStatements';
+import {parsePostgresPlan} from './PostgresPlan';
+import {PlanType} from '../../../../Console/ExplainPlan';
 
 /** PostgreSQL - "databases" of tree are schemas of connected database */
 class PostgresAdapter implements DriverInterface {
@@ -49,7 +51,10 @@ class PostgresAdapter implements DriverInterface {
       characterSet: 'Encoding',
       hitRatio: 'Cache hit ratio',
       rates: 'Rows per second',
+      account: 'role',
+      persistVariable: 'Keep after restart',
     },
+    accountHost: false,
     hints: {
       regexReplace: 'regexp_replace with flag g - all matches; groups in replacement: \\1.',
       objectEditor: 'Write one CREATE statement, body of function in $$ … $$.',
@@ -59,6 +64,9 @@ class PostgresAdapter implements DriverInterface {
       ignoreForeignKeys: (action, many) => `CASCADE - also ${action === 'drop'
         ? `objects depending on the ${many ? 'tables' : 'table'}`
         : `tables referencing ${many ? 'them' : 'it'}`}`,
+      importDatabaseSwitch: 'SET search_path',
+      newAccount: 'Role is created with LOGIN.',
+      serverVariable: () => 'ALTER SYSTEM writes postgresql.auto.conf - the value is kept after restart, configuration is reloaded.',
       importWithoutForeignKeys: "SET session_replication_role = 'replica' for the import - foreign keys and also other triggers are not run. Needs superuser (or SET privilege of session_replication_role).",
       renameDatabase: null,
       renameDatabaseForm: null,
@@ -71,6 +79,14 @@ class PostgresAdapter implements DriverInterface {
 
   planStatements(query: string, analyze: boolean): string[] {
     return postgresPlanStatements(query, analyze);
+  }
+
+  parsePlan(output: unknown): PlanType | null {
+    return parsePostgresPlan(output);
+  }
+
+  explainStatement(query: string): string {
+    return `EXPLAIN ${query}`;
   }
 
   routineStatements(database: string, routine: DatabaseRoutineInterface, values: RoutineValueType[]): string[] {

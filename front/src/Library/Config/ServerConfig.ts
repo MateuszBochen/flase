@@ -54,7 +54,7 @@ class ServerConfig {
 export const useServerConfig = (): ServerConfigInterface => {
   const [config, setConfig] = useState<ServerConfigInterface>(ServerConfig.get());
   useEffect(() => {
-    const eventId = EventBus.subscribe<ServerConfigInterface>(ServerConfigWasLoaded.name, (event) => setConfig(event.getData()));
+    const eventId = EventBus.subscribe<ServerConfigInterface>(ServerConfigWasLoaded, (event) => setConfig(event.getData()));
     // loaded before subscription
     setConfig(ServerConfig.get());
     return () => EventBus.unSub(eventId);

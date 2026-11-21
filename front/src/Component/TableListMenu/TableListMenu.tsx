@@ -25,8 +25,8 @@ export default (props: TableListMenuPropsInterface) => {
   useEffect(() => {
     const refresh = () => setState([...tableManager.getTablesListForDatabase(props.connection, props.database)]);
 
-    const receivedId = EventBus.subscribe<ReceivedTableInformationInterface>(TableInformationWasReceived.name, refresh);
-    const reloadedId = EventBus.subscribe<{connection: {id: string}, database: {name: string}}>(TableListWasReloaded.name, (event) => {
+    const receivedId = EventBus.subscribe<ReceivedTableInformationInterface>(TableInformationWasReceived, refresh);
+    const reloadedId = EventBus.subscribe<{connection: {id: string}, database: {name: string}}>(TableListWasReloaded, (event) => {
       const data = event.getData();
       if (data.connection.id === props.connection.id && data.database.name === props.database.name) {
         refresh();

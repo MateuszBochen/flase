@@ -50,7 +50,13 @@ interface DriverFeaturesInterface {
     hitRatio: string;
     /** chart of executed work per second of monitor */
     rates: string;
+    /** account of server - user / role */
+    account: string;
+    /** option of change of server variable kept after restart (shown when server supports it) */
+    persistVariable: string;
   };
+  /** accounts of server have host (user@host) */
+  accountHost: boolean;
   hints: {
     regexReplace: string;
     /** how to write CREATE statement of routine / trigger */
@@ -63,6 +69,12 @@ interface DriverFeaturesInterface {
     ignoreForeignKeys: (action: string, many: boolean) => string;
     /** what option of import without checks of foreign keys does (title of the checkbox) */
     importWithoutForeignKeys: string;
+    /** statement of script which selects other database (import) */
+    importDatabaseSwitch: string;
+    /** shown under new account, null without note */
+    newAccount: string | null;
+    /** what change of server variable does - persist: server can keep the value after restart (SET PERSIST) */
+    serverVariable: (persist: boolean) => string;
     /** shown with rename of database, null without note */
     renameDatabase: string | null;
     /** shown in form of rename of database, null without note */
