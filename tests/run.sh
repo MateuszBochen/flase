@@ -81,7 +81,8 @@ report() {
   else
     failed+=("$name")
     echo "  FAILED  $name"
-    grep -E "^FAIL|Error|error" "$log" | head -20 | sed 's/^/          /'
+    # waiting for / at: locator and line of test which timed out (TimeoutError alone does not tell the step)
+    grep -E "^FAIL|Error|error|waiting for |at /pw/|at /t/" "$log" | head -20 | sed 's/^/          /'
   fi
 }
 
