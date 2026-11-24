@@ -118,7 +118,7 @@ export default forwardRef<HeaderColumnsRefInterface|null, HeaderColumnsPropsInte
     const sort = header.querySelector('.sort-box') as HTMLElement | null;
     // padding of wrapper + margin of name + border
     let width = textWidth(header.querySelector('.column-name')) + (sort?.offsetWidth || 0) + 12;
-    props.parentRef.current?.querySelectorAll(`.data-table-cell[data-col="${index}"] .dtc-content`).forEach((content) => {
+    props.parentRef.current?.querySelectorAll(`.data-table-cell[data-col="${index}"]:not(.editing)`).forEach((content) => {
       // padding of content + border of cell
       width = Math.max(width, textWidth(content) + 8);
     });

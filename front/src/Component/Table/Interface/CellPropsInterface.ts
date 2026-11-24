@@ -19,10 +19,6 @@ interface CellPropsInterface {
   changed?: boolean;
   isEditing?: boolean;
   selected?: boolean;
-  /** grid has editing - selection, context menu */
-  hasEdit: boolean;
-  /** double click starts editing */
-  editable: boolean;
   /** value is foreign key - open referenced row */
   reference: boolean;
   handlers: GridHandlersInterface;

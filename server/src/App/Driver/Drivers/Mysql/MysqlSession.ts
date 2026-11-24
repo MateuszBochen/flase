@@ -4,7 +4,7 @@ import TotalCountDto from '../../../../Driver/Dto/TotalCountDto';
 import UpdateResultType from '../../../../Driver/Type/UpdateResultType';
 import RecordType from '../../../../Driver/Type/Data/RecordType';
 import ResultFieldInterface from '../../Interface/Data/ResultFieldInterface';
-import RowChangeStatementInterface from '../../Interface/Data/RowChangeStatementInterface';
+import RowChangeStatementInterface, {notIdentifiedRowError} from '../../Interface/Data/RowChangeStatementInterface';
 import {StatementResultType} from '../../Interface/Data/StatementInterface';
 import SelectAnalyser from '../../Query/SelectAnalyser';
 import {serializeValue} from '../BinaryValue';
@@ -173,6 +173,10 @@ class MysqlSession implements DriverSessionInterface {
 
     try {
       for (const statement of statements) {
+        if (statement.matchingRowsSql) {
+          const matching = Number((await this.query(statement.matchingRowsSql))?.[0]?.n || 0);
+          if (matching > 1) throw notIdentifiedRowError(matching, statement.sql);
+        }
         const result = await this.query(statement.sql);
         // FOUND_ROWS flag is on - affectedRows means matched rows, also when value did not change
         if (statement.expectOneRow && +result.affectedRows !== 1) {

@@ -52,9 +52,9 @@ const check = (name, ok, info = '') => {
 
   // --- preview in grid
   await openTable('long_text_test');
-  const shown = await cell(0, 2).locator('.dtc-content').textContent();
+  const shown = await cell(0, 2).textContent();
   check('cell shows only beginning of long text', shown.length <= 1000 && shown.startsWith('lorem ipsum'), `${shown.length} characters`);
-  check('title says it is longer', /240,000 characters/.test(await cell(0, 2).locator('.dtc-content').getAttribute('title')));
+  check('title says it is longer', /240,000 characters/.test(await cell(0, 2).getAttribute('title')));
   await page.screenshot({path: `${OUT}/long-text-01-grid.png`});
 
   // --- copy loads whole value

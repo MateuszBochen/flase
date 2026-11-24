@@ -105,7 +105,7 @@ const near = (a, b, tolerance = 1.5) => Math.abs(a - b) <= tolerance;
   await page.waitForTimeout(300);
   await settle();
   const fitted = await headerWidth('email');
-  const truncated = await grid().locator(`.data-table-cell[data-col="${await headerIndex('email')}"] .dtc-content`)
+  const truncated = await grid().locator(`.data-table-cell[data-col="${await headerIndex('email')}"]`)
     .evaluateAll((contents) => contents.filter((content) => content.scrollWidth > content.clientWidth).length);
   check('double click fits content', fitted < emailAfter && truncated === 0, `width ${fitted}, truncated ${truncated}`);
   check('fitted cells follow header', (await cellWidths('email')).every((width) => near(width, fitted)));

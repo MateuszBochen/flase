@@ -419,6 +419,10 @@ class MysqlAdapter implements DriverInterface {
   buildRowChangeStatements(table: TableInterface, changes: RowChangeInterface[]): RowChangeStatementInterface[] {
     return changes.map((change) => {
       const limit = change.limitOne ? ' LIMIT 1' : '';
+      // LIMIT 1 would change any of rows which only look the same
+      const matchingRowsSql = change.limitOne && change.partialWhere
+        ? mysql.format('SELECT COUNT(*) AS n FROM ??.?? WHERE ', [table.databaseName, table.name]) + MysqlAdapter.buildWhere(change.where)
+        : undefined;
 
       switch (change.kind) {
         case 'update':
@@ -429,12 +433,14 @@ class MysqlAdapter implements DriverInterface {
             sql: mysql.format('UPDATE ??.?? SET ? WHERE ', [table.databaseName, table.name, deserializeBinaryWriteValues(change.values)])
               + MysqlAdapter.buildWhere(change.where) + limit,
             expectOneRow: true,
+            matchingRowsSql,
           };
         case 'delete':
           return {
             sql: mysql.format('DELETE FROM ??.?? WHERE ', [table.databaseName, table.name])
               + MysqlAdapter.buildWhere(change.where) + limit,
             expectOneRow: true,
+            matchingRowsSql,
           };
         case 'insert': {
           const values = deserializeBinaryWriteValues(change.values || {});

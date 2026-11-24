@@ -3,6 +3,25 @@
 All notable changes of Flase are documented here. Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versions follow [Semantic Versioning](https://semver.org/). A `v*` tag publishes the Docker image of the version.
 
+## [0.12.1] - 2026-11-23
+
+### Changed
+- **Table opens faster** - cell of data grid is one element (value directly in it, mouse events handled by row), so a
+  screen of 50 columns has ~2,400 instead of ~5,200 elements; icon of foreign key is CSS of its button, not an SVG,
+  and it is shown on hover of the row (always on touch devices) - value of foreign key stays blue;
+  rows are laid out on their own (`contain: layout`); SQL parser is warmed up while browser is idle, not when the
+  first table is opened. Measured (Chromium, MariaDB, 100 rows): table of 50 columns ~28% faster (CPU ~33% less),
+  table with 20 foreign keys ~26% faster
+- **Speed comparison with other web database tools** - `tests/ui/bench-tools.js` measures Flase, phpMyAdmin,
+  Adminer, pgAdmin 4 and CloudBeaver on the same MariaDB and PostgreSQL tables (results on flase.dev)
+
+### Fixed
+- **Change of other row in table without primary key** - row of such table is found by values of its columns and
+  `LIMIT 1`; long texts and binary values are compared only by preview, so two rows differing only in them looked the
+  same and update / delete could hit the other row (reported as saved). Now the server counts matching rows first and
+  refuses the change when more than one matches - nothing is saved, change stays pending. Exact copies (all columns
+  compared) are still changed one by one
+
 ## [0.12.0] - 2026-11-20
 
 ### Changed
@@ -471,6 +490,7 @@ First public version - web database manager for MySQL, MariaDB and PostgreSQL, a
 - Production Docker image (`docker/production/Dockerfile`): application, API and websocket on one port
 - GitHub Actions workflow publishing the image to Docker Hub on a `v*` tag
 
+[0.12.1]: https://github.com/MateuszBochen/flase/compare/v0.12.0...v0.12.1
 [0.12.0]: https://github.com/MateuszBochen/flase/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/MateuszBochen/flase/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/MateuszBochen/flase/compare/v0.9.0...v0.10.0

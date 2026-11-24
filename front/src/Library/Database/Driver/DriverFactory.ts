@@ -5,6 +5,7 @@ import MysqlAdapter from './Adapter/MySql/MysqlAdapter';
 import PostgresAdapter from './Adapter/Postgres/PostgresAdapter';
 import {engineOfScheme} from '../../Connection/Engines';
 import SqlDialectType from './SqlDialectType';
+import TableInformationInterface from '../../Table/Interface/TableInformationInterface';
 
 /** driver of each family - the only place which knows adapter classes, the rest of application uses DriverInterface */
 const DRIVERS: {[dialect in SqlDialectType]: () => DriverInterface} = {
@@ -14,6 +15,26 @@ const DRIVERS: {[dialect in SqlDialectType]: () => DriverInterface} = {
 
 
 class DriverFactory {
+
+  /**
+   * the first parse of SQL compiles the parser (measured: ~9 ms, next ones ~1 ms) - it is done while browser is idle,
+   * not when the first table is opened and its query waits for it
+   */
+  private static warmUp(driver: DriverInterface): void {
+    const run = () => {
+      try {
+        driver.getDefaultQuery({tableName: 'warm_up'} as TableInformationInterface);
+      } catch (e) {
+        // only warm up
+      }
+    };
+    if (typeof window === 'undefined') return;
+    if ('requestIdleCallback' in window) {
+      window.requestIdleCallback(run, {timeout: 2000});
+    } else {
+      setTimeout(run, 200);
+    }
+  }
 
   private static drivers: {[key: string]: DriverInterface} = {}
 
@@ -34,8 +55,10 @@ class DriverFactory {
     if (!create) {
       throw new Error(`Driver of ${engine.label} is missing`);
     }
-    DriverFactory.drivers[connection.id] = create();
-    return DriverFactory.drivers[connection.id];
+    const driver = create();
+    DriverFactory.drivers[connection.id] = driver;
+    DriverFactory.warmUp(driver);
+    return driver;
   }
 }
 

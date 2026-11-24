@@ -3,7 +3,6 @@ import ConnectionDataInterface from '../Connection/Interface/ConnectionDataInter
 import CommandType from '../WebSocket/Enum/CommandType';
 import MessageType from '../WebSocket/Enum/MessageType';
 import TabMessages from '../WebSocket/TabMessages';
-import MessageInterface from '../WebSocket/Interface/MessageInterface';
 import BaseRequest from '../API/Request/BaseRequest';
 import {ImportFinishedInterface, TransferRequestType} from './TransferInterface';
 

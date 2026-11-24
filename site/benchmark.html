@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Benchmark: Flase vs phpMyAdmin, Adminer, pgAdmin and CloudBeaver</title>
+<meta name="description" content="Speed of web database clients measured in the browser: Flase, phpMyAdmin, Adminer, pgAdmin 4 and CloudBeaver on the same MariaDB and PostgreSQL tables - method, setup and all results.">
+<link rel="canonical" href="https://flase.dev/benchmark.html">
+<meta name="robots" content="index, follow">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Flase">
+<meta property="og:title" content="Benchmark: Flase vs phpMyAdmin, Adminer, pgAdmin and CloudBeaver">
+<meta property="og:description" content="Speed of web database clients on the same MariaDB and PostgreSQL tables - method and all results.">
+<meta property="og:url" content="https://flase.dev/benchmark.html">
+<meta property="og:image" content="https://flase.dev/img/screenshot-data-grid.png">
+<style>
+:root { --bg: #ffffff; --soft: #f5f7fc; --text: #141824; --muted: #5b6475; --border: #e3e7f0; --accent: #3574f0; --accent-2: #7b5cf5; }
+@media (prefers-color-scheme: dark) { :root { --bg: #0b0d14; --soft: #121521; --text: #e9ecf4; --muted: #9aa3b8; --border: #222736; } }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.7 system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, sans-serif; }
+main { max-width: 1040px; margin: 0 auto; padding: 48px 20px 80px; }
+a { color: var(--accent); }
+.brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; font-size: 20px; color: var(--text); text-decoration: none; }
+.brand img { width: 28px; height: 28px; }
+h1 { font-size: 38px; line-height: 1.2; letter-spacing: -0.02em; margin: 40px 0 8px; }
+h2 { font-size: 26px; margin: 48px 0 10px; letter-spacing: -0.01em; }
+h3 { font-size: 21px; margin: 36px 0 4px; }
+h4 { font-size: 17px; margin: 22px 0 8px; }
+h4 small, .bench-table small { font-weight: 400; color: var(--muted); }
+p, li { color: var(--muted); }
+strong { color: var(--text); }
+code { font: 14px ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace; background: var(--soft); border: 1px solid var(--border); border-radius: 5px; padding: 1px 5px; }
+pre { background: var(--soft); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font: 14px/1.6 ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace; }
+pre code { background: none; border: 0; padding: 0; }
+.updated { margin-top: 0; }
+.lead { font-size: 19px; }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th, td { padding: 10px 12px; text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; }
+thead th { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 600; }
+tbody th { text-align: left; }
+td { color: var(--muted); }
+td.best { color: var(--text); font-weight: 700; }
+td.best::after { content: ""; display: inline-block; width: 7px; height: 7px; margin-left: 7px; border-radius: 50%; background: linear-gradient(120deg, var(--accent), var(--accent-2)); vertical-align: 2px; }
+.bench-table, .table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 14px; }
+.bench-table tbody tr:last-child > *, .table-scroll tbody tr:last-child > * { border-bottom: 0; }
+.bench-table tbody th small { display: block; font-size: 13px; }
+.bench-table .flase, tr.flase > * { background: color-mix(in srgb, var(--accent) 7%, transparent); color: var(--text); }
+.bench-table thead .flase { color: var(--accent); }
+.na { opacity: .5; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 20px; color: var(--muted); }
+dt { color: var(--text); font-weight: 600; }
+dd { margin: 0; }
+@media (max-width: 640px) { dl { grid-template-columns: 1fr; } dd { margin-bottom: 8px; } h1 { font-size: 30px; } }
+</style>
+</head>
+<body>
+<main>
+  <a class="brand" href="./"><img src="favicon.svg" alt="" width="28" height="28">Flase</a>
+  <h1>Speed of Flase compared with web database tools</h1>
+  <p class="updated">Measured 23 November 2026 · Flase 0.12.1</p>
+  <p class="lead">How long does it take from a click on a table (or running a query) until the rows are on the screen?
+    Five web database clients were measured in the same browser, against the same MariaDB and PostgreSQL tables,
+    on the same computer.</p>
+
+  <h2>Results</h2>
+  <p>Time from click to rendered rows, median of 7 runs. Lower is better, the fastest tool of each test is marked with a dot.
+    phpMyAdmin works only with MySQL / MariaDB and pgAdmin only with PostgreSQL.</p>
+  <div class="bench-table"><table><thead><tr><th scope="col"><span class="sr">Scenario</span></th><th scope="col" class="flase">Flase</th><th scope="col">phpMyAdmin</th><th scope="col">pgAdmin 4</th><th scope="col">Adminer</th><th scope="col">CloudBeaver</th></tr></thead><tbody><tr><th scope="row">Open table<small>MariaDB · 100 rows × 50 columns</small></th><td class="flase best">146 ms</td><td>1,207 ms</td><td><span class="na">–</span></td><td>295 ms</td><td>3,041 ms</td></tr><tr><th scope="row">Table with 20 foreign keys<small>MariaDB · 100 rows × 24 columns</small></th><td class="flase best">206 ms</td><td>1,136 ms</td><td><span class="na">–</span></td><td>227 ms</td><td>2,102 ms</td></tr><tr><th scope="row">SQL query<small>MariaDB · 1000 rows × 50 columns</small></th><td class="flase best">228 ms</td><td>13,631 ms</td><td><span class="na">–</span></td><td>1,710 ms</td><td>1,696 ms</td></tr><tr><th scope="row">Open table<small>PostgreSQL · 100 rows × 50 columns</small></th><td class="flase best">175 ms</td><td><span class="na">–</span></td><td>2,003 ms</td><td>371 ms</td><td>2,961 ms</td></tr><tr><th scope="row">Table with 20 foreign keys<small>PostgreSQL · 100 rows × 24 columns</small></th><td class="flase best">208 ms</td><td><span class="na">–</span></td><td>2,007 ms</td><td>241 ms</td><td>2,027 ms</td></tr><tr><th scope="row">SQL query<small>PostgreSQL · 1000 rows × 50 columns</small></th><td class="flase best">220 ms</td><td><span class="na">–</span></td><td>356 ms</td><td>1,603 ms</td><td>1,756 ms</td></tr></tbody></table></div>
+
+  <h2>What was measured</h2>
+  <p>Every run starts a new browser context, logs in and opens the tool at the database with the list of its tables -
+    this part is <strong>not</strong> measured. Then one action is measured until all its rows are rendered,
+    plus two more frames so the rows are really painted:</p>
+  <dl>
+    <dt>Open table</dt><dd>Click on table <code>wide_test</code> (50 columns of texts, numbers, dates and long texts, 1000 rows) in the list of tables - the tool shows its first 100 rows.</dd>
+    <dt>Table with 20 foreign keys</dt><dd>The same with table <code>fk_test</code>: 24 columns, 20 of them are foreign keys to 20 other tables (<code>ref_01</code> … <code>ref_20</code>), 1000 rows. Tools which show links or values of referenced rows have more work here.</dd>
+    <dt>SQL query</dt><dd><code>SELECT * FROM wide_test LIMIT 1000</code> typed into the SQL editor of the tool and run - until all 1000 rows are rendered (shown).</dd>
+  </dl>
+  <p>For each action these values were recorded:</p>
+  <dl>
+    <dt>Time to rendered rows</dt><dd>Wall clock time from the click to the second frame after all rows are on the page - what the user waits for.</dd>
+    <dt>CPU time of page</dt><dd>Time the browser's main thread was busy (JavaScript, style, layout, paint) during the action - Chrome <code>TaskDuration</code>.</dd>
+    <dt>DOM elements</dt><dd>Elements on the whole page after the action - a large page is slow to scroll, resize and change.</dd>
+    <dt>JS heap after GC</dt><dd>Memory of JavaScript of the page after garbage collection.</dd>
+    <dt>Data received</dt><dd>Bytes received from the server during the action (HTTP and WebSocket).</dd>
+  </dl>
+  <p>The first run of every tool and test only warms up caches of the tool and of the database and is not counted;
+    the result is the median of the next 7 runs.</p>
+
+  <h2>Setup</h2>
+  <dl>
+    <dt>Computer</dt><dd>AMD Ryzen 5 3600 (6 cores), 64 GB RAM, Linux - all tools, databases and the browser on the same machine, so network latency is not part of the results.</dd>
+    <dt>Browser</dt><dd>Chromium 131 (Playwright 1.49.1, headless), window 1920 × 1080.</dd>
+    <dt>Databases</dt><dd>MariaDB 11.4.13 and PostgreSQL 17.11 in Docker, the same tables in both.</dd>
+    <dt>Flase 0.12.1</dt><dd>Production Docker image (<code>docker/production/Dockerfile</code>), default settings (100 rows per page).</dd>
+    <dt>phpMyAdmin 5.2.3</dt><dd>Official Docker image (PHP 8.3, Apache), <code>$cfg['MaxRows'] = 100</code> so it shows the same 100 rows.</dd>
+    <dt>Adminer 6.3.0</dt><dd>Official Docker image. It shows 50 rows by default; the table is opened with <code>limit=100</code>, which is the same page as other tools.</dd>
+    <dt>pgAdmin 4 9.18</dt><dd>Official Docker image (desktop mode). Table is opened by <em>View/Edit Data → First 100 Rows</em>, SQL in <em>Query Tool</em> (F5).</dd>
+    <dt>CloudBeaver 26.2.5</dt><dd>Official Docker image (web version of DBeaver). Default page of 200 rows changed to 100 (<code>resultset.maxrows</code>); for the SQL test fetch size of the result is set to 1000 before the measured run.</dd>
+  </dl>
+
+  <h2>All results</h2>
+  <p>Median of 7 runs of each value. The best value of each column is marked.</p>
+  <h3>MariaDB 11.4</h3>
+<h4>Open table <small>100 rows × 50 columns</small></h4><div class="table-scroll"><table class="detail"><thead><tr><th scope="col">Tool</th><th scope="col">Time to rendered rows</th><th scope="col">CPU time of page</th><th scope="col">DOM elements</th><th scope="col">JS heap after GC</th><th scope="col">Data received</th></tr></thead><tbody><tr class="flase"><th scope="row">Flase</th><td class="best">146 ms</td><td class="best">136 ms</td><td class="best">2,389</td><td>9.0 MB</td><td>192 KB</td></tr><tr><th scope="row">phpMyAdmin</th><td>1,207 ms</td><td>1,059 ms</td><td>14,933</td><td>8.6 MB</td><td>85 KB</td></tr><tr><th scope="row">Adminer</th><td>295 ms</td><td>261 ms</td><td>6,279</td><td class="best">2.0 MB</td><td class="best">36 KB</td></tr><tr><th scope="row">CloudBeaver</th><td>3,041 ms</td><td>2,551 ms</td><td>3,513</td><td>62.5 MB</td><td>359 KB</td></tr></tbody></table></div>
+<h4>Table with 20 foreign keys <small>100 rows × 24 columns</small></h4><div class="table-scroll"><table class="detail"><thead><tr><th scope="col">Tool</th><th scope="col">Time to rendered rows</th><th scope="col">CPU time of page</th><th scope="col">DOM elements</th><th scope="col">JS heap after GC</th><th scope="col">Data received</th></tr></thead><tbody><tr class="flase"><th scope="row">Flase</th><td class="best">206 ms</td><td>195 ms</td><td class="best">3,318</td><td>8.7 MB</td><td>134 KB</td></tr><tr><th scope="row">phpMyAdmin</th><td>1,136 ms</td><td>835 ms</td><td>11,553</td><td>7.3 MB</td><td>178 KB</td></tr><tr><th scope="row">Adminer</th><td>227 ms</td><td class="best">195 ms</td><td>5,445</td><td class="best">2.0 MB</td><td class="best">28 KB</td></tr><tr><th scope="row">CloudBeaver</th><td>2,102 ms</td><td>1,605 ms</td><td>4,389</td><td>67.6 MB</td><td>143 KB</td></tr></tbody></table></div>
+<h4>SQL query <small>1000 rows × 50 columns</small></h4><div class="table-scroll"><table class="detail"><thead><tr><th scope="col">Tool</th><th scope="col">Time to rendered rows</th><th scope="col">CPU time of page</th><th scope="col">DOM elements</th><th scope="col">JS heap after GC</th><th scope="col">Data received</th></tr></thead><tbody><tr class="flase"><th scope="row">Flase</th><td class="best">228 ms</td><td class="best">204 ms</td><td class="best">2,088</td><td>18.2 MB</td><td>1,537 KB</td></tr><tr><th scope="row">phpMyAdmin</th><td>13,631 ms</td><td>11,981 ms</td><td>129,659</td><td>28.9 MB</td><td>358 KB</td></tr><tr><th scope="row">Adminer</th><td>1,710 ms</td><td>1,673 ms</td><td>52,434</td><td class="best">2.2 MB</td><td class="best">295 KB</td></tr><tr><th scope="row">CloudBeaver</th><td>1,696 ms</td><td>1,387 ms</td><td>2,381</td><td>60.5 MB</td><td>2,420 KB</td></tr></tbody></table></div>
+<h3>PostgreSQL 17</h3>
+<h4>Open table <small>100 rows × 50 columns</small></h4><div class="table-scroll"><table class="detail"><thead><tr><th scope="col">Tool</th><th scope="col">Time to rendered rows</th><th scope="col">CPU time of page</th><th scope="col">DOM elements</th><th scope="col">JS heap after GC</th><th scope="col">Data received</th></tr></thead><tbody><tr class="flase"><th scope="row">Flase</th><td class="best">175 ms</td><td class="best">143 ms</td><td>2,364</td><td>8.9 MB</td><td>192 KB</td></tr><tr><th scope="row">pgAdmin 4</th><td>2,003 ms</td><td>1,831 ms</td><td class="best">1,984</td><td>80.9 MB</td><td>2,632 KB</td></tr><tr><th scope="row">Adminer</th><td>371 ms</td><td>307 ms</td><td>6,367</td><td class="best">1.9 MB</td><td class="best">39 KB</td></tr><tr><th scope="row">CloudBeaver</th><td>2,961 ms</td><td>2,487 ms</td><td>3,528</td><td>62.8 MB</td><td>361 KB</td></tr></tbody></table></div>
+<h4>Table with 20 foreign keys <small>100 rows × 24 columns</small></h4><div class="table-scroll"><table class="detail"><thead><tr><th scope="col">Tool</th><th scope="col">Time to rendered rows</th><th scope="col">CPU time of page</th><th scope="col">DOM elements</th><th scope="col">JS heap after GC</th><th scope="col">Data received</th></tr></thead><tbody><tr class="flase"><th scope="row">Flase</th><td class="best">208 ms</td><td class="best">184 ms</td><td>3,294</td><td>8.7 MB</td><td>137 KB</td></tr><tr><th scope="row">pgAdmin 4</th><td>2,007 ms</td><td>1,820 ms</td><td class="best">1,984</td><td>80.9 MB</td><td>2,515 KB</td></tr><tr><th scope="row">Adminer</th><td>241 ms</td><td>193 ms</td><td>5,533</td><td class="best">1.9 MB</td><td class="best">38 KB</td></tr><tr><th scope="row">CloudBeaver</th><td>2,027 ms</td><td>1,532 ms</td><td>4,406</td><td>68.5 MB</td><td>142 KB</td></tr></tbody></table></div>
+<h4>SQL query <small>1000 rows × 50 columns</small></h4><div class="table-scroll"><table class="detail"><thead><tr><th scope="col">Tool</th><th scope="col">Time to rendered rows</th><th scope="col">CPU time of page</th><th scope="col">DOM elements</th><th scope="col">JS heap after GC</th><th scope="col">Data received</th></tr></thead><tbody><tr class="flase"><th scope="row">Flase</th><td class="best">220 ms</td><td class="best">191 ms</td><td>2,058</td><td>18.1 MB</td><td>1,537 KB</td></tr><tr><th scope="row">pgAdmin 4</th><td>356 ms</td><td>221 ms</td><td class="best">1,950</td><td>84.8 MB</td><td>1,246 KB</td></tr><tr><th scope="row">Adminer</th><td>1,603 ms</td><td>1,512 ms</td><td>51,491</td><td class="best">2.1 MB</td><td class="best">169 KB</td></tr><tr><th scope="row">CloudBeaver</th><td>1,756 ms</td><td>1,408 ms</td><td>2,398</td><td>60.9 MB</td><td>2,423 KB</td></tr></tbody></table></div>
+
+  <h2>Notes</h2>
+  <ul>
+    <li><strong>Adminer</strong> is a single PHP file which returns a plain HTML page without a JavaScript grid. For one page of 100 rows this is very fast - every action loads a new page, so state (open tabs, scroll, unsaved changes) is not kept between actions.</li>
+    <li><strong>phpMyAdmin</strong> builds the whole HTML table and its JavaScript goes through every cell, so its time grows with every row: 1000 rows take seconds.</li>
+    <li><strong>pgAdmin</strong> and <strong>CloudBeaver</strong> are full applications in the browser (React) - opening data opens a new panel with its editor and grid, which is most of their time of opening a table. Both have a virtual grid, so the query of 1000 rows in an already opened Query Tool of pgAdmin is fast. The grid of pgAdmin is in an iframe; its DOM elements are counted for the main page only.</li>
+    <li><strong>Flase</strong> renders only rows and columns visible on the screen, so the page stays small for 100 and for 1000 rows. It sends rows as JSON over WebSocket - more bytes than compressed HTML, but no layout of a huge table. Values of referenced rows (labels of foreign keys) are loaded after the rows are shown.</li>
+    <li>Times include the work of the server of each tool and of the database; all of them ran on the same machine at the same time, each tool was measured in turn.</li>
+  </ul>
+
+  <h2>Run it yourself</h2>
+  <p>The script and description of all containers are in the repository:
+    <a href="https://github.com/MateuszBochen/flase/blob/master/tests/ui/bench-tools.js">tests/ui/bench-tools.js</a>.
+    With the tools running on ports 3010 (Flase), 8090 (phpMyAdmin), 8091 (Adminer), 8092 (pgAdmin) and 8093 (CloudBeaver):</p>
+  <pre><code>docker run --rm --network host -v $PWD/tests/ui:/pw -w /pw \
+  mcr.microsoft.com/playwright:v1.49.1-noble node bench-tools.js 7</code></pre>
+  <p>Found a mistake or want another tool in the comparison? <a href="https://github.com/MateuszBochen/flase/issues">Open an issue on GitHub</a>.</p>
+  <p><a href="./">← Back to Flase</a></p>
+</main>
+</body>
+</html>

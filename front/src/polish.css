@@ -413,7 +413,7 @@ input[type="radio"] {
   border-color: var(--grid-line);
 }
 
-.data-table-content .data-table-row .data-table-cell .data-table-cell-content {
+.data-table-content .data-table-row .data-table-cell {
   border-color: var(--grid-line);
   background-color: transparent;
   font-family: var(--font-mono);
@@ -421,11 +421,11 @@ input[type="radio"] {
 }
 
 /* zebra and hover only for rows / cells without state (selected, changed, inserted, deleted) */
-.data-table-content .data-table-row.row-normal:not(.selected):nth-child(even) .data-table-cell:not(.changed):not(.cell-selected) .data-table-cell-content {
+.data-table-content .data-table-row.row-normal:not(.selected):nth-child(even) .data-table-cell:not(.changed):not(.cell-selected) {
   background-color: var(--grid-zebra);
 }
 
-.data-table-content .data-table-row.row-normal:not(.selected):hover .data-table-cell:not(.changed):not(.cell-selected) .data-table-cell-content {
+.data-table-content .data-table-row.row-normal:not(.selected):hover .data-table-cell:not(.changed):not(.cell-selected) {
   background-color: var(--hover);
 }
 
@@ -484,7 +484,7 @@ div[role="status"] {
   border-radius: 4px;
 }
 
-:root[data-theme="light"] .data-table-content .data-table-row .data-table-cell.cell-selected .data-table-cell-content {
+:root[data-theme="light"] .data-table-content .data-table-row .data-table-cell.cell-selected {
   color: var(--text-strong);
   background-color: #bcd2fb;
 }
