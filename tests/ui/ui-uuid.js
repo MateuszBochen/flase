@@ -100,6 +100,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   const fkRow = await rowOf('id', 'f6a7b8c9-d0e1-4f2a-8b3c-4d5e6f7a8b13');
   const fkCell = await cell(fkRow, 'customer_id');
   check('uuid foreign key has link', await fkCell.locator('.dtc-reference').count() === 1);
+  await fkCell.hover(); // icon of foreign key is shown on hover of row
   await fkCell.locator('.dtc-reference').click();
   await page.waitForTimeout(1500);
   check('foreign key opens referenced customer', await rows().count() === 1 && await cellText(0, 'name') === 'Piotr'
@@ -187,6 +188,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const noteRow = await rowOf('note', 'note of second');
     const keyCell = await cell(noteRow, 'item_id');
     check('binary foreign key shows name of referenced row', /second edited/.test(await keyCell.innerText()), await keyCell.innerText());
+    await keyCell.hover(); // icon of foreign key is shown on hover of row
     await keyCell.locator('.dtc-reference').click();
     await page.waitForTimeout(1500);
     const query = (await visibleTab().locator('.monaco-editor').innerText()).replace(/\s+/g, ' ');
@@ -322,7 +324,9 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     await reload();
     check('edit by native uuid key saved', (await column('name')).includes('first edited'), JSON.stringify(await column('name')));
     await openTable('uuid_native_child');
-    await (await cell(0, 'parent_id')).locator('.dtc-reference').click();
+    const parentCell = await cell(0, 'parent_id');
+    await parentCell.hover(); // icon of foreign key is shown on hover of row
+    await parentCell.locator('.dtc-reference').click();
     await page.waitForTimeout(1500);
     check('native uuid foreign key opens parent', await rows().count() === 1 && await cellText(0, 'name') === 'first edited', `${await rows().count()} row(s)`);
   }

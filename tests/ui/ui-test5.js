@@ -61,7 +61,8 @@ const check = (name, ok, info = '') => {
     for (let el = cell; el; el = el.parentElement) {
       if (el.scrollTop || el.scrollLeft) scrolled.push(`${el.className.split(' ')[0]}: top=${el.scrollTop} left=${el.scrollLeft}`);
     }
-    const content = cell.querySelector('.data-table-cell-content');
+    // cell itself has border and background (no wrapper of content)
+    const content = cell;
     return {
       offset: content.getBoundingClientRect().top - cell.getBoundingClientRect().top,
       cellHeight: cell.getBoundingClientRect().height,

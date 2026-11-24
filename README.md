@@ -1,5 +1,6 @@
 # Flase - modern web database manager, phpMyAdmin alternative
 
+[![Website](https://img.shields.io/badge/website-flase.dev-3574f0)](https://flase.dev)
 [![License: AGPL v3+](https://img.shields.io/badge/License-AGPL%20v3%2B-blue.svg)](LICENSE)
 [![Docker Image Version](https://img.shields.io/docker/v/backen/flase?sort=semver&label=Docker%20Hub)](https://hub.docker.com/r/backen/flase)
 [![Docker Pulls](https://img.shields.io/docker/pulls/backen/flase)](https://hub.docker.com/r/backen/flase)
@@ -10,6 +11,8 @@
 also **TiDB**, **CockroachDB**, **YugabyteDB** and cloud services like Supabase, Neon, RDS or Aurora.
 It is a modern **alternative to phpMyAdmin and Adminer** with the comfort of desktop tools like DataGrip, DBeaver or HeidiSQL -
 but running in the browser, in one Docker container.
+
+Website: **[flase.dev](https://flase.dev)**
 
 Browse and edit data in a spreadsheet-like grid, change table structure with SQL preview, run queries in an SQL console,
 import and export dumps, draw ER diagrams and manage users - all from one self-hosted web application.

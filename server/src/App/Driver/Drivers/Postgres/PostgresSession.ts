@@ -4,7 +4,7 @@ import TotalCountDto from '../../../../Driver/Dto/TotalCountDto';
 import UpdateResultType from '../../../../Driver/Type/UpdateResultType';
 import RecordType from '../../../../Driver/Type/Data/RecordType';
 import ResultFieldInterface from '../../Interface/Data/ResultFieldInterface';
-import RowChangeStatementInterface from '../../Interface/Data/RowChangeStatementInterface';
+import RowChangeStatementInterface, {notIdentifiedRowError} from '../../Interface/Data/RowChangeStatementInterface';
 import {StatementResultType} from '../../Interface/Data/StatementInterface';
 import SelectAnalyser from '../../Query/SelectAnalyser';
 import PostgresSql from './PostgresSql';
@@ -129,6 +129,11 @@ class PostgresSession implements DriverSessionInterface {
         }
       }
       for (const statement of statements) {
+        if (statement.matchingRowsSql) {
+          const {rows: [counted]} = await this.client.query(statement.matchingRowsSql);
+          const matching = Number(counted?.n || 0);
+          if (matching > 1) throw notIdentifiedRowError(matching, statement.sql);
+        }
         let result;
         try {
           result = await this.client.query(statement.sql);

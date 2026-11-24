@@ -158,11 +158,15 @@ export const buildRowChanges = (
   };
 
   const limitOne = editable.primaryKey.length === 0;
+  /** without primary key: columns of row which can be compared in where */
+  const comparable = (row: SingleRowType): string[] => columns
+    .filter((column) => column.editable && !(isBinaryValue(row[column.key]) && (row[column.key] as any).truncated) && !isLongText(row[column.key]))
+    .map((column) => column.key);
+  /** some column is not compared - other rows with the same compared values are not copies, server refuses more matches */
+  const partialWhere = (row: SingleRowType): boolean => limitOne && comparable(row).length < columns.length;
   const whereOf = (row: SingleRowType): SingleRowType => {
     // without primary key: preview of long binary value (BLOB) or text cannot identify row - other columns and LIMIT 1 do
-    const identifying = limitOne
-      ? columns.filter((column) => column.editable && !(isBinaryValue(row[column.key]) && (row[column.key] as any).truncated) && !isLongText(row[column.key])).map((column) => column.key)
-      : editable.primaryKey;
+    const identifying = limitOne ? comparable(row) : editable.primaryKey;
     // key column does not have to be editable (e.g. BINARY(16) / bytea key) - it only identifies row
     const where: SingleRowType = {};
     identifying.forEach((key) => {
@@ -178,13 +182,13 @@ export const buildRowChanges = (
   const rowChanges: RowChangeInterface[] = [];
 
   Object.keys(changes.deleted).forEach((rowIndex) => {
-    rowChanges.push({kind: 'delete', where: whereOf(records[+rowIndex]), limitOne});
+    rowChanges.push({kind: 'delete', where: whereOf(records[+rowIndex]), limitOne, partialWhere: partialWhere(records[+rowIndex])});
   });
 
   Object.entries(changes.updated)
     .filter(([rowIndex]) => !changes.deleted[+rowIndex])
     .forEach(([rowIndex, values]) => {
-      rowChanges.push({kind: 'update', where: whereOf(records[+rowIndex]), values: toTableValues(values), limitOne});
+      rowChanges.push({kind: 'update', where: whereOf(records[+rowIndex]), values: toTableValues(values), limitOne, partialWhere: partialWhere(records[+rowIndex])});
     });
 
   changes.inserted.forEach((values) => {

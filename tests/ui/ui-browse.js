@@ -65,9 +65,10 @@ const check = (name, ok, info = '') => {
   // --- foreign key link
   const customerCell = await cell(0, 'customer_id');
   // label of referenced row is shown next to key - only the key itself
-  const customerId = (await customerCell.locator('.dtc-content').evaluate((element) => Array.from(element.childNodes).filter((node) => node.nodeType === 3).map((node) => node.textContent).join(''))).trim();
+  const customerId = (await customerCell.evaluate((element) => Array.from(element.childNodes).filter((node) => node.nodeType === 3).map((node) => node.textContent).join(''))).trim();
   check('foreign key cell has link', await customerCell.locator('.dtc-reference').count() === 1);
   check('primary key cell has no link', await (await cell(0, 'id')).locator('.dtc-reference').count() === 0);
+  await customerCell.hover(); // icon of foreign key is shown on hover of row
   await customerCell.locator('.dtc-reference').click();
   await page.waitForTimeout(1500);
   await page.screenshot({path: `${OUT}/81-fk-same-tab.png`});
@@ -80,7 +81,9 @@ const check = (name, ok, info = '') => {
   await page.getByText('orders', {exact: true}).first().dispatchEvent('mousedown');
   await page.waitForTimeout(1500);
   const secondCustomer = (await (await cell(1, 'customer_id')).innerText()).trim();
-  await (await cell(1, 'customer_id')).locator('.dtc-reference').click({modifiers: ['Control']});
+  const secondCustomerCell = await cell(1, 'customer_id');
+  await secondCustomerCell.hover(); // icon of foreign key is shown on hover of row
+  await secondCustomerCell.locator('.dtc-reference').click({modifiers: ['Control']});
   await page.waitForTimeout(1500);
   check('ctrl+click: new tab, orders still open', (await page.locator('body').innerText()).includes('shop/orders') && (await page.locator('body').innerText()).includes('shop/customers'));
 

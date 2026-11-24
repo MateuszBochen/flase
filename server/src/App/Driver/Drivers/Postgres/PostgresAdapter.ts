@@ -494,6 +494,11 @@ class PostgresAdapter implements DriverInterface {
       ? `ctid = (SELECT ctid FROM ${tableName} WHERE ${PostgresAdapter.buildWhere(change.where, types)} LIMIT 1)`
       : PostgresAdapter.buildWhere(change.where, types);
 
+    // LIMIT 1 of ctid would change any of rows which only look the same
+    const matchingRowsSql = (change: RowChangeInterface) => change.limitOne && change.partialWhere
+      ? `SELECT COUNT(*) AS n FROM ${tableName} WHERE ${PostgresAdapter.buildWhere(change.where, types)}`
+      : undefined;
+
     return changes.map((change) => {
       switch (change.kind) {
         case 'update': {
@@ -502,10 +507,10 @@ class PostgresAdapter implements DriverInterface {
             throw new Error('Update without values');
           }
           const set = entries.map(([column, value]) => `${PostgresSql.identifier(column)} = ${PostgresSql.literal(value)}`).join(', ');
-          return {sql: `UPDATE ${tableName} SET ${set} WHERE ${where(change)}`, expectOneRow: true};
+          return {sql: `UPDATE ${tableName} SET ${set} WHERE ${where(change)}`, expectOneRow: true, matchingRowsSql: matchingRowsSql(change)};
         }
         case 'delete':
-          return {sql: `DELETE FROM ${tableName} WHERE ${where(change)}`, expectOneRow: true};
+          return {sql: `DELETE FROM ${tableName} WHERE ${where(change)}`, expectOneRow: true, matchingRowsSql: matchingRowsSql(change)};
         case 'insert': {
           const values = deserializeBinaryWriteValues(change.values || {});
           const columns = Object.keys(values);
