@@ -6,6 +6,8 @@ interface TableListPropsInterface {
   connection: ConnectionDataInterface;
   database: Database;
   tables: TableInformationInterface[];
+  /** list is being loaded from server */
+  loading?: boolean;
 }
 
 export default TableListPropsInterface;

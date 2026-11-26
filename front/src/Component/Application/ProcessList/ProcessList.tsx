@@ -9,6 +9,7 @@ import ConsoleApi from '../../../Library/Console/ConsoleApi';
 import ProcessInterface from '../../../Library/Console/ProcessInterface';
 import './style.css';
 import useConnectionSettings from '../../../Library/Connection/useConnectionSettings';
+import ConfirmPopup from '../../../UI/Popup/ConfirmPopup';
 
 export interface ProcessListPropsInterface extends ApplicationInterface {
   connection: ConnectionDataInterface;
@@ -59,13 +60,14 @@ export default (props: ProcessListPropsInterface) => {
     return () => clearInterval(interval);
   }, [autoRefresh, load]);
 
-  const kill = (process: ProcessInterface, wholeConnection: boolean) => {
-    const what = wholeConnection ? `close connection ${process.id}` : `stop query of ${process.id}`;
-    const ownWarning = process.own ? '\n\nThis connection belongs to this application.' : '';
-    if (window.confirm(`Really ${what}?\n\n${process.info || process.command}${ownWarning}`)) {
-      waiting.current = true;
-      api.killProcess(props.connection, tabId, process.id, wholeConnection);
-    }
+  /** process waiting for confirmation of kill */
+  const [killing, setKilling] = useState<{process: ProcessInterface, wholeConnection: boolean} | null>(null);
+  const kill = (process: ProcessInterface, wholeConnection: boolean) => setKilling({process, wholeConnection});
+  const confirmKill = () => {
+    if (!killing) return;
+    setKilling(null);
+    waiting.current = true;
+    api.killProcess(props.connection, tabId, killing.process.id, killing.wholeConnection);
   };
 
   const visible = processes.filter((process) => {
@@ -113,6 +115,18 @@ export default (props: ProcessListPropsInterface) => {
           </tbody>
         </table>
       </div>
+      {killing && (
+        <ConfirmPopup
+          label={killing.wholeConnection ? `Close connection ${killing.process.id}?` : `Stop query of ${killing.process.id}?`}
+          confirmLabel={killing.wholeConnection ? 'Close connection' : 'Stop query'}
+          danger
+          onConfirm={confirmKill}
+          onCancel={() => setKilling(null)}
+        >
+          <code>{killing.process.info || killing.process.command}</code>
+          {killing.process.own && <p>This connection belongs to this application.</p>}
+        </ConfirmPopup>
+      )}
     </div>
   );
 }

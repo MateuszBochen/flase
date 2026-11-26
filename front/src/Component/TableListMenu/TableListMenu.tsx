@@ -16,14 +16,19 @@ const tableManager = TableManager.getInstance();
 /** TableListMenu */
 export default (props: TableListMenuPropsInterface) => {
   const [state, setState] = useState<TableInformationInterface[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   useEffect(() => {
     tableManager.askForTableList(props.connection, props.database, false);
     const newList = tableManager.getTablesListForDatabase(props.connection, props.database);
     setState([...newList]);
+    setLoading(tableManager.isLoading(props.connection, props.database));
   }, []);
 
   useEffect(() => {
-    const refresh = () => setState([...tableManager.getTablesListForDatabase(props.connection, props.database)]);
+    const refresh = () => {
+      setState([...tableManager.getTablesListForDatabase(props.connection, props.database)]);
+      setLoading(tableManager.isLoading(props.connection, props.database));
+    };
 
     const receivedId = EventBus.subscribe<ReceivedTableInformationInterface>(TableInformationWasReceived, refresh);
     const reloadedId = EventBus.subscribe<{connection: {id: string}, database: {name: string}}>(TableListWasReloaded, (event) => {
@@ -46,6 +51,7 @@ export default (props: TableListMenuPropsInterface) => {
         connection={props.connection}
         database={props.database}
         tables={state}
+        loading={loading}
       />
     </Box>
   );

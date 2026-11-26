@@ -86,3 +86,13 @@
 .table-list-menu-root li.highlighted:not(.open-in-tab) button {
   box-shadow: inset 2px 0 0 var(--primary);
 }
+
+/* loader / empty state of the list */
+.table-list-content .table-list-state {
+  padding: 4px 8px;
+  color: var(--text-muted, #8a93a6);
+  font-size: 0.9em;
+  list-style: none;
+  white-space: nowrap;
+  cursor: default;
+}

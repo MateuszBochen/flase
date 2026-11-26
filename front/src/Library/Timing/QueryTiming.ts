@@ -27,6 +27,12 @@ type PendingType = {
   server?: ServerQueryTimingInterface;
 };
 
+/** last time the page was hidden (other browser tab, minimized window) - performance.now */
+let lastHiddenAt = -1;
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) lastHiddenAt = performance.now();
+});
+
 /**
  * Times of queries of tabs (grid, results of console) - only borders of steps are read, nothing per row.
  * start (request sent) -> received (messages, from websocket client) -> rendered (view painted rows).
@@ -72,8 +78,11 @@ class QueryTiming {
     const pending = QueryTiming.pending.get(tabId);
     if (!pending || pending.finishedAt === undefined) return;
     QueryTiming.pending.delete(tabId);
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      const paintedAt = performance.now();
+    const committedAt = performance.now();
+    // hidden page does not run animation frames - they would wait until the user comes back (render of hours);
+    // then the commit of rows is the end
+    const finish = () => {
+      const paintedAt = QueryTiming.hiddenSince(committedAt) ? committedAt : performance.now();
       const receivedMs = pending.finishedAt! - pending.startedAt;
       const renderMs = paintedAt - Math.max(pending.finishedAt!, pending.shownAt ?? 0);
       const timing: QueryTimingInterface = {
@@ -86,7 +95,17 @@ class QueryTiming {
       };
       QueryTiming.measured.set(tabId, timing);
       EventBus.emit(new QueryTimingWasMeasured({tabId, timing}));
-    }));
+    };
+    if (document.hidden) {
+      finish();
+      return;
+    }
+    requestAnimationFrame(() => requestAnimationFrame(finish));
+  }
+
+  /** page is hidden now or was hidden after the time (performance.now) */
+  private static hiddenSince(time: number): boolean {
+    return document.hidden || lastHiddenAt >= time;
   }
 
   static last(tabId: string): QueryTimingInterface | undefined {

@@ -34,6 +34,9 @@ class ExecuteStatementsCommandHandler extends AbstractCommandHandler<ExecuteStat
     const maxRows = Math.min(Math.max(1, Number(data.maxRows) || DEFAULT_MAX_ROWS), LIMIT_MAX_ROWS);
 
     const sessionStopwatch = new QueryStopwatch();
+    // structure of tables of the first statement is loaded while the session is opened
+    const firstColumnsBuilder = new ResultColumnsBuilder(this.driver, data.database || null, data.statements[0]);
+    const firstMetadata = firstColumnsBuilder.loadMetadata().catch(() => undefined);
     let session: DriverSessionInterface;
     try {
       session = await this.driver.openSession(data.database || null, data.tabId);
@@ -64,8 +67,14 @@ class ExecuteStatementsCommandHandler extends AbstractCommandHandler<ExecuteStat
         const stopwatch = index === 0 ? sessionStopwatch : new QueryStopwatch();
         if (index > 0) stopwatch.mark('session');
         try {
-          const columnsBuilder = new ResultColumnsBuilder(this.driver, database, sql);
-          await columnsBuilder.loadMetadata();
+          let columnsBuilder: ResultColumnsBuilder;
+          if (index === 0) {
+            columnsBuilder = firstColumnsBuilder;
+            await firstMetadata;
+          } else {
+            columnsBuilder = new ResultColumnsBuilder(this.driver, database, sql);
+            await columnsBuilder.loadMetadata();
+          }
           stopwatch.mark('metadata');
 
           let firstRow = true;

@@ -18,7 +18,7 @@ const stepsOf = (timing: QueryTimingInterface): StepType[] => {
   const server = timing.server;
   if (server) {
     steps.push({label: 'Connection', ms: server.sessionMs, hint: 'Free connection of the pool, new session'});
-    steps.push({label: 'Metadata', ms: server.metadataMs, hint: 'Structure of tables of the query (types, keys, references)'});
+    steps.push({label: 'Metadata', ms: server.metadataMs, hint: 'Structure of tables of the query (types, keys, references) - loaded while the connection is opened, this is the rest'});
     steps.push({label: 'Execution', ms: server.executionMs, hint: 'Database until the first row (with network to the database)'});
     steps.push({label: `Fetch ${formatCount(timing.rows)} row(s)`, ms: server.fetchMs, hint: 'From the first to the last row - reading and sending'});
   }

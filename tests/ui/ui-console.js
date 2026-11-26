@@ -77,9 +77,11 @@ const check = (name, ok, info = '') => {
   const columnIndex = async (name) => (await grid().locator('.header-cell .column-name').allInnerTexts()).indexOf(name);
   const cell = async (row, name) => rows().nth(row).locator('.data-table-cell').nth(await columnIndex(name));
 
+  // dialogs of the browser (window.prompt / confirm) must not appear - the application asks in its popups
+  let browserDialog = '';
   page.on('dialog', async (dialog) => {
-    if (dialog.type() === 'prompt') await dialog.accept('customers count');
-    else await dialog.accept();
+    browserDialog = `${dialog.type()}: ${dialog.message()}`;
+    await dialog.accept();
   });
   const consoleTab = () => page.locator('.cmp-sql-console:visible');
   const setConsoleText = (text, offset) => page.evaluate(([text, offset]) => {
@@ -192,8 +194,15 @@ const check = (name, ok, info = '') => {
   const editorValue = await page.evaluate(() => window.monaco.editor.getEditors().find((e) => e.getContainerDomNode().closest('.cmp-sql-console') && e.getContainerDomNode().offsetParent).getValue());
   check('history item inserted into editor', editorValue.includes('SELECT COUNT(*) AS n FROM customers;'), JSON.stringify(editorValue));
   await setConsoleText('SELECT COUNT(*) AS n FROM customers;', 3);
-  await consoleTab().getByRole('button', {name: /Save/}).click();
+  await consoleTab().getByRole('button', {name: /Save/}).first().click();
+  // name is asked in popup of the application, not in window.prompt
+  const savePopup = page.locator('.popup-root', {hasText: 'Save query'});
+  check('save asks name in popup', await savePopup.locator('input').inputValue() === 'SELECT COUNT(*) AS n FROM customers', await savePopup.locator('input').inputValue());
+  await savePopup.locator('input').fill('customers count');
+  await savePopup.locator('input').press('Enter');
   await page.waitForTimeout(300);
+  check('save popup closed', await savePopup.count() === 0);
+  check('no dialog of browser when saving', !browserDialog, browserDialog);
   await consoleTab().getByRole('tab', {name: /Saved/}).click();
   check('query saved', (await consoleTab().locator('.library-name').allInnerTexts()).includes('customers count'));
   await consoleTab().locator('.library-item', {hasText: 'customers count'}).locator('button[title="Run"]').click();
@@ -212,6 +221,23 @@ const check = (name, ok, info = '') => {
   check('history survives reload', (await consoleTab().locator('.cmp-query-library .library-item').count()) >= 8);
   check('console from connection has no database', (await consoleTab().locator('.console-database').inputValue()) === '');
 
+  // clear history - asked in popup of the application; Cancel keeps it, saved queries stay after clearing
+  await consoleTab().getByRole('tab', {name: /History/}).click();
+  const historyCount = await consoleTab().locator('.cmp-query-library .library-item').count();
+  const clearPopup = page.locator('.popup-root', {hasText: 'Clear history?'});
+  await consoleTab().locator('.library-clear').click();
+  check('clear history asks in popup', await clearPopup.count() === 1);
+  await clearPopup.getByRole('button', {name: 'Cancel'}).click();
+  check('cancel keeps history', await clearPopup.count() === 0 && await consoleTab().locator('.cmp-query-library .library-item').count() === historyCount);
+  await consoleTab().locator('.library-clear').click();
+  await clearPopup.getByRole('button', {name: 'Clear history'}).click();
+  await page.waitForTimeout(200);
+  check('history cleared', await consoleTab().locator('.cmp-query-library .library-item').count() === 0 && /Executed statements appear here/.test(await consoleTab().locator('.library-empty').innerText()));
+  await consoleTab().getByRole('tab', {name: /Saved/}).click();
+  check('saved query stays after clearing history', (await consoleTab().locator('.library-name').allInnerTexts()).includes('customers count'));
+  await consoleTab().getByRole('tab', {name: /History/}).click();
+  check('no dialog of browser when clearing history', !browserDialog, browserDialog);
+
   // processlist + kill query from console
   await setConsoleText('SELECT SLEEP(20) AS s;');
   await page.keyboard.press('Control+Enter');
@@ -225,7 +251,12 @@ const check = (name, ok, info = '') => {
   check('processlist shows console query', await sleepRow.count() === 1 && (await sleepRow.innerText()).includes('app'), await processes.locator('tbody').innerText().catch(() => ''));
   await page.screenshot({path: `${OUT}/96-processlist.png`});
   await sleepRow.getByRole('button', {name: 'Kill query'}).click();
+  // confirmed in popup of the application (window.confirm before)
+  const killPopup = page.locator('.popup-root', {hasText: /Stop query of \d+\?/});
+  check('kill asks in popup', await killPopup.count() === 1 && (await killPopup.innerText()).includes('SLEEP(20)'), await killPopup.innerText().catch(() => ''));
+  await killPopup.getByRole('button', {name: 'Stop query'}).click();
   await page.waitForTimeout(1500);
+  check('no dialog of browser when killing', !browserDialog, browserDialog);
   check('killed query gone from list', await processes.locator('tr', {hasText: 'SLEEP(20)'}).count() === 0);
   await page.locator('[class*="tab-label"]').filter({hasText: 'Console:'}).last().click();
   await waitIdle();

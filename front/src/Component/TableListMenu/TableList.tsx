@@ -7,7 +7,7 @@ import TableItem from './TableItem';
 import TabOpener from '../TabOpener/TabOpener';
 import DatabaseSearch, {DatabaseSearchPropsInterface} from '../Application/DatabaseSearch/DatabaseSearch';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
-import {faDiagramProject, faMagnifyingGlass, faRightLeft, faTerminal, faTableList, faSquarePlus, faWandMagicSparkles} from '@fortawesome/free-solid-svg-icons';
+import {faDiagramProject, faMagnifyingGlass, faRightLeft, faTerminal, faTableList, faSquarePlus, faWandMagicSparkles, faSpinner} from '@fortawesome/free-solid-svg-icons';
 import ErDiagram, {ErDiagramPropsInterface} from '../Application/ErDiagram/ErDiagram';
 import TransferTab, {TransferTabPropsInterface} from '../Application/Transfer/TransferTab';
 import SqlConsole, {SqlConsolePropsInterface} from '../Application/SqlConsole/SqlConsole';
@@ -239,6 +239,10 @@ export default (props: TableListPropsInterface) => {
           </TabOpener>
         </div>
         <ul ref={listRef}>
+          {props.loading && (
+            <li className="table-list-state" role="status"><FontAwesomeIcon icon={faSpinner} spin /> Loading tables…</li>
+          )}
+          {!props.loading && !state.length && <li className="table-list-state">No tables</li>}
           {filtered.map((filteredItem, index) =>(
             <TableItem
               highlighted={index === highlighted}
