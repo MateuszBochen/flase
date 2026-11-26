@@ -106,44 +106,39 @@ import and export dumps, draw ER diagrams and manage users - all from one self-h
 
 ![New connection](docs/screenshot-new-connection.png)
 
-## Performance compared with phpMyAdmin
+## Performance compared with other web database tools
 
-Rendering of rows measured in Chromium (Playwright, headless, window 1920 x 1080) - Flase 0.7.x (production image)
-and phpMyAdmin 5.2.3 (official Docker image, PHP 8.3), both connected to the same MariaDB 11.4 and showing the same
-table of 50 columns (texts, numbers, dates). Time from click to rendered rows, median of 7 runs after a warm-up run,
-AMD Ryzen 5 3600.
+Time from click (or run of query) to rendered rows, measured in Chromium (Playwright, headless, window 1920 x 1080)
+on the same MariaDB 11.4 and PostgreSQL 17 tables, median of 7 runs after a warm-up run, AMD Ryzen 5 3600.
+Flase 0.12.1, phpMyAdmin 5.2.3, pgAdmin 4 9.18, Adminer 6.3.0, CloudBeaver 26.2.5 (official Docker images).
+Method, setup and all values (CPU time, DOM elements, JS heap, data received): **[flase.dev/benchmark.html](https://flase.dev/benchmark.html)**,
+features of the tools compared: **[flase.dev/benchmark.html#features](https://flase.dev/benchmark.html#features)**.
 
-| Browse table, 100 rows x 50 columns | Flase | phpMyAdmin |
-|---|---:|---:|
-| Click to rendered rows | **239 ms** | 1,350 ms |
-| CPU time of page (script + layout + style + other) | **224 ms** | 1,187 ms |
-| Layout + style recalculation | **57 ms** | 676 ms |
-| DOM elements | **5,073** | 14,546 |
-| JS heap after GC | 10.0 MB | **8.4 MB** |
-| Data received | 225 KB | **85 KB** |
-| CPU time of 20 wheel scroll steps | 725 ms | **514 ms** |
+| Test | Flase | phpMyAdmin | pgAdmin 4 | Adminer | CloudBeaver |
+|---|---:|---:|---:|---:|---:|
+| Open table, MariaDB, 100 rows x 50 columns | **146 ms** | 1,207 ms | - | 295 ms | 3,041 ms |
+| Table with 20 foreign keys, MariaDB, 100 rows | **206 ms** | 1,136 ms | - | 227 ms | 2,102 ms |
+| SQL query, MariaDB, 1000 rows x 50 columns | **228 ms** | 13,631 ms | - | 1,710 ms | 1,696 ms |
+| Open table, PostgreSQL, 100 rows x 50 columns | **175 ms** | - | 2,003 ms | 371 ms | 2,961 ms |
+| Table with 20 foreign keys, PostgreSQL, 100 rows | **208 ms** | - | 2,007 ms | 241 ms | 2,027 ms |
+| SQL query, PostgreSQL, 1000 rows x 50 columns | **220 ms** | - | 356 ms | 1,603 ms | 1,756 ms |
 
-| SQL query, 1000 rows x 50 columns | Flase | phpMyAdmin |
-|---|---:|---:|
-| Run to rendered rows | **541 ms** | 13,578 ms |
-| CPU time of page | **505 ms** | 11,913 ms |
-| Layout + style recalculation | **107 ms** | 7,026 ms |
-| DOM elements | **4,083** | 129,272 |
-| JS heap after GC | **19.7 MB** | 28.4 MB |
-| Data received | 1,782 KB | **358 KB** |
-| CPU time of 20 wheel scroll steps | **1,095 ms** | 1,948 ms |
+| Resources | Flase | phpMyAdmin | pgAdmin 4 | Adminer | CloudBeaver |
+|---|---:|---:|---:|---:|---:|
+| Server RAM, idle (`docker stats`) | 30 MB | 26 MB | 243 MB | 19 MB | 303 MB |
+| Start of container until it answers | 0.4 s | 0.3 s | 15.5 s | 0.2 s | 2.8 s |
+| Docker image | 377 MB | 821 MB | 791 MB | 173 MB | 1,140 MB |
+| Browser memory (JS heap), open table | 9.0 MB | 8.6 MB | 80.9 MB | 2.0 MB | 62.5 MB |
 
 - Flase renders only visible rows and columns, so the size of the page stays the same for 100 and 1000 rows -
-  phpMyAdmin builds the whole HTML table (and its JavaScript processes every cell), its cost grows with every row.
-- phpMyAdmin sends compressed HTML, Flase sends rows as JSON over WebSocket - more bytes, but rendered without
-  layout of the whole table.
-- With a small page native scrolling of a static table of phpMyAdmin is cheaper than rendering of rows of the
-  virtualized grid during scroll; with 1000 rows it is the other way round.
+  phpMyAdmin and Adminer build the whole HTML table, their cost grows with every row.
+- Flase sends rows as JSON over WebSocket - more bytes than compressed HTML, but rendered without layout of the
+  whole table.
 
-Reproduce: `docker compose up`, then run Flase production image and phpMyAdmin in network `flase_default`
-(phpMyAdmin with `$cfg['MaxRows'] = 100`) and
-`docker run --rm --network host -v $PWD/tests/ui:/pw -w /pw mcr.microsoft.com/playwright:v1.49.1-noble node bench-phpmyadmin.js http://localhost:3010 http://localhost:8090 7`
-(script [tests/ui/bench-phpmyadmin.js](tests/ui/bench-phpmyadmin.js)).
+Reproduce: run the tools in Docker network `flase_default` (Flase on port 3010, phpMyAdmin 8090, Adminer 8091,
+pgAdmin 8092, CloudBeaver 8093) and
+`docker run --rm --network host -v $PWD/tests/ui:/pw -w /pw mcr.microsoft.com/playwright:v1.49.1-noble node bench-tools.js 7`
+(script [tests/ui/bench-tools.js](tests/ui/bench-tools.js)).
 
 ## Quick start (Docker)
 

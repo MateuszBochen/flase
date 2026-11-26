@@ -2,6 +2,8 @@
 enum MessageType {
   DATABASE_BASE_ITEM = 'DATABASE_BASE_ITEM',
   TABLE_BASE_ITEM = 'TABLE_BASE_ITEM',
+  /** all tables of the list were sent (also after error) - payload {dataBaseName} */
+  TABLES_LIST_FINISHED = 'TABLES_LIST_FINISHED',
   SELECT_TOTAL_COUNT = 'SELECT_TOTAL_COUNT',
   /** rows of result in batches - payload rows */
   SELECT_RECORDS = 'SELECT_RECORDS',

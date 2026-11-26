@@ -27,6 +27,7 @@ import {bindParameters, parametersOf} from '../../../Library/Console/SqlParamete
 import {inspectSql, unsafeChangeOf} from '../../../Library/Console/SqlInspections';
 import ParametersPopup, {ParameterValuesType} from './ParametersPopup';
 import Popup from '../../../UI/Popup/Popup';
+import PromptPopup from '../../../UI/Popup/PromptPopup';
 import Button from '../../../UI/Button/Button';
 import ExplainPopup from '../TableRecords/UI/ExplainPopup';
 
@@ -81,6 +82,8 @@ export default (props: SqlConsolePropsInterface) => {
   const editorRef = useRef<any>(null);
   const monacoRef = useRef<any>(null);
   const [pendingRun, setPendingRun] = useState<PendingRunType | null>(null);
+  /** SQL waiting for name of saved query */
+  const [savingSql, setSavingSql] = useState<string | null>(null);
   const [explainQuery, setExplainQuery] = useState<string | null>(null);
   const store = QueryStore.getInstance();
   const driver = DriverFactory.getDriver(props.connection);
@@ -266,11 +269,7 @@ export default (props: SqlConsolePropsInterface) => {
       toast.error('Nothing to save');
       return;
     }
-    const name = window.prompt('Name of saved query', sql.split('\n')[0].slice(0, 60));
-    if (name?.trim()) {
-      store.saveQuery(props.connection.id, {name: name.trim(), sql, database});
-      toast.success('Query saved');
-    }
+    setSavingSql(sql);
   };
 
   // tables of selected database for completion - also database selected by USE, not opened in sidebar
@@ -447,6 +446,20 @@ export default (props: SqlConsolePropsInterface) => {
           values={TabState.get(props.tabId).parameters || {}}
           onRun={(values) => { setPendingRun(null); pendingRun.then(bindValues(pendingRun.statements, values)); }}
           onCancel={() => setPendingRun(null)}
+        />
+      )}
+      {savingSql !== null && (
+        <PromptPopup
+          label="Save query"
+          field="Name"
+          submitLabel="Save"
+          initialValue={savingSql.split('\n')[0].slice(0, 60)}
+          onSubmit={(name) => {
+            store.saveQuery(props.connection.id, {name, sql: savingSql, database});
+            setSavingSql(null);
+            toast.success('Query saved');
+          }}
+          onCancel={() => setSavingSql(null)}
         />
       )}
       {explainQuery !== null && (

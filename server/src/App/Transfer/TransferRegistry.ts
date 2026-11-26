@@ -1,7 +1,7 @@
 import DriverInterface from '../Driver/DriverInterface';
 import {TransferRequestType} from '../Driver/Interface/Data/TransferInterface';
 import MessageType from '../Websocket/Enum/MessageType';
-const uuid = require('uuid');
+import {randomUUID} from 'crypto';
 
 /** ticket is valid only for a short time and only once */
 const TICKET_TTL_MS = 60 * 1000;
@@ -27,7 +27,7 @@ class TransferRegistry {
 
   static create(ticket: Omit<TransferTicketType, 'expiresAt'>): string {
     TransferRegistry.removeExpired();
-    const id = uuid.v4();
+    const id = randomUUID();
     TransferRegistry.tickets.set(id, {...ticket, expiresAt: Date.now() + TICKET_TTL_MS});
     return id;
   }

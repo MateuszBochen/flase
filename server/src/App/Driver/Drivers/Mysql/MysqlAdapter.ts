@@ -126,6 +126,7 @@ class MysqlAdapter implements DriverInterface {
         this.pool = pool;
         this.connected = true;
         this.keepaliveIntervalId = setInterval(this.keepalive, 1000 * 60 * 5);
+        this.warmUpSessionPool();
         resolve(this);
       });
     });
@@ -218,13 +219,8 @@ class MysqlAdapter implements DriverInterface {
 
         // pooled connection keeps database, SET variables (sql_mode, FOREIGN_KEY_CHECKS, @x) and temporary tables
         // of previous session - every session starts with clean connection
-        connection.changeUser({}, (resetErr) => {
-          if (resetErr || !database) {
-            done(resetErr);
-            return;
-          }
-          connection.query('USE ??', [database], done);
-        });
+        // database is selected by the same command (no USE - one round trip less with remote database)
+        connection.changeUser(database ? {database} : {}, done);
       });
     });
   }
@@ -294,22 +290,17 @@ class MysqlAdapter implements DriverInterface {
     this.log('Show tables');
 
     return new Observable(observer => {
-      // tables still waiting for keys and columns
-      let pending = 0;
-      let allTablesListed = false;
-      const completeIfDone = () => {
-        if (allTablesListed && pending === 0) {
-          observer.complete();
-        }
-      };
+      const tableNames: string[] = [];
+      // columns and keys of all tables by two queries - they were three queries per table, which filled the pool
+      // (5 connections) for seconds with remote database and the first opened table waited behind them
+      const structure = this.structureOfDatabase(databaseName);
+      structure.catch(() => undefined);
 
       this.streamQueryResults(showTablesQuery).subscribe({
         next: (record) => {
           Object.values(record).forEach((value) => {
             const tableName = `${value}`;
-            const showKeysFromTableQuery = mysql.format('SHOW KEYS FROM ??.??', [databaseName, tableName]);
-            pending++;
-
+            tableNames.push(tableName);
             // send empty object to short loading
             observer.next({
               tableName: tableName,
@@ -319,35 +310,85 @@ class MysqlAdapter implements DriverInterface {
               primaryColumns: [],
               uniqueColumns: [],
             });
-
-            this.getPool().query(showKeysFromTableQuery, (err: MysqlError | null, keysRecords: RecordType[]) => {
-              if (err) {
-                observer.error(err);
-                return;
-              }
-
-              this.getColumnsOfTable(databaseName, {table: tableName}).then((columnsOfTable) => {
-                observer.next({
-                  tableName: tableName,
-                  columns: columnsOfTable,
-                  preload: false,
-                  dataBaseName: databaseName,
-                  primaryColumns: this.preparePrimaryColumns(columnsOfTable, keysRecords),
-                  uniqueColumns: [],
-                });
-                pending--;
-                completeIfDone();
-              }).catch((error) => observer.error(error));
-            });
           });
         },
         error: (error) => observer.error(error),
         complete: () => {
-          allTablesListed = true;
-          completeIfDone();
+          structure.then((tables) => {
+            tableNames.forEach((tableName) => {
+              const table = tables.get(tableName);
+              const columns = table?.columns ?? [];
+              observer.next({
+                tableName: tableName,
+                columns,
+                preload: false,
+                dataBaseName: databaseName,
+                primaryColumns: columns.filter((column) => table!.primary.has(column.name)),
+                uniqueColumns: [],
+              });
+            });
+            observer.complete();
+          }).catch((error) => observer.error(error));
         },
       });
     });
+  }
+
+  /** columns (as SHOW COLUMNS of every table) and names of primary key columns of all tables of the database */
+  private async structureOfDatabase(databaseName: string): Promise<Map<string, {columns: ColumnInterface[], primary: Set<string>}>> {
+    const [columnRows, keyRows, isMariaDb] = await Promise.all([
+      this.queryRows(
+        'SELECT `TABLE_NAME`, `COLUMN_NAME`, `COLUMN_TYPE`, `IS_NULLABLE`, `COLUMN_KEY`, `COLUMN_DEFAULT`, `EXTRA`'
+        + ' FROM `information_schema`.`COLUMNS` WHERE `TABLE_SCHEMA` = ? ORDER BY `TABLE_NAME`, `ORDINAL_POSITION`',
+        [databaseName],
+      ),
+      this.queryRows(
+        'SELECT `TABLE_NAME`, `CONSTRAINT_NAME`, `COLUMN_NAME`, `REFERENCED_TABLE_SCHEMA`, `REFERENCED_TABLE_NAME`, `REFERENCED_COLUMN_NAME`'
+        + ' FROM `information_schema`.`KEY_COLUMN_USAGE`'
+        + " WHERE `TABLE_SCHEMA` = ? AND (`REFERENCED_TABLE_NAME` IS NOT NULL OR `CONSTRAINT_NAME` = 'PRIMARY')",
+        [databaseName],
+      ),
+      this.isMariaDb(),
+    ]);
+    const tables = new Map<string, {columns: ColumnInterface[], primary: Set<string>, references: ReferenceTableInterface[]}>();
+    const tableOf = (name: string) => {
+      if (!tables.has(name)) tables.set(name, {columns: [], primary: new Set(), references: []});
+      return tables.get(name)!;
+    };
+    keyRows.forEach((row: any) => {
+      if (row.REFERENCED_TABLE_NAME) {
+        tableOf(row.TABLE_NAME).references.push(MysqlAdapter.toReference(row, databaseName));
+      } else {
+        tableOf(row.TABLE_NAME).primary.add(row.COLUMN_NAME);
+      }
+    });
+    columnRows.forEach((row: any) => {
+      const table = tableOf(row.TABLE_NAME);
+      table.columns.push(this.toColumn(databaseName, {table: row.TABLE_NAME}, {
+        Field: row.COLUMN_NAME,
+        Type: row.COLUMN_TYPE,
+        Null: row.IS_NULLABLE,
+        Key: row.COLUMN_KEY,
+        Default: MysqlAdapter.showColumnsDefault(row.COLUMN_DEFAULT, isMariaDb),
+        Extra: row.EXTRA,
+      }, table.references));
+    });
+    return tables;
+  }
+
+  /**
+   * COLUMN_DEFAULT of information_schema as Default of SHOW COLUMNS - MariaDB quotes literals ('abc') and writes
+   * DEFAULT NULL as text NULL there, MySQL has the same value in both
+   */
+  private static showColumnsDefault(value: string | null, isMariaDb: boolean): string | null {
+    if (!isMariaDb || value === null) {
+      return value;
+    }
+    if (value === 'NULL') {
+      return null;
+    }
+    const quoted = /^'([\s\S]*)'$/.exec(value);
+    return quoted ? quoted[1].replace(/''/g, "'").replace(/\\(.)/g, (_match, char) => ({n: '\n', t: '\t', r: '\r', '0': '\0', Z: '\x1a'} as any)[char] ?? char) : value;
   }
 
   getSelectFromTypeFromQuery(query:string): SelectFromType[]
@@ -357,41 +398,43 @@ class MysqlAdapter implements DriverInterface {
 
   getColumnsOfTable(databaseName: string, selectFromType:SelectFromType): Promise<ColumnInterface[]> {
     const showColumnsQuery = mysql.format('SHOW COLUMNS FROM ??.??', [databaseName, selectFromType.table]);
+    const columnsOfTable = new Promise<any[]>((resolve, reject) => {
+      this.getPool().query(showColumnsQuery, (err: MysqlError | null, columns: any) => err ? reject(err) : resolve(columns));
+    });
+    // both queries at once (two connections of pool) - with remote database one round trip instead of two
+    const references = this.getReferencesColumns(databaseName, selectFromType.table);
+    references.catch(() => undefined);
 
     return new Promise((resolve, reject) => {
-      this.getPool().query(showColumnsQuery, (err: MysqlError | null, columns: any) => {
-        if (err) {
-          reject(err);
-          return;
-        }
-
-        this.getReferencesColumns(databaseName, selectFromType.table).then((referencesResult) => {
+      columnsOfTable.then((columns) => {
+        references.then((referencesResult) => {
           const newColumns: ColumnInterface[] = [];
 
-          columns.forEach((column:any) => {
-            const reference = this.findReference(column.Field, referencesResult);
-            const type = `${column.Type}`;
-            const columnType:ColumnInterface = {
-              table: {databaseName, name: selectFromType.table, alias: selectFromType.as},
-              autoIncrement: column.Extra === 'auto_increment',
-              defaultValue: column.Default,
-              name: column.Field,
-              key: column.Field,
-              orgName: column.Field,
-              type,
-              enumValues: MysqlAdapter.parseEnumValues(type),
-              editable: MysqlAdapter.isEditableType(type) && !/\b(VIRTUAL|STORED) GENERATED\b/i.test(column.Extra || ''),
-              nullable: column.Null === 'YES',
-              primaryKey: column.Key === 'PRI',
-              reference,
-            }
-            newColumns.push(columnType);
-          });
+          columns.forEach((column: any) => newColumns.push(this.toColumn(databaseName, selectFromType, column, referencesResult)));
 
           resolve(newColumns);
         }).catch(reject);
-      });
+      }).catch(reject);
     });
+  }
+
+  /** column of the table from a row of SHOW COLUMNS */
+  private toColumn(databaseName: string, selectFromType: SelectFromType, column: any, references: ReferenceTableInterface[]): ColumnInterface {
+    const type = `${column.Type}`;
+    return {
+      table: {databaseName, name: selectFromType.table, alias: selectFromType.as},
+      autoIncrement: column.Extra === 'auto_increment',
+      defaultValue: column.Default,
+      name: column.Field,
+      key: column.Field,
+      orgName: column.Field,
+      type,
+      enumValues: MysqlAdapter.parseEnumValues(type),
+      editable: MysqlAdapter.isEditableType(type) && !/\b(VIRTUAL|STORED) GENERATED\b/i.test(column.Extra || ''),
+      nullable: column.Null === 'YES',
+      primaryKey: column.Key === 'PRI',
+      reference: this.findReference(column.Field, references),
+    };
   }
 
   foreignKeyChecksOff(): ForeignKeyChecksOffInterface {
@@ -976,6 +1019,30 @@ class MysqlAdapter implements DriverInterface {
     return this.pool;
   }
 
+  /**
+   * first table of the user does not wait for new connections (TCP, TLS, login): one of the session pool and
+   * the second one of the pool (metadata of a table are two queries at once, the first connection is from login)
+   */
+  private warmUpSessionPool(): void {
+    const take = (pool: Pool, count: number) => {
+      const taken: PoolConnection[] = [];
+      let settled = 0;
+      for (let i = 0; i < count; i++) {
+        pool.getConnection((err: MysqlError, connection: PoolConnection) => {
+          if (!err) taken.push(connection);
+          // all are held at once, so the pool opens new ones instead of giving the same idle connection
+          if (++settled === count) taken.forEach((item) => item.release());
+        });
+      }
+    };
+    try {
+      take(this.getSessionPool(), 1);
+      take(this.getPool(), 2);
+    } catch (e) {
+      // not connected anymore
+    }
+  }
+
   private getSessionPool(): Pool {
     if (!this.connected) {
       throw new Error('Not connected');
@@ -1019,32 +1086,29 @@ class MysqlAdapter implements DriverInterface {
           return;
         }
 
-        const converted = results.map((result) => {
-          return {
-            columnName: result.REFERENCED_COLUMN_NAME,
-            originColumnName: result.COLUMN_NAME,
-            constraintName: (result as any).CONSTRAINT_NAME,
-            table: {
-              // foreign key can point to other database
-              databaseName: result.REFERENCED_TABLE_SCHEMA || databaseName,
-              name: result.REFERENCED_TABLE_NAME
-            }
-          }
-        });
+        const converted = results.map((result) => MysqlAdapter.toReference(result, databaseName));
 
         resolve(converted);
       });
     });
   }
 
-  private findReference(columnName:string, references:ReferenceTableInterface[]):undefined|ReferenceTableInterface {
-    return references.find((reference) => reference.originColumnName === columnName);
+  /** row of KEY_COLUMN_USAGE as reference of the column */
+  private static toReference(row: any, databaseName: string): ReferenceTableInterface {
+    return {
+      columnName: row.REFERENCED_COLUMN_NAME,
+      originColumnName: row.COLUMN_NAME,
+      constraintName: row.CONSTRAINT_NAME,
+      table: {
+        // foreign key can point to other database
+        databaseName: row.REFERENCED_TABLE_SCHEMA || databaseName,
+        name: row.REFERENCED_TABLE_NAME,
+      },
+    } as ReferenceTableInterface;
   }
 
-  private preparePrimaryColumns = (columnsOfTable: ColumnInterface[], records: RecordType[]): ColumnInterface[] => {
-    return columnsOfTable.filter((tableColumn) => records.some((record) => {
-      return record.Column_name === tableColumn.name && record.Key_name === 'PRIMARY';
-    }));
+  private findReference(columnName:string, references:ReferenceTableInterface[]):undefined|ReferenceTableInterface {
+    return references.find((reference) => reference.originColumnName === columnName);
   }
 
   private log(input:any): void {

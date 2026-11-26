@@ -3,6 +3,7 @@ import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faPlay, faXmark} from '@fortawesome/free-solid-svg-icons';
 import ConnectionDataInterface from '../../../Library/Connection/Interface/ConnectionDataInterface';
 import QueryStore, {HistoryEntryType, SavedQueryType} from '../../../Library/Console/QueryStore';
+import ConfirmPopup from '../../../UI/Popup/ConfirmPopup';
 
 interface QueryLibraryPropsInterface {
   connection: ConnectionDataInterface;
@@ -23,6 +24,7 @@ export default (props: QueryLibraryPropsInterface) => {
   const store = QueryStore.getInstance();
   const [panel, setPanel] = useState<'history' | 'saved'>('history');
   const [filter, setFilter] = useState<string>('');
+  const [confirmClear, setConfirmClear] = useState<boolean>(false);
   const [history, setHistory] = useState<HistoryEntryType[]>(store.getHistory(props.connection.id));
   const [saved, setSaved] = useState<SavedQueryType[]>(store.getSaved(props.connection.id));
 
@@ -52,7 +54,7 @@ export default (props: QueryLibraryPropsInterface) => {
           </div>
         ))}
         {panel === 'history' && history.length > 0 && (
-          <button type="button" className="library-clear" onClick={() => window.confirm('Clear history of this connection?') && store.clearHistory(props.connection.id)}>
+          <button type="button" className="library-clear" onClick={() => setConfirmClear(true)}>
             Clear history
           </button>
         )}
@@ -71,6 +73,17 @@ export default (props: QueryLibraryPropsInterface) => {
           <div className="library-empty">{panel === 'history' ? 'Executed statements appear here' : 'Save query with Save… button'}</div>
         )}
       </div>
+      {confirmClear && (
+        <ConfirmPopup
+          label="Clear history?"
+          confirmLabel="Clear history"
+          danger
+          onConfirm={() => { setConfirmClear(false); store.clearHistory(props.connection.id); }}
+          onCancel={() => setConfirmClear(false)}
+        >
+          All executed statements of this connection are removed from history. Saved queries stay.
+        </ConfirmPopup>
+      )}
     </div>
   );
 }

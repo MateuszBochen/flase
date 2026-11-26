@@ -1,4 +1,15 @@
-import axios, {AxiosPromise} from 'axios';
+/** answer of the server - shape of the former axios response, callers read data and status */
+export interface ApiResponseInterface<T = any> {
+  data: T;
+  status: number;
+}
+
+/** rejected request (status other than 2xx) - callers read response.data.error / response.status */
+export class ApiRequestError extends Error {
+  constructor(message: string, public readonly response: ApiResponseInterface) {
+    super(message);
+  }
+}
 
 /**
  * address of Flase server: REACT_APP_API_URL at build time, in development the server on port 3001,
@@ -27,13 +38,24 @@ class BaseRequest {
   static STATUS_OK = 200;
   static STATUS_UNAUTHORIZED = 401;
 
-  promiseDoRequest = (method: string, url: string, params: {[key:string]: any}):AxiosPromise => {
-
-    return axios({
-      method,
-      url: `${BaseRequest.API_URL}${url}`,
-      data: params,
+  promiseDoRequest = async (method: string, url: string, params: {[key:string]: any}): Promise<ApiResponseInterface> => {
+    const withBody = method !== BaseRequest.METHOD_GET;
+    const response = await fetch(`${BaseRequest.API_URL}${url}`, {
+      method: method.toUpperCase(),
+      headers: withBody ? {'Content-Type': 'application/json'} : undefined,
+      body: withBody ? JSON.stringify(params) : undefined,
     });
+    const text = await response.text();
+    let data: any = text;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch (e) {
+      // not JSON - text as it is
+    }
+    if (!response.ok) {
+      throw new ApiRequestError(`Request failed with status code ${response.status}`, {data, status: response.status});
+    }
+    return {data, status: response.status};
   };
 }
 

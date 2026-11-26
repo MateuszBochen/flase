@@ -3,6 +3,41 @@
 All notable changes of Flase are documented here. Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versions follow [Semantic Versioning](https://semver.org/). A `v*` tag publishes the Docker image of the version.
 
+## [0.13.0] - 2026-11-26
+
+### Added
+- **Loader of list of tables** - sidebar shows "Loading tables…" until all tables of the database with their columns
+  are loaded (server tells the end of the list), and "No tables" for an empty database
+
+### Changed
+- **First table opens faster with remote database** - list of tables of a MySQL / MariaDB database reads columns and
+  keys of all tables by two queries; it was three queries per table, which filled the pool of connections for seconds
+  and the first opened table waited behind them in its Metadata step (measured with 30 ms latency to the database:
+  first table 1.35 s -> 0.2 s, next tables ~320 ms -> ~200 ms). Structure of tables of the query is loaded while its
+  connection is opened, columns and foreign keys of a MySQL table are read at once, MySQL session selects its
+  database by the same command (no `USE`), connections are opened right after login; PostgreSQL keeps idle
+  connections 10 minutes - they were closed after 10 s, so every table after a pause opened new connections
+- **Docker image 377 MB -> 225 MB** - runtime is plain Alpine with the node binary only (npm, yarn, corepack and C
+  headers of the node image are not needed to run the application), browser and per dialect builds of
+  node-sql-parser (65 MB) and source maps of dependencies are not copied, type packages are development dependencies
+
+### Fixed
+- **Render time of hours in query timing** - render was measured until the next animation frame, which a hidden
+  browser tab (other tab, minimized window) runs only when the user comes back; then the commit of rows is the end
+- **Dialogs of the browser replaced by popups of the application** - name of saved query of SQL console, kill of
+  query / connection in processlist and clearing of query history are asked in popups, not by `window.prompt` /
+  `window.confirm` of the browser
+
+### Security
+- **Dependencies of the server updated** (`npm audit`: 0 known vulnerabilities in production dependencies, there were
+  14) - `jws` 3.2.3 (HMAC signature of JWT was not verified correctly, GHSA-869p-cjfg-cm3x), `ws` 7.5.14 (DoS and
+  disclosure of uninitialized memory by the websocket server), `express` 4.22 / `body-parser` 1.20.9 / `qs` /
+  `path-to-regexp` (DoS of HTTP API), `proxy-addr` (not exploitable - `trust proxy` is not used). Unused
+  `@types/socket.io` (brought whole socket.io) and `uuid` (replaced by `crypto.randomUUID`) removed
+- **Client** - `axios` replaced by `fetch` of the browser, unused packages `npm` and `i` removed; 91 -> 35 reports,
+  none critical - the rest is build tooling of `react-scripts` (not part of the built application) and
+  `react-syntax-highlighter` (needs new major version)
+
 ## [0.12.1] - 2026-11-23
 
 ### Changed

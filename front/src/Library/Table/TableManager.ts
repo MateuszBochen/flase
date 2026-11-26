@@ -21,6 +21,8 @@ class TableManager {
 
   /** first key is connection id, second key is database name */
   private tablesList: {[key:string]: {[key:string]: {[key:string]: TableInformationInterface}}} = {}
+  /** lists being loaded - `${connection id}\n${database}` */
+  private loading = new Set<string>();
 
   public static getInstance(): TableManager {
     if (!TableManager.instance) {
@@ -38,6 +40,13 @@ class TableManager {
     EventBus.subscribe<MessageInterface<TableInformationInterface>>(WebsocketReceivedAMessage, (messageEvent) => {
       const message = messageEvent.getData();
       // filter messages
+      if (message.message === MessageType.TABLES_LIST_FINISHED) {
+        const database = {name: (message.payload as unknown as {dataBaseName: string}).dataBaseName};
+        if (this.loading.delete(TableManager.loadingKey(message.connection, database))) {
+          EventBus.emit(new TableListWasReloaded({connection: message.connection, database}));
+        }
+        return;
+      }
       if (message.message === MessageType.TABLE_BASE_ITEM) {
         if (!this.tablesList[message.connection.id]) {
           this.tablesList[message.connection.id] = {};
@@ -79,6 +88,7 @@ class TableManager {
     if (this.tablesList[connection.id] && this.tablesList[connection.id][database.name]) {
       delete this.tablesList[connection.id][database.name];
     }
+    this.loading.add(TableManager.loadingKey(connection, database));
     // lists must drop removed tables also when database becomes empty (no table message comes)
     EventBus.emit(new TableListWasReloaded({connection, database}));
 
@@ -93,7 +103,18 @@ class TableManager {
       } as CommandInterface<Database>
       api.sendCommand(command);
 
-    } catch (e) {}
+    } catch (e) {
+      this.loading.delete(TableManager.loadingKey(connection, database));
+    }
+  }
+
+  /** list of tables of the database is being loaded (sidebar shows loader) */
+  isLoading(connection: {id: string}, database: Database): boolean {
+    return this.loading.has(TableManager.loadingKey(connection, database));
+  }
+
+  private static loadingKey(connection: {id: string}, database: {name: string}): string {
+    return `${connection.id}\n${database.name}`;
   }
 
   /** columns, indexes, keys, triggers and DDL - answer is TABLE_STRUCTURE message for tabId */

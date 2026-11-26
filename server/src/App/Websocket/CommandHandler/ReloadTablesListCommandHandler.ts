@@ -7,6 +7,12 @@ import TableInformationInterface from '../../Driver/Interface/Data/TableInformat
 class ReloadTablesListCommandHandler extends AbstractCommandHandler<DatabaseInterface> {
 
   handle = (data: DatabaseInterface): void => {
+    // end of the list - sidebar stops its loader
+    const finished = () => this.clientWebsocket.send<{dataBaseName: string}>(new WsMessage<{dataBaseName: string}>(
+      this.command.connectionData.connection,
+      MessageType.TABLES_LIST_FINISHED,
+      {dataBaseName: data.name},
+    ));
     this.driver.getListOfTablesInDatabase(data.name).subscribe({
       next: (table) => {
         this.clientWebsocket.send<TableInformationInterface>(new WsMessage<TableInformationInterface>(
@@ -15,7 +21,11 @@ class ReloadTablesListCommandHandler extends AbstractCommandHandler<DatabaseInte
           table,
         ));
       },
-      error: (error) => this.sendError(error),
+      error: (error) => {
+        this.sendError(error);
+        finished();
+      },
+      complete: finished,
     });
   }
 }

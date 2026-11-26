@@ -4,7 +4,7 @@ import Settings from '../Settings/Settings';
 import TransferRegistry from '../Transfer/TransferRegistry';
 import EstablishedUser from '../Connection/Interface/EstablishedUser';
 import ConnectionRequestInterface from '../Connection/Interface/ConnectionRequestInterface';
-const uuid = require('uuid');
+import {randomUUID} from 'crypto';
 
 /** close code of websocket when session does not exist or expired - client must log in again */
 export const CLOSE_SESSION_NOT_FOUND = 4001;
@@ -40,7 +40,7 @@ class SessionStore {
 
   /** new session for connected driver, returns token for client */
   create(driver: DriverInterface, username: string, options: {readOnly?: boolean, request?: ConnectionRequestInterface} = {}): EstablishedUser {
-    const sessionId = uuid.v4();
+    const sessionId = randomUUID();
     const token = JWT.getJwtToken({username, sessionId});
     this.sessions[sessionId] = {driver, username, readOnly: !!options.readOnly, expiresAt: SessionStore.expiresAt(token), websockets: new Set(), request: options.request};
 

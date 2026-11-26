@@ -60,6 +60,8 @@ const READ_ONLY_RULES: ReadOnlyRuleType[] = [
 
 /** types without = operator - rows are identified by text form of value */
 const NO_EQUALITY_TYPE = /^(json|xml|point|line|lseg|box|path|polygon|circle)\b/i;
+/** idle connection of pool is kept this long (pg default: 10 s) */
+const IDLE_CONNECTION_MS = 10 * 60 * 1000;
 
 /**
  * PostgreSQL driver. Connection is made to one database, "databases" of application are its schemas.
@@ -138,6 +140,8 @@ class PostgresAdapter implements DriverInterface {
     }
     this.pool = pool;
     this.connected = true;
+    // first table of the user does not wait for a new connection of the session pool
+    this.getSessionPool().connect().then((client) => client.release()).catch(() => undefined);
     // compatible engines (CockroachDB, YugabyteDB) miss some functions - statements fall back to NULL
     this.functions = await PostgresFunctions.detect((sql, params) => this.pool!.query(sql, params)).catch(() => new PostgresFunctions());
     return this;
@@ -183,6 +187,9 @@ class PostgresAdapter implements DriverInterface {
       max: 5,
       // default is no timeout - unreachable host would wait for TCP timeout (minutes)
       connectionTimeoutMillis: Settings.getConnectTimeoutMs(),
+      // default 10 s closed idle connections - next table waited for a new one (TCP, TLS, login) after every pause;
+      // pools are released anyway when the browser is closed (SessionStore)
+      idleTimeoutMillis: IDLE_CONNECTION_MS,
       keepAlive: true,
       application_name: 'Flase',
     } as any);

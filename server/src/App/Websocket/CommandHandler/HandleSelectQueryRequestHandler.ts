@@ -29,6 +29,10 @@ class HandleSelectQueryRequestHandler extends AbstractCommandHandler<QueryReques
 
   handle = async (data: QueryRequestDataInterface): Promise<void> => {
     const stopwatch = new QueryStopwatch();
+    // table structure (types, primary keys, references) of tables used in query - loaded on other connections
+    // while the session is opened (with remote database both take round trips, now they overlap)
+    const columnsBuilder = new ResultColumnsBuilder(this.driver, data.database.name, data.query);
+    const metadata = columnsBuilder.loadMetadata().catch(() => undefined);
     let session: DriverSessionInterface;
     try {
       // registered by tab - running query can be cancelled
@@ -46,9 +50,8 @@ class HandleSelectQueryRequestHandler extends AbstractCommandHandler<QueryReques
     stopwatch.mark('session');
 
     try {
-      // table structure (types, primary keys, references) of tables used in query
-      const columnsBuilder = new ResultColumnsBuilder(this.driver, data.database.name, data.query);
-      await columnsBuilder.loadMetadata();
+      // Metadata step is only the part which did not overlap with opening of the session
+      await metadata;
       stopwatch.mark('metadata');
 
       const rows = await this.streamQueries(session, data, columnsBuilder, stopwatch);
